@@ -76,13 +76,14 @@ The HTML report is one self-contained file you can attach or archive. It has no 
 | Hidden instructions | Unicode tag characters, bidi and zero-width tricks, homoglyphs, HTML comments, off-screen and CSS-hidden text, encoded blobs (decoded and rescanned) |
 | Instruction layer | Override directives (including paraphrased ones), forged role delimiters, concealment, approval bypass, self-modification, persistence into memory/instruction files, Claude Code `!` injections and skill hooks |
 | MCP configuration | Shell-string commands, inline code, encoded commands, reverse shells, unpinned `npx -y`/`uvx`, Docker socket and home mounts, literal secrets, plain-HTTP and metadata targets, auto-approval, shadowed server names |
-| MCP metadata | Tool poisoning, download-and-run commands in descriptions, side-channel parameters, tool shadowing, name collisions, unsafe schemas, annotation lies, MCP Apps UI risks |
+| MCP metadata | Tool poisoning (also in output schemas), download-and-run commands in descriptions, side-channel parameters, tool shadowing, name collisions, unsafe schemas, remote `$ref`s and schema bombs, annotation lies, MCP Apps UI risks (open CSP declarations, unpinned external scripts, requests sent without a user action) |
+| MCP spec conformance | Predictable task IDs (Tasks extension), deprecated Roots/Sampling/Logging, MCP client OAuth code that skips the `iss` check, the `resource` parameter or issuer-bound client credentials; see [MCP spec support](https://agentguard-ak2dev.vercel.app/docs/mcp-spec-support/) for the versions each area covers |
 | Code | Taint from tool parameters to shell, eval, deserialization, paths, URLs, SQL and templates; obfuscation, install hooks, runtime code fetch, token passthrough |
 | Toxic flows | The lethal trifecta (untrusted content + private data + egress) across all components in one agent session, shown as a concrete path |
 | Supply chain | Lockfile drift and rug pulls, signed IOC feed, registry namespace and package typosquats; opt-in provenance, OSV and package-age checks, and `--check-hijackable` (SkillJacking: referenced GitHub owners that no longer exist, unregistered npm/PyPI names, unregistered or expired download domains, freed cloud-app hostnames) |
 | Remote auth | Opt-in RFC 9728/8414/9207/8707 and PKCE conformance for remote MCP servers (unauthenticated probes only) |
 
-174 rules in rule pack 0.1.0, each with an unsafe and a safe fixture, mapped to the OWASP Top 10 for Agentic Applications (ASI), OWASP MCP Top 10, OWASP Agentic Skills Top 10 (AST), OWASP LLM Top 10, the NSA MCP security guidance (May 2026) and CWE, with an AIVSS score. The website shows the full catalog and a coverage matrix that lists gaps.
+185 rules in rule pack 0.1.0, each with an unsafe and a safe fixture, mapped to the OWASP Top 10 for Agentic Applications (ASI), OWASP MCP Top 10, OWASP Agentic Skills Top 10 (AST), OWASP LLM Top 10, the NSA MCP security guidance (May 2026) and CWE, with an AIVSS score. The website shows the full catalog and a coverage matrix that lists gaps.
 
 ## How it works
 
@@ -160,7 +161,7 @@ The action is offline by default. `check-hijackable: true` adds the `--check-hij
 
 ## Documentation
 
-- Website docs: [install](https://agentguard-ak2dev.vercel.app/docs/install/), [quickstart](https://agentguard-ak2dev.vercel.app/docs/quickstart/), [how it works](https://agentguard-ak2dev.vercel.app/docs/how-it-works/), [CLI reference](https://agentguard-ak2dev.vercel.app/docs/cli/), [limitations and next mile](https://agentguard-ak2dev.vercel.app/docs/limitations/), [rule catalog](https://agentguard-ak2dev.vercel.app/rules/), [standards coverage](https://agentguard-ak2dev.vercel.app/coverage/), [benchmarks](https://agentguard-ak2dev.vercel.app/benchmarks/).
+- Website docs: [install](https://agentguard-ak2dev.vercel.app/docs/install/), [quickstart](https://agentguard-ak2dev.vercel.app/docs/quickstart/), [how it works](https://agentguard-ak2dev.vercel.app/docs/how-it-works/), [CLI reference](https://agentguard-ak2dev.vercel.app/docs/cli/), [MCP spec support](https://agentguard-ak2dev.vercel.app/docs/mcp-spec-support/), [limitations and next mile](https://agentguard-ak2dev.vercel.app/docs/limitations/), [rule catalog](https://agentguard-ak2dev.vercel.app/rules/), [standards coverage](https://agentguard-ak2dev.vercel.app/coverage/), [benchmarks](https://agentguard-ak2dev.vercel.app/benchmarks/).
 - In this repository: [threat model](docs/threat-model.md), [v1 design](docs/design/v1-design.md), [benchmark rounds](docs/benchmark.md), [sources](docs/sources.md), [example PR workflow](docs/examples/agentguard-pr.yml), [web server](web/README.md).
 
 ## License

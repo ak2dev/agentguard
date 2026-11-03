@@ -1,0 +1,259 @@
+{
+  "tools": [
+    {
+      "name": "classify",
+      "description": "Classifies a value.",
+      "inputSchema": {
+        "type": "object",
+        "$defs": {
+          "l0": {
+            "type": "string"
+          },
+          "l1": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              },
+              {
+                "$ref": "#/$defs/l0"
+              }
+            ]
+          },
+          "l2": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              },
+              {
+                "$ref": "#/$defs/l1"
+              }
+            ]
+          },
+          "l3": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              },
+              {
+                "$ref": "#/$defs/l2"
+              }
+            ]
+          },
+          "l4": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              },
+              {
+                "$ref": "#/$defs/l3"
+              }
+            ]
+          },
+          "l5": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              },
+              {
+                "$ref": "#/$defs/l4"
+              }
+            ]
+          },
+          "l6": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              },
+              {
+                "$ref": "#/$defs/l5"
+              }
+            ]
+          },
+          "l7": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              },
+              {
+                "$ref": "#/$defs/l6"
+              }
+            ]
+          }
+        },
+        "properties": {
+          "q": {
+            "$ref": "#/$defs/l7"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "tools": [
+    {
+      "name": "outline",
+      "description": "Saves an outline.",
+      "inputSchema": {
+        "type": "object",
+        "$defs": {
+          "node": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "children": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/node"
+                }
+              }
+            }
+          }
+        },
+        "properties": {
+          "root": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      }
+    }
+  ]
+}

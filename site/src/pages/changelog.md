@@ -11,7 +11,7 @@ description: Release history.
 First public version.
 
 - `agentguard scan`, `discover`, `lock`, `verify`, `rules`, `report`, `bench`, `intel`, `schema`.
-- Rule pack 0.1.0 with 174 rules across skills, instruction files, MCP configuration, MCP metadata, code, toxic flows, supply chain, remote auth conformance, policy, coverage and the optional LLM judge.
+- Rule pack 0.1.0 with 185 rules across skills, instruction files, MCP configuration, MCP metadata, code, toxic flows, supply chain, remote auth conformance, policy, coverage and the optional LLM judge.
 - Outputs: terminal, JSON (schema v1), SARIF 2.1.0, Markdown, single-file HTML, CycloneDX 1.6 inventory.
 - GitHub Action with PR mode and SARIF upload; pre-commit hook.
 - Opt-in `--check-hijackable` (SkillJacking) on the CLI and in the GitHub Action (`check-hijackable: true`): deleted GitHub owners, unregistered npm/PyPI names, unregistered or expired domains and freed cloud-app hostnames. A GitHub token, when set, goes to api.github.com only.
@@ -20,3 +20,4 @@ First public version.
 - Optional native analyzers: tree-sitter taint for JS/TS tool handlers and shell scripts (`agentguard[code]`), and YARA rules over bundled binaries (`agentguard[yara]`).
 - Benchmark with 163 real benign skills and MCP servers from vendor repositories, plus false-positive tuning. Some documentary matches are now reported at MEDIUM instead of HIGH (see Limitations).
 - Credential paths built with `path.join`, `os.path.join`, `Path.home() / ...` or `Join-Path` are folded into one path before the credential rules read them, and descriptions that tell the agent to download and run a script are reported (AG-MCP-META-021).
+- Rules for MCP 2026-07-28 and its MCP Apps and Tasks extensions: remote `$ref`s and schema bombs in tool schemas, instructions hidden in output schemas, open MCP Apps CSP declarations, unpinned external scripts and views that act without a user action, predictable task IDs, deprecated Roots/Sampling/Logging, and MCP client OAuth code that skips the `iss` check, the `resource` parameter or issuer-bound client credentials. A new [MCP spec support](../docs/mcp-spec-support/) page lists the revisions each rule area covers.

@@ -204,9 +204,9 @@ rules:
     remediation: Keep resource metadata descriptive.
 
   - id: AG-MCP-META-016
-    version: 1
+    version: 2
     title: MCP Apps UI resource contacts external origins
-    description: A ui:// (HTML) resource fetches, beacons or loads scripts/images from external origins.
+    description: A ui:// (HTML) resource fetches, beacons or loads images or stylesheets from external origins. External scripts are AG-MCP-META-026.
     why: Interactive UI resources run in the client; external requests can exfiltrate what the UI displays.
     severity: medium
     confidence: medium
@@ -316,3 +316,87 @@ rules:
               (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
       window: 0
     remediation: Remove the command from the description. Descriptions say what the tool does; a dependency the server needs belongs in its install documentation, pinned and verified, where a person reviews it before running it.
+
+  # --- MCP 2026-07-28 tool schemas (SEP-2106) and the MCP Apps extension (io.modelcontextprotocol/ui, 2026-01-26).
+
+  - id: AG-MCP-META-022
+    version: 1
+    title: Tool schema $ref points at a network URI
+    description: A tool's inputSchema or outputSchema has a `$ref`, `$dynamicRef` or `$recursiveRef` that resolves (against any `$id` base) to an http(s), ws(s) or ftp URI. Reported at high when the URI is a loopback, private, link-local or cloud-metadata address.
+    why: MCP 2026-07-28 says implementations MUST NOT automatically dereference a `$ref` that resolves to a network URI and SHOULD reject a schema whose external `$ref` cannot be resolved. A conforming client drops the tool; a validator that does fetch it makes a request from the user's machine every time it validates (server-side request forgery, tracking), and the tool's real contract is whatever that URL serves today.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Inline the referenced schema under `$defs` and point the `$ref` at it (`#/$defs/...`).
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/index#ref-resolution"]
+
+  - id: AG-MCP-META-023
+    version: 1
+    title: Tool schema too deep, too large, or exponential under $ref
+    description: A tool's inputSchema or outputSchema is nested more than 48 levels deep, has more than 10,000 subschemas, or grows past 1,000,000 subschemas when its local `$ref`s are followed (`$defs` that each reuse the previous one several times); or a tool manifest nests past the 64 levels Agent Guard's JSON loader accepts, so its tools cannot be read at all. A recursive schema counts each cycle once.
+    why: MCP 2026-07-28 warns that composition keywords and `$defs` can be expensive to validate and asks implementations to bound schema depth, subschema count or validation time so that a malicious schema cannot deny service to the validator. The spec gives no numbers; these bounds are Agent Guard's, far above any tool schema in its benchmark corpus.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Flatten the schema. Validate in the client with a depth, subschema and time limit.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/index#composition-keyword-resource-use"]
+
+  - id: AG-MCP-META-024
+    version: 1
+    title: Instructions to the model in a tool's outputSchema
+    description: A description, title, enum, example, default or const string anywhere in a tool's outputSchema contains directives aimed at the model (override, concealment, "before using this tool…", pseudo-tags like <IMPORTANT>).
+    why: The outputSchema is part of the tool definition the client receives, and the spec describes it as guiding "clients and LLMs" in using the result, so its text can reach the model like a description does. It is reviewed even less often than the description (tool poisoning).
+    severity: high
+    confidence: medium
+    applies_to: [tool_output]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?|HIDDEN|SECRET|ADMIN|CRITICAL)\s*>|<\|im_start\|>
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|earlier|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|guidelines?|tools?|requests?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert|mention|reveal|show)\b[^\n.]{0,40}\b(?:user|human|operator)\b
+        - |-
+          \b(?:before|prior\s+to|after)\s+(?:using|calling|invoking|running|returning|reading)\s+(?:this|any|the)\s+(?:tool|function|result|output)\b[^\n]{0,160}\b(?:must|always|first|read|call|run|send|include|pass)\b
+        - |-
+          \bthe\s+(?:assistant|model|ai|agent|llm)\s+(?:must|should|needs\s+to|is\s+required\s+to)\b
+        - |-
+          \b(?:silently|secretly|covertly|quietly|without\s+(?:asking|telling))\b
+    remediation: Keep outputSchema text to what each field contains. Remove any instructions to the model.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/server/tools#output-schema"]
+
+  - id: AG-MCP-META-025
+    version: 1
+    title: MCP Apps CSP declaration opens the UI sandbox
+    description: A UI resource's `_meta.ui.csp` lists, in connectDomains, resourceDomains, frameDomains or baseUriDomains, an entry that allows any origin (`*`, a bare scheme such as `https:` or `data:`, `https://*`, `https://*.com`), a cleartext `http://` or `ws://` origin, or text with spaces, quotes or `;` that adds CSP sources or directives. High for any origin in connectDomains or resourceDomains and for CSP syntax. Omitting `ui.csp` is not reported; hosts then apply a restrictive default.
+    why: Hosts build the View's Content Security Policy from these lists and MUST NOT allow undeclared domains (MCP Apps 2026-01-26), so the declaration is the sandbox's network boundary. A wildcard in connectDomains lets the View send everything it shows (tool input and results) anywhere; in resourceDomains it lets it load script from anywhere; an entry such as `https://a.example 'unsafe-eval'` or `https://a.example; script-src *` rewrites the policy when it is joined into the header.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: List the exact https origins the View needs, one per entry.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]
+
+  - id: AG-MCP-META-026
+    version: 1
+    title: MCP Apps UI resource runs an external script without an integrity hash
+    description: A UI resource loads script from another origin (`<script src>` without an `integrity` attribute, `import()` or `import ... from` an http(s) URL, `importScripts`, or a `.js` URL assigned to `.src`). The finding says whether the origin is declared in `_meta.ui.csp.resourceDomains`.
+    why: MCP Apps relies on hosts reviewing, hashing and allow-listing UI templates when they connect ("predeclared resource review"). Script fetched from elsewhere at render time is not part of what was reviewed and can change at any time without the server's resources changing. An undeclared origin is blocked by a host that follows the spec, so the View only works on hosts that do not enforce the CSP.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Bundle the script into the resource, or pin it with a Subresource Integrity hash and declare its origin in resourceDomains.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]
+
+  - id: AG-MCP-META-027
+    version: 1
+    title: MCP Apps UI resource acts without a user action
+    description: A UI resource sends `tools/call`, `ui/message`, `ui/update-model-context` or `ui/open-link` (in a postMessage, or through a helper called with the method name) and has no click, key, pointer, input or form handler at all, so nothing the user does can be what triggers it.
+    why: In MCP Apps these requests act for the user. `tools/call` runs a server tool, `ui/message` adds a message to the conversation as the user, `ui/update-model-context` changes what the model sees in later turns, and `ui/open-link` opens a URL; hosts only MAY ask for consent. The spec's interactive phase starts each one from a user interaction, and its threat model lists unauthorized tool execution and social engineering by the View.
+    severity: high
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Send these requests only from a user action (a button, link or form), and show the user what will be sent.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]

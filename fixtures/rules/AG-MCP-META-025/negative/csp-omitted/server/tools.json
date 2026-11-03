@@ -1,0 +1,32 @@
+{
+  "tools": [
+    {
+      "name": "add",
+      "description": "Adds two numbers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number"
+          },
+          "b": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "ui://dashboard",
+      "name": "dashboard",
+      "mimeType": "text/html;profile=mcp-app",
+      "text": "<div id=\"r\"></div>",
+      "_meta": {
+        "ui": {
+          "prefersBorder": true
+        }
+      }
+    }
+  ]
+}

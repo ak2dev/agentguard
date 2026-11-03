@@ -15,12 +15,12 @@ from ..artifacts import TextUnit
 from ..extract.tools import extract_tools
 from ..mcp_config import ClientConfig, ServerEntry, docker_image, exe_name, package_arg, split_package_spec
 from ..models import Component, Span, ToolDef
-from ..models.enums import ArtifactRole, CapLabel, ComponentKind, Confidence, EvidenceKind, Transport
+from ..models.enums import ArtifactRole, CapLabel, ComponentKind, Confidence, EvidenceKind, Severity, Transport
 from ..normalize.unicode import normalize
 from ..secrets import find_secrets, is_placeholder, shannon_entropy
 from ..textutil import TIMEOUT
 from .base import Context
-from .heuristics import damerau_levenshtein, search
+from .heuristics import damerau_levenshtein, finditer, search
 
 SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish", "cmd", "powershell", "pwsh"}
 INTERPRETERS = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "php", "osascript"}
@@ -100,7 +100,47 @@ def tool_units(comp: Component, tool: ToolDef) -> list[TextUnit]:
     for k, v in (tool.annotations or {}).items():
         if isinstance(v, str) and v.strip():
             units.append(_unit(comp, path, span, "tool_annotation", "tool_text", v, f"tool:{tool.name}.annotations.{k}"))
+    # The output schema guides "clients and LLMs" (MCP 2026-07-28, Tools), so its text reaches the model too.
+    for where, text in _schema_texts(tool.output_schema):
+        units.append(_unit(comp, path, span, "tool_output", "tool_text", text, f"tool:{tool.name}.outputSchema.{where}"))
     return units
+
+
+_SCHEMA_TEXT_KEYS = ("description", "title")
+_DATA_KEYS = ("enum", "const", "default", "examples")  # values are instance data, not subschemas
+# Keywords whose value maps arbitrary names to subschemas: a property called "default" is a schema.
+_MAP_KEYWORDS = frozenset({"properties", "patternProperties", "$defs", "definitions", "dependentSchemas"})
+
+
+def _schema_children(node: Any, is_map: bool = False) -> list[tuple[str, Any, bool]]:
+    """(key, child, child_is_map) for the subschemas under a schema object, a keyword map or a list."""
+    if isinstance(node, list):
+        return [(f"[{i}]", v, False) for i, v in enumerate(node) if isinstance(v, (dict, list))]
+    if not isinstance(node, dict):
+        return []
+    if is_map:
+        return [(str(k), v, False) for k, v in node.items() if isinstance(v, (dict, list))]
+    return [(str(k), v, k in _MAP_KEYWORDS) for k, v in node.items() if k not in _DATA_KEYS and isinstance(v, (dict, list))]
+
+
+def _schema_texts(schema: Any, limit: int = 500) -> list[tuple[str, str]]:
+    """(path, text) for every description, title and string enum/example/default/const in a schema."""
+    out: list[tuple[str, str]] = []
+    stack: list[tuple[Any, str, bool]] = [(schema, "", False)]
+    while stack and len(out) < limit:
+        node, where, is_map = stack.pop()
+        if isinstance(node, dict) and not is_map:
+            for k in _SCHEMA_TEXT_KEYS:
+                if isinstance(node.get(k), str) and node[k].strip():
+                    out.append((f"{where}.{k}" if where else k, node[k]))
+            for k in _DATA_KEYS:
+                vals = node.get(k) if isinstance(node.get(k), list) else [node.get(k)]
+                text = "\n".join(x for x in vals if isinstance(x, str))
+                if text.strip():
+                    out.append((f"{where}.{k}" if where else k, text))
+        stack.extend((v, f"{where}{k}" if k.startswith("[") else (f"{where}.{k}" if where else k), m)
+                     for k, v, m in reversed(_schema_children(node, is_map)))
+    return out
 
 
 class McpUnitsBuilder:
@@ -437,11 +477,154 @@ _SHADOW_GENERIC = regex.compile(
     r"|\b(?:this\s+tool|use\s+this)\s+(?:replaces|overrides|supersedes|takes\s+precedence\s+over)\b"
     r"|\b(?:do\s+not|don'?t|never)\s+use\s+(?:the\s+)?[`'\"]?[\w.\-]+[`'\"]?\s+tool\b"
     r"|\ball\s+(?:emails?|messages?|requests?|calls?)\s+(?:sent|made)\s+(?:with|via|through)\s+(?:any|other)\s+tools?\b")
+# External scripts are AG-MCP-META-026's (it also checks integrity and the declared CSP).
 _UI_FETCH = regex.compile(r"(?i)\b(?:fetch|XMLHttpRequest|navigator\.sendBeacon|WebSocket|EventSource)\s*\(\s*[`'\"]?(https?://[^`'\"\s)]+)|"
-                          r"<(?:img|script|link)\b[^>]*\b(?:src|href)\s*=\s*[\"'](https?://[^\"']+)")
+                          r"<(?:img|link)\b[^>]*\b(?:src|href)\s*=\s*[\"'](https?://[^\"']+)")
 _UI_CRED = regex.compile(r"(?i)<input\b[^>]*type\s*=\s*[\"']?password|<(?:label|input|span|p)\b[^>]*>[^<]{0,60}\b(?:password|api[\s_-]?key|secret|seed\s+phrase|private\s+key|access\s+token)\b"
                          r"|placeholder\s*=\s*[\"'][^\"']*(?:password|api[\s_-]?key|token|secret)")
 _UI_FRAME = regex.compile(r"(?i)<iframe\b[^>]*\bsrc\s*=\s*[\"']?(https?://[^\"'\s>]+)")
+_UI_SCRIPT_TAG = regex.compile(r"(?is)<script\b([^>]*)>")
+_UI_SCRIPT_SRC = regex.compile(r"(?i)\bsrc\s*=\s*[\"']?((?:https?:)?//[^\"'\s>]+)")
+_UI_DYNAMIC_SCRIPT = regex.compile(
+    r"(?i)\bimport\s*\(\s*[`'\"]((?:https?:)?//[^`'\"\s)]+)|\bimport\s+[^;\n]{0,200}?\bfrom\s*[`'\"]((?:https?:)?//[^`'\"\s]+)"
+    r"|\bimportScripts\s*\(\s*[`'\"]((?:https?:)?//[^`'\"\s)]+)|\.src\s*=\s*[`'\"]((?:https?:)?//[^`'\"\s]+\.m?js\b[^`'\"\s]*)")
+# MCP Apps requests a View sends that act for the user (2026-01-26: tools/call, ui/message,
+# ui/update-model-context, ui/open-link): a postMessage carrying one, or a helper called with the
+# method as its first argument. Lookups and schema literals (`.get("tools/call")`, `z.literal(...)`) are not sends.
+_UI_ACTIONS = r"tools/call|ui/message|ui/update-model-context|ui/open-link"
+_UI_ACTION = regex.compile(
+    rf"postMessage\(\s*\{{[^}}]{{0,300}}?[\"']?method[\"']?\s*:\s*[\"'`]({_UI_ACTIONS})[\"'`]"
+    rf"|\b(?!(?:literal|enum|get|has|set|delete|includes|startsWith|endsWith|equals?|match|test|is|on|once|off|"
+    rf"addListener|removeListener|onRequest|onNotification|setRequestHandler|setNotificationHandler)\b)"
+    rf"[A-Za-z_$][\w$]*\s*\(\s*[\"'`]({_UI_ACTIONS})[\"'`]")
+_UI_GESTURE = regex.compile(
+    r"(?i)addEventListener\(\s*[\"'`](?:click|dblclick|submit|change|input|key(?:down|up|press)|pointer(?:down|up)|mouse(?:down|up)|touch(?:start|end))[\"'`]"
+    r"|\bon(?:click|dblclick|submit|change|input|key(?:down|up|press)|pointer(?:down|up)|mouse(?:down|up)|touch(?:start|end))\s*[=:]"
+    r"|<(?:button|form|input|select|textarea)\b")
+_CSP_KEYS = ("connectDomains", "resourceDomains", "frameDomains", "baseUriDomains")
+# `*`, a bare scheme (`https:`, `data:`), any host (`https://*`) or a wildcard over a whole TLD (`https://*.com`).
+_CSP_ANY = regex.compile(r"(?i)^(?:\*|[a-z][a-z0-9+.\-]*:|[a-z][a-z0-9+.\-]*://\*(?:\.[a-z0-9\-]+)?(?::(?:\d+|\*))?/?)$")
+_CSP_SYNTAX = regex.compile(r"[\s;,'\"]")
+_NET_SCHEMES = ("http", "https", "ws", "wss", "ftp")
+_REF_KEYS = ("$ref", "$dynamicRef", "$recursiveRef")
+# JSON Schema bounds Agent Guard applies. The spec asks for "reasonable bounds" without numbers;
+# no tool schema in the benchmark corpus comes near these (the deepest nests 3 levels). The depth
+# bound stays under the JSON loader's limit of 64 levels for the whole manifest; a manifest past
+# that cannot be read at all and is reported as such.
+_MAX_DEPTH = 48
+_MAX_NODES = 10_000
+_MAX_EXPANDED = 1_000_000
+
+
+def _host(url: str) -> str:
+    try:
+        return (urllib.parse.urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return ""
+
+
+def _origin_declared(url: str, declared: list[str]) -> bool:
+    try:
+        u = urllib.parse.urlsplit(url if not url.startswith("//") else "https:" + url)
+    except ValueError:
+        return False
+    host = (u.hostname or "").lower()
+    for d in declared:
+        try:
+            p = urllib.parse.urlsplit(d.strip())
+        except ValueError:
+            continue
+        dh = (p.hostname or "").lower()
+        if p.scheme.lower() == u.scheme.lower() and (dh == host or (dh.startswith("*.") and host.endswith(dh[1:]))):
+            return True
+    return False
+
+
+def _ssrf_target(url: str) -> bool:
+    host = _host(url if not url.startswith("//") else "https:" + url)
+    ip = _ip(host)
+    return _loopback(host) or host in _METADATA_HOSTS or (ip is not None and (ip.is_private or ip.is_link_local))
+
+
+def _remote_refs(schema: Any, limit: int = 20_000) -> list[str]:
+    """Network URIs that `$ref`/`$dynamicRef`/`$recursiveRef` values resolve to, against any `$id` base."""
+    out: list[str] = []
+    stack: list[tuple[Any, str, bool]] = [(schema, "", False)]
+    seen = 0
+    while stack and seen < limit:
+        node, base, is_map = stack.pop()
+        seen += 1
+        if isinstance(node, dict) and not is_map:
+            try:
+                if isinstance(node.get("$id"), str) and node["$id"]:
+                    base = urllib.parse.urljoin(base, node["$id"]) if base else node["$id"]
+                for k in _REF_KEYS:
+                    ref = node.get(k)
+                    if isinstance(ref, str) and not ref.startswith("#"):
+                        target = urllib.parse.urljoin(base, ref) if base else ref
+                        if target.startswith("//") or urllib.parse.urlsplit(target).scheme.lower() in _NET_SCHEMES:
+                            out.append(target)
+            except ValueError:
+                pass
+        stack.extend((v, base, m) for _, v, m in _schema_children(node, is_map))
+    return out
+
+
+def _schema_shape(schema: Any) -> tuple[int, int]:
+    """(maximum nesting depth, number of schema objects), counting stops past the bounds."""
+    depth = nodes = 0
+    stack: list[tuple[Any, int, bool]] = [(schema, 1, False)]
+    while stack and nodes <= _MAX_NODES and depth <= _MAX_DEPTH:
+        node, d, is_map = stack.pop()
+        depth = max(depth, d)
+        nodes += isinstance(node, dict) and not is_map
+        stack.extend((v, d + 1, m) for _, v, m in _schema_children(node, is_map))
+    return depth, nodes
+
+
+def _pointer(root: Any, ref: str) -> Any:
+    node = root
+    for part in ref[1:].lstrip("/").split("/") if ref not in ("#", "#/") else []:
+        part = urllib.parse.unquote(part).replace("~1", "/").replace("~0", "~")
+        if isinstance(node, dict) and part in node:
+            node = node[part]
+        elif isinstance(node, list) and part.isdigit() and int(part) < len(node):
+            node = node[int(part)]
+        else:
+            return None
+    return node
+
+
+def _expanded_size(root: Any, cap: int = 10 * _MAX_EXPANDED) -> int:
+    """Schema objects a validator visits with every local `$ref` inlined once per use. A cycle counts
+    as one (recursive schemas are legitimate); `$defs` that each use the previous one several
+    times grow exponentially (the schema form of a "billion laughs")."""
+    def children(node: Any, is_map: bool) -> list[tuple[Any, bool]]:
+        out = [(v, m) for _, v, m in _schema_children(node, is_map)]
+        ref = node.get("$ref") if isinstance(node, dict) and not is_map else None
+        if isinstance(ref, str) and ref.startswith("#"):
+            target = _pointer(root, ref)
+            if isinstance(target, (dict, list)):
+                out.append((target, False))
+        return out
+
+    memo: dict[int, int] = {}
+    on_path: set[int] = set()
+    stack: list[tuple[Any, bool, bool]] = [(root, False, False)]
+    while stack:
+        node, is_map, done = stack.pop()
+        nid = id(node)
+        if done:
+            on_path.discard(nid)
+            total = 1 if isinstance(node, dict) and not is_map else 0
+            for child, _ in children(node, is_map):
+                total = min(cap, total + memo.get(id(child), 1))
+            memo[nid] = total
+        elif nid not in memo and nid not in on_path:
+            on_path.add(nid)
+            stack.append((node, is_map, True))
+            stack.extend((c, m, False) for c, m in children(node, is_map) if id(c) not in memo and id(c) not in on_path)
+    return memo.get(id(root), 0)
 
 
 class McpMetaAnalyzer:
@@ -450,6 +633,7 @@ class McpMetaAnalyzer:
     rules: ClassVar[tuple[str, ...]] = (
         "AG-MCP-META-004", "AG-MCP-META-006", "AG-MCP-META-007", "AG-MCP-META-008", "AG-MCP-META-009",
         "AG-MCP-META-010", "AG-MCP-META-016", "AG-MCP-META-017", "AG-MCP-META-018", "AG-MCP-META-019",
+        "AG-MCP-META-022", "AG-MCP-META-023", "AG-MCP-META-025", "AG-MCP-META-026", "AG-MCP-META-027",
     )
 
     def run(self, ctx: Context) -> None:
@@ -462,6 +646,12 @@ class McpMetaAnalyzer:
                 self._ui_resource(ctx, comp, rs)
         self._collisions(ctx, servers)
         self._shadowing(ctx, servers)
+        for path in ctx.inventory.deep_manifests:
+            comp = ctx.inventory.component_for(path)
+            ctx.emit("AG-MCP-META-023", component_ids=[comp.id] if comp else [], span=Span(path=path), snippet=path,
+                     match=f"{path}:deep", kind=EvidenceKind.schema,
+                     message=f"Tool manifest {path} nests more than 64 levels deep; Agent Guard could not read its tools, "
+                     "and validators with a depth or stack limit fail on it.")
 
     def _tool(self, ctx: Context, comp: Component, tool: ToolDef) -> None:
         span = tool.span
@@ -471,6 +661,9 @@ class McpMetaAnalyzer:
         if len(desc) > 2000 or regex.search(r"\n{15,}|[ \t]{200,}", desc, timeout=TIMEOUT):
             ctx.emit("AG-MCP-META-019", component_ids=comp.id, span=span, snippet=desc[:200], match=f"{tool.name}:stuffing",
                      kind=EvidenceKind.metadata, message=f"Tool '{tool.name}' has an unusually long or padded description ({len(desc)} chars).")
+        for which, sch in (("inputSchema", schema), ("outputSchema", tool.output_schema)):
+            if isinstance(sch, dict) and sch:
+                self._schema(ctx, comp, tool, which, sch)
         if not isinstance(props, dict):
             return
         dangerous = []
@@ -495,11 +688,60 @@ class McpMetaAnalyzer:
                          match=f"{tool.name}:additional", kind=EvidenceKind.schema,
                          message=f"Tool '{tool.name}' accepts arbitrary extra arguments (additionalProperties: true).")
 
+    def _schema(self, ctx: Context, comp: Component, tool: ToolDef, which: str, schema: dict[str, Any]) -> None:
+        span = tool.span
+        refs = _remote_refs(schema)
+        if refs:
+            internal = [r for r in refs if _ssrf_target(r)]
+            ctx.emit("AG-MCP-META-022", component_ids=comp.id, span=span, snippet=", ".join((internal or refs)[:3])[:240],
+                     match=f"{tool.name}:{which}:ref", kind=EvidenceKind.schema,
+                     severity=Severity.high if internal else None,
+                     message=f"Tool '{tool.name}' {which} has a $ref to a network URI ({(internal or refs)[0][:120]})"
+                     + (", an internal or cloud-metadata address" if internal else "") + ".")
+        depth, nodes = _schema_shape(schema)
+        if depth > _MAX_DEPTH or nodes > _MAX_NODES:
+            ctx.emit("AG-MCP-META-023", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: depth {depth}, {nodes} objects",
+                     match=f"{tool.name}:{which}:size", kind=EvidenceKind.schema,
+                     message=f"Tool '{tool.name}' {which} is " + (f"nested more than {_MAX_DEPTH} levels deep" if depth > _MAX_DEPTH
+                                                                  else f"made of more than {_MAX_NODES:,} subschemas") + ".")
+            return
+        expanded = _expanded_size(schema)
+        if expanded > _MAX_EXPANDED:
+            ctx.emit("AG-MCP-META-023", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: {nodes} objects, over {_MAX_EXPANDED:,} with $refs inlined",
+                     match=f"{tool.name}:{which}:size", kind=EvidenceKind.schema, confidence=Confidence.high,
+                     message=f"Tool '{tool.name}' {which} has {nodes} subschemas but more than {_MAX_EXPANDED:,} once its local $refs are "
+                     "followed: its $defs reuse each other exponentially.")
+
     def _ui_resource(self, ctx: Context, comp: Component, rs) -> None:
+        ui = (rs.meta or {}).get("ui")
+        csp = ui.get("csp") if isinstance(ui, dict) and isinstance(ui.get("csp"), dict) else {}
+        if csp:
+            self._ui_csp(ctx, comp, rs, csp)
         if not rs.text or not (rs.uri.startswith("ui://") or (rs.mime_type or "").startswith("text/html")):
             return
         text = rs.text
         span = rs.span
+        declared = [d for d in csp.get("resourceDomains") or [] if isinstance(d, str)] if isinstance(csp.get("resourceDomains"), list) else []
+        scripts = []
+        for tag in finditer(_UI_SCRIPT_TAG, text):
+            src = _UI_SCRIPT_SRC.search(tag.group(1), timeout=TIMEOUT)
+            if src and not regex.search(r"(?i)\bintegrity\s*=", tag.group(1), timeout=TIMEOUT):
+                scripts.append((src.group(1), tag.group(0)))
+        scripts += [(next(g for g in m.groups() if g), m.group(0)) for m in finditer(_UI_DYNAMIC_SCRIPT, text)]
+        if scripts:
+            url, snippet = scripts[0]
+            ok = _origin_declared(url, declared)
+            ctx.emit("AG-MCP-META-026", component_ids=comp.id, span=span, snippet=snippet[:240], match=f"{rs.uri}:script",
+                     kind=EvidenceKind.metadata,
+                     message=f"UI resource {rs.uri} runs a script from {url[:120]} with no integrity hash"
+                     + ("" if ok else "; its origin is not declared in _meta.ui.csp.resourceDomains, so a host that follows MCP Apps blocks it")
+                     + ".")
+        m = search(_UI_ACTION, text)
+        if m and not search(_UI_GESTURE, text):
+            ctx.emit("AG-MCP-META-027", component_ids=comp.id, span=span, snippet=m.group(0)[:240], match=f"{rs.uri}:auto",
+                     kind=EvidenceKind.metadata,
+                     message=f"UI resource {rs.uri} sends {m.group(1) or m.group(2)} and has no click, key or form handler, "
+                     "so it sends it without any user action.")
         m = search(_UI_FETCH, text)
         if m:
             ctx.emit("AG-MCP-META-016", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:net",
@@ -512,6 +754,32 @@ class McpMetaAnalyzer:
         if m:
             ctx.emit("AG-MCP-META-018", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:frame",
                      kind=EvidenceKind.metadata, message=f"UI resource {rs.uri} embeds an external frame ({m.group(1)[:80]}).")
+
+    def _ui_csp(self, ctx: Context, comp: Component, rs, csp: dict[str, Any]) -> None:
+        """Hosts build the View's CSP from these lists verbatim (MCP Apps 2026-01-26), so a wildcard
+        opens the sandbox and an entry with spaces, quotes or `;` adds sources or whole directives."""
+        worst: tuple[int, str, str, str] | None = None
+        for key in _CSP_KEYS:
+            vals = csp.get(key)
+            for entry in [vals] if isinstance(vals, str) else vals if isinstance(vals, list) else []:
+                if not isinstance(entry, str):
+                    continue
+                if _CSP_SYNTAX.search(entry.strip()):
+                    rank, why = 3, "carries CSP syntax that adds sources or directives"
+                elif _CSP_ANY.match(entry.strip()):
+                    rank, why = (2 if key in ("connectDomains", "resourceDomains") else 1), "allows any origin"
+                elif entry.strip().lower().startswith(("http://", "ws://")) and not _loopback(_host(entry.strip())):
+                    rank, why = 1, "is a cleartext origin"
+                else:
+                    continue
+                if worst is None or rank > worst[0]:
+                    worst = (rank, key, entry, why)
+        if worst is None:
+            return
+        rank, key, entry, why = worst
+        ctx.emit("AG-MCP-META-025", component_ids=comp.id, span=rs.span, snippet=f"{key}: {entry}"[:240], match=f"{rs.uri}:csp",
+                 kind=EvidenceKind.metadata, severity=Severity.high if rank >= 2 else None,
+                 message=f"UI resource {rs.uri} declares _meta.ui.csp.{key} entry '{entry[:80]}', which {why}.")
 
     def _collisions(self, ctx: Context, servers: list[Component]) -> None:
         owners: dict[str, list[tuple[Component, ToolDef]]] = {}
@@ -562,6 +830,77 @@ class McpMetaAnalyzer:
                 if hit:
                     ctx.emit("AG-MCP-META-006", component_ids=comp.id, span=tool.span, snippet=desc[:240], match=f"{tool.name}:shadow",
                              kind=EvidenceKind.metadata, message=f"Tool '{tool.name}' {hit}.")
+
+
+# ---------------------------------------------------------------------------
+# MCP client authorization code (MCP 2026-07-28, Authorization)
+# ---------------------------------------------------------------------------
+# Only packages that use an MCP client are checked: an MCP server that logs its users in to an
+# upstream provider (GitHub, Google) runs the same OAuth code, and RFC 8707 / RFC 9207 handling
+# there is that provider's business, not the MCP spec's.
+_MCP_CLIENT = regex.compile(
+    r"@modelcontextprotocol/(?:sdk/client|client)\b|\b(?:StreamableHTTPClientTransport|SSEClientTransport|StdioClientTransport)\b"
+    r"|\bfrom\s+mcp(?:\.client[\w.]*)?\s+import\s+[^\n]*\b(?:ClientSession|streamablehttp_client|streamable_http_client|sse_client|stdio_client)\b"
+    r"|\bfrom\s+mcp\.client\b|\bimport\s+mcp\.client\b")
+_CALLBACK_CODE = regex.compile(
+    r"\b(?:searchParams|params|query|args|query_params|qs|GET)\s*\.get\(\s*[\"']code[\"']"
+    r"|\.query\.code\b|\b(?:query|params|args|qs|parsed|query_params)\s*\[\s*[\"']code[\"']\s*\]")
+_OAUTH_CONTEXT = regex.compile(r"(?i)\b(?:code_verifier|codeVerifier|redirect_uri|redirectUri|oauth|authorization_code|finishAuth|callback)\b")
+_ISS = regex.compile(r"\biss\b")
+_AUTHZ_REQUEST = regex.compile(r"[\"']code_challenge[\"']|\bcode_challenge\s*[:=]|[?&]code_challenge=")
+_TOKEN_REQUEST = regex.compile(r"\bgrant_type[\"']?\s*[:=,]\s*[\"'](?:authorization_code|refresh_token)[\"']|\bgrant_type=(?:authorization_code|refresh_token)\b")
+_RESOURCE_PARAM = regex.compile(r"[\"']resource[\"']|\bresource\s*[:=]|[?&]resource=")
+_CLIENT_STORE = regex.compile(r"\b(?:saveClientInformation|saveClientInfo|save_client_information|save_client_info|set_client_info)\s*\(")
+_ISSUER = regex.compile(r"(?i)\bissuer\b")
+_PARAM_WINDOW = 20  # lines around an authorization or token request searched for `resource`
+# Servers drive themselves with an MCP client in their tests; tests neither make a package a client nor get checked.
+_TEST_PATH = regex.compile(r"(?i)(?:^|/)(?:tests?|__tests__|spec|e2e)/|(?:^|/)test_[^/]*\.py$|_test\.py$"
+                           r"|\.(?:test|spec|integration)\.[cm]?[jt]sx?$")
+_COMMENT_LINE = regex.compile(r"(?m)^[ \t]*(?://|/\*|\*|#).*$")
+
+
+class McpClientAuthAnalyzer:
+    id: ClassVar[str] = "mcp.client_auth"
+    requires: ClassVar[frozenset[str]] = frozenset()
+    rules: ClassVar[tuple[str, ...]] = ("AG-MCP-SPEC-003", "AG-MCP-SPEC-004", "AG-MCP-SPEC-005")
+
+    def run(self, ctx: Context) -> None:
+        texts = [at for at in ctx.texts("source_code") if not search(_TEST_PATH, at.path)]
+        clients = {at.artifact.component_id for at in texts if search(_MCP_CLIENT, at.text)}
+        for at in texts:
+            if at.artifact.component_id in clients:
+                self._file(ctx, at)
+
+    def _file(self, ctx: Context, at) -> None:
+        cid = at.artifact.component_id
+        # Whole-line comments are blanked (offsets kept): a request in a doc comment is not a request,
+        # and "TODO: check iss" is not a check.
+        try:
+            text = _COMMENT_LINE.sub(lambda c: " " * len(c.group(0)), at.text, timeout=TIMEOUT)
+        except TimeoutError:
+            return
+
+        def emit(rid: str, m: regex.Match[str], key: str, message: str) -> None:
+            ctx.emit(rid, component_ids=cid, span=at.span(m.start(), m.end()), snippet=at.line_text(m.start()).strip()[:240],
+                     match=f"{at.path}:{key}", kind=EvidenceKind.regex, message=message)
+
+        m = search(_CALLBACK_CODE, text)
+        if m and search(_OAUTH_CONTEXT, at.text) and not search(_ISS, text):
+            emit("AG-MCP-SPEC-003", m, "iss", "Reads the authorization code from the OAuth redirect but never reads `iss`, so a response "
+                 "from a different authorization server (mix-up attack, RFC 9207) is accepted.")
+        lines = text.split("\n")
+        for rx, key, what in ((_AUTHZ_REQUEST, "authz", "authorization request"), (_TOKEN_REQUEST, "token", "token request")):
+            for m in finditer(rx, text):
+                line = text.count("\n", 0, m.start())
+                window = "\n".join(lines[max(0, line - _PARAM_WINDOW) : line + _PARAM_WINDOW + 1])
+                if not search(_RESOURCE_PARAM, window):
+                    emit("AG-MCP-SPEC-005", m, key, f"Builds an OAuth {what} without the `resource` parameter (RFC 8707), "
+                         "so the token is not bound to the MCP server it is meant for.")
+                    break
+        m = search(_CLIENT_STORE, text)
+        if m and not search(_ISSUER, text):
+            emit("AG-MCP-SPEC-004", m, "issuer", "Stores OAuth client credentials without the authorization server's issuer, "
+                 "so they can be reused with a different authorization server.")
 
 
 def _unused(_: Any, __: ArtifactRole) -> None:

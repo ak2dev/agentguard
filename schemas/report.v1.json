@@ -998,6 +998,11 @@
           "default": null,
           "title": "Text"
         },
+        "meta": {
+          "additionalProperties": true,
+          "title": "Meta",
+          "type": "object"
+        },
         "span": {
           "anyOf": [
             {
