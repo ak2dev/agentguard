@@ -7,11 +7,22 @@ First public version.
 - Agent Guard Web server (`web/`, `agentguard-web`): paste a GitHub, npm, PyPI or MCP Registry link; it is pinned to an exact commit or version (registry digests verified), fetched through an allowlisted SSRF-hardened fetcher, scanned in a throwaway container with no network, and stored as an unlisted report with a permalink, downloads and drift against the previous scan. `docker compose up` runs it locally; CI tests the isolation against real containers.
 - Web scanner (`/scan`): paste text, drop files or a .zip, or give a public GitHub repository, folder, file or gist link; scanned in the browser by the same engine under Pyodide, with zero network requests for pasted and dropped input (tested in CI). GitHub links are pinned to a commit and findings link to the exact file and line. Deployable to Vercel with `vercel.json` security headers.
 - Commands: `scan`, `discover`, `lock`, `verify`, `rules` (`list`, `explain`, `export`), `report`, `bench`, `intel` (`status`, `update`), `schema`.
-- Rule pack 0.1.0 with 174 rules across skills and instruction files, MCP client configuration, MCP metadata, code, toxic flows, supply chain and drift, remote auth conformance, policy, coverage, and the optional LLM judge. Every rule has an unsafe and a safe fixture.
+- Rule pack 0.1.0 with 185 rules across skills and instruction files, MCP client configuration, MCP metadata, code, toxic flows, supply chain and drift, remote auth conformance, policy, coverage, and the optional LLM judge. Every rule has an unsafe and a safe fixture.
 - Outputs: terminal, JSON (schema v1), SARIF 2.1.0, Markdown, single-file HTML, CycloneDX 1.6 inventory.
 - Opt-in network features: read-only remote MCP metadata, OAuth/TLS conformance, npm provenance, OSV, package age, hijackable dependencies, LLM judge (Anthropic, OpenAI-compatible, Ollama).
 - GitHub Action with PR mode and SARIF upload; pre-commit hook.
 - Pure-Python engine that runs under Pyodide.
+
+### MCP 2026-07-28 rules
+
+Built from the 2026-07-28 specification, its changelog and the official MCP Apps (2026-01-26) and Tasks (2026-07-28) extensions, read on 2026-11-03 (`docs/sources.md`).
+
+- Tool schemas: AG-MCP-META-022 (a `$ref`, `$dynamicRef` or `$recursiveRef` that resolves to a network URI, also through an `$id` base; high for loopback, private and cloud-metadata addresses) and AG-MCP-META-023 (schemas nested over 48 levels, over 10,000 subschemas, or past 1,000,000 once local `$ref`s are followed; recursive schemas count each cycle once). A tool manifest nested past the 64-level JSON limit used to be skipped without a word; it is now reported by AG-MCP-META-023.
+- AG-MCP-META-024: instructions to the model in a tool's `outputSchema` (descriptions, titles, enums, examples, defaults, consts at any depth). Hidden Unicode there is now reported by AG-MCP-META-001.
+- MCP Apps: AG-MCP-META-025 (a `_meta.ui.csp` entry that allows any origin, a cleartext origin, or CSP syntax that adds directives; an omitted CSP is the spec's restrictive default and is not reported), AG-MCP-META-026 (a script from another origin without an integrity hash, noting whether its origin is declared) and AG-MCP-META-027 (a view that sends `tools/call`, `ui/message`, `ui/update-model-context` or `ui/open-link` with no user-action handler at all). UI resources delivered as a base64 `blob` are now read. AG-MCP-META-016 v2 leaves external scripts to AG-MCP-META-026.
+- New area, MCP spec conformance (`AG-MCP-SPEC-*`, in server and client source): AG-MCP-SPEC-001 (task IDs from timestamps, counters or non-cryptographic randomness next to Tasks code), AG-MCP-SPEC-002 (deprecated Roots, Sampling and Logging at info; Sampling `includeContext` "thisServer"/"allServers" at low), and, in packages that use an MCP client outside their tests, AG-MCP-SPEC-003 (OAuth callback that never reads `iss`), AG-MCP-SPEC-004 (client credentials stored without the issuer, low confidence) and AG-MCP-SPEC-005 (authorization or token request without `resource`).
+- Docs: an MCP spec support page lists which specification revisions and extensions each rule area covers. Six CWE entries added (CWE-340, 346, 400, 477, 522, 942).
+- Benchmark: no item changed flags, maximum severity or benign hits. Four real servers (MCP `everything`, `filesystem`, `git` and playwright-mcp) now also carry AG-MCP-SPEC-002 at info for their Roots use. A first run reported AG-MCP-SPEC-005 at medium on supabase-mcp (a `grant_type` example in a generated API doc comment, in a server whose tests use an MCP client); test files and comment lines are now excluded, and a fixture keeps it that way.
 
 ### Roadmap Phase 0: trust before release
 
@@ -21,7 +32,7 @@ First public version.
 - `SECURITY.md` states the project's EU Cyber Resilience Act posture (non-commercial open source) and how to verify attestations. `CONTRIBUTING.md` adds the rule checklist and inert-sample rules, with a detection-bypass issue form.
 - LLM judge: delimiter look-alikes (fullwidth and small brackets, confusable letters, zero-width padding, HTML entities, tags split across lines) are neutralized, file-path labels cannot leave their attribute, and the system prompt says the verdict can only add a finding. Prompt version 2, so cached verdicts are not reused. Adversarial fixtures in `fixtures/judge/` test that injected instructions stay inside their data block and that a judge obeying them leaves every deterministic finding unchanged.
 - The PyPI package is `agentguard-v1`: PyPI treats `agentguard` as the existing, unrelated `agent-guard` and will not register it. The command, the import name and the GitHub Action are unchanged. The GitHub repository is now `ak2dev/agentguard` (renamed from `agentguard-v1`); links, verification identities, the SARIF `informationUri` and the HTTP user agent use the new name.
-- Site: `/docs/install/` pins the commit the site was built from (`pipx install "git+https://github.com/ak2dev/agentguard@<commit>"`) instead of an unregistered PyPI name, and the home and scan pages no longer show `uvx agentguard`. HTML reports say "140 of 174 rules applied" instead of "140 rules evaluated".
+- Site: `/docs/install/` pins the commit the site was built from (`pipx install "git+https://github.com/ak2dev/agentguard@<commit>"`) instead of an unregistered PyPI name, and the home and scan pages no longer show `uvx agentguard`. HTML reports say how many of the pack's rules were applied ("140 of 174 rules applied" when this landed) instead of "140 rules evaluated".
 
 ### Site charts and diagrams
 

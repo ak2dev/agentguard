@@ -1,0 +1,95 @@
+# MCP specification conformance in server and client code (MCP 2026-07-28 and its
+# official Tasks extension). Read from source files of packages that use an MCP SDK;
+# nothing is run. Rule text cites the spec section it is built from.
+rules:
+  - id: AG-MCP-SPEC-001
+    version: 1
+    title: Predictable task IDs
+    description: Server code builds a task ID from a timestamp, a counter, `Math.random()`, Python's `random` module, `uuid1()` or a list length, next to MCP Tasks code (`ttlMs`, `pollIntervalMs`, a task store, `tasks/get`, `input_required` or a `"task"` resultType) within 15 lines. A line that also uses a cryptographic generator (`randomUUID`, `randomBytes`, `secrets`, `uuid4`, `nanoid`) is not reported.
+    why: The Tasks extension (io.modelcontextprotocol/tasks, 2026-07-28) lets servers use task IDs as bearer tokens for stored state and says they MUST be generated with enough entropy that a third party cannot enumerate or guess them; the 2025-11-25 tasks utility required cryptographically secure IDs wherever tasks are not bound to an authorization context. A guessable ID lets anyone poll another caller's task and read its result, or cancel it.
+    severity: medium
+    confidence: medium
+    applies_to: [source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        # Assignment to taskId / task_id from a predictable source on the same line.
+        - |-
+          ^(?![^\n]*(?:randomUUID|randomBytes|getRandomValues|secrets\.|uuid4|uuidv4|\bv4\(|nanoid|token_urlsafe|token_hex|\bulid))[^\n]*?\btask_?id\b["']?\s*(?:[:=]|=>)\s*[^\n;]{0,80}?(?:\bDate\.now\(\)|\bnew\s+Date\(\)\.getTime\(\)|\bperformance\.now\(\)|\bMath\.random\(\)|\+\+\s*[A-Za-z_$][\w$.]*|[A-Za-z_$][\w$.]*\s*\+\+|\btime\.time(?:_ns)?\(\)|\bdatetime\.(?:now|utcnow)\(\)|\brandom\.(?:random|randint|randrange|choice|choices|getrandbits)\(|\buuid\.uuid1\(\)|\buuid1\(\)|\bnext\(\s*[A-Za-z_][\w.]*\s*\)|\bitertools\.count\(|\blen\([^)\n]*\)\s*\+\s*1|\.(?:length|size)\s*\+\s*1|\bself\._?(?:counter|next_?id|seq)\b)
+        # "task-" + counter / timestamp in a template, concatenation or f-string.
+        - |-
+          ^(?![^\n]*(?:randomUUID|randomBytes|getRandomValues|secrets\.|uuid4|uuidv4|\bv4\(|nanoid|token_urlsafe|token_hex|\bulid))[^\n]*?[`'"]task[-_:.]?(?:\$\{|["']\s*\+\s*)\s*(?:Date\.now\(\)|new\s+Date\(\)\.getTime\(\)|Math\.random\(\)|performance\.now\(\)|\+\+|[A-Za-z_$][\w$.]*\s*\+\+|[A-Za-z_$][\w$.]*\.(?:length|size)\b)
+        - |-
+          ^(?![^\n]*(?:secrets\.|uuid4|token_urlsafe|token_hex))[^\n]*?\bf["']task[-_:.]?\{\s*(?:int\(\s*)?(?:time\.time(?:_ns)?\(\)|next\(|len\(|self\._?(?:counter|next_?id|seq)\b|random\.|datetime\.)
+      require:
+        - |-
+          \b(?:ttlMs|ttl_ms|pollIntervalMs|poll_interval_ms|pollInterval|CreateTaskResult|TaskStore|taskStore|task_store)\b|tasks/(?:get|update|cancel|result|list)|["']input_required["']|io\.modelcontextprotocol/tasks|resultType["']?\s*:\s*["']task["']
+      window: 15
+    remediation: Generate task IDs with a cryptographic generator (`crypto.randomUUID()`, `secrets.token_urlsafe()`, `uuid.uuid4()`), and check on every tasks/get, tasks/update and tasks/cancel that the caller may access the task.
+    references: ["https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#security-considerations"]
+
+  - id: AG-MCP-SPEC-002
+    version: 1
+    title: Relies on deprecated Roots, Sampling or Logging
+    description: Server or client code uses a feature MCP 2026-07-28 deprecates (SEP-2577) - the `roots/list`, `sampling/createMessage` or `logging/setLevel` methods, their SDK request schemas, SDK calls (`createMessage`, `listRoots`, `sendLoggingMessage`, `create_message`, `list_roots`, `send_log_message`, `set_logging_level`) or callbacks - reported at info. Sampling with `includeContext` set to "thisServer" or "allServers" (deprecated, SEP-2596) is reported at low.
+    why: Deprecated features keep working for at least twelve months, until the first revision released on or after 2027-07-28, but new implementations should not adopt them and existing ones should migrate (tool parameters or resource URIs instead of Roots, direct LLM provider APIs instead of Sampling, stderr or OpenTelemetry instead of Logging). `includeContext` asks the client to add context from this server's or every connected server's conversation to a prompt the server wrote; servers SHOULD NOT use it unless the client declares `sampling.context`.
+    severity: low
+    confidence: high
+    applies_to: [source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          ["'`](?:roots/list|sampling/createMessage|logging/setLevel|notifications/roots/list_changed)["'`]
+        - |-
+          \b(?:ListRootsRequestSchema|CreateMessageRequestSchema|SetLevelRequestSchema|RootsListChangedNotificationSchema|LoggingMessageNotificationSchema)\b
+        - |-
+          \b(?:server|mcpServer|mcp_server|session|ctx|context|extra)(?:\.server|\.session)?\.(?:createMessage|listRoots|sendLoggingMessage|create_message|list_roots|send_log_message|set_logging_level)\s*\(
+        - |-
+          \b(?:sampling_callback|list_roots_callback|logging_callback)\s*=
+        - |-
+          \binclude_?context\b["']?\s*[:=]\s*["'](?:thisServer|allServers)["']
+      downgrade:
+        # Everything but includeContext is a deprecation notice, not a risk (\A: the match line only).
+        - severity: info
+          patterns:
+            - |-
+              \A(?![^\n]*include_?context)
+          window: 0
+    remediation: Migrate before the feature is removed. Pass directories or files as tool parameters, resource URIs or server configuration instead of Roots; call an LLM provider API directly instead of Sampling (and never request includeContext); log to stderr or OpenTelemetry instead of Logging.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/deprecated", "https://modelcontextprotocol.io/specification/2026-07-28/changelog"]
+
+  - id: AG-MCP-SPEC-003
+    version: 1
+    title: MCP client OAuth callback does not check iss
+    description: In a package that uses an MCP client outside its tests, code reads the authorization code from the OAuth redirect (`searchParams.get("code")`, `query.code`, `args.get("code")`) and the file never reads `iss` outside comments. Test files are not checked.
+    why: MCP 2026-07-28 (SEP-2468) requires clients to record the authorization server's issuer before redirecting and, before sending the code to any token endpoint, to compare a returned `iss` to it (RFC 9207), and to reject a response without `iss` from a server that advertises it. A callback that ignores `iss` cannot tell which authorization server answered, which is what a mix-up attack exploits to steal the code.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Read `iss` from the redirect and compare it, unnormalized, to the issuer recorded with the PKCE verifier; reject a mismatch, and reject a missing `iss` when the server advertises `authorization_response_iss_parameter_supported`.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#authorization-response-validation", "https://www.rfc-editor.org/rfc/rfc9207"]
+
+  - id: AG-MCP-SPEC-004
+    version: 1
+    title: MCP client stores client credentials without the issuer
+    description: In a package that uses an MCP client outside its tests, code saves OAuth client registration (`saveClientInformation`, `save_client_info`, `set_client_info`) and the file never mentions the issuer outside comments. Test files are not checked.
+    why: MCP 2026-07-28 (SEP-2352) says clients MUST key persisted client credentials by the authorization server's issuer, MUST NOT reuse them with a different authorization server, and MUST re-register when the server's protected resource metadata names a new one. Credentials keyed only by the MCP server are sent to whatever authorization server it points at next. This is a heuristic (the key may be built elsewhere), hence low confidence.
+    severity: low
+    confidence: low
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Key stored client credentials by the issuer from validated authorization server metadata, and re-register when it changes. Client ID Metadata Document client IDs need no re-registration.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration#authorization-server-binding"]
+
+  - id: AG-MCP-SPEC-005
+    version: 1
+    title: MCP client OAuth request without the resource parameter
+    description: In a package that uses an MCP client outside its tests, code builds an authorization request (`code_challenge`) or a token request (`grant_type` authorization_code or refresh_token) with no `resource` parameter within 20 lines. Requests in comments (for example generated API docs) and test files are not checked.
+    why: Since 2025-06-18 MCP clients MUST send the RFC 8707 `resource` parameter, set to the MCP server's canonical URI, in both authorization and token requests, whether or not the authorization server supports it. Without it the token is not bound to the server it is meant for, so a malicious server can obtain a token usable elsewhere.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Add `resource=<canonical MCP server URI>` to the authorization request and to every token request, including refreshes.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#resource-parameter-implementation", "https://www.rfc-editor.org/rfc/rfc8707"]

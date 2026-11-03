@@ -1,0 +1,23 @@
+{
+  "tools": [
+    {
+      "name": "search",
+      "description": "Searches the catalog.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "$defs": {
+          "query": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "properties": {
+          "q": {
+            "$ref": "#/$defs/query"
+          }
+        }
+      }
+    }
+  ]
+}

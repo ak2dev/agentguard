@@ -1,0 +1,20 @@
+{
+  "tools": [
+    {
+      "name": "config",
+      "description": "Saves settings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "default": {
+            "$ref": "https://schemas.example.invalid/settings.json"
+          },
+          "name": {
+            "type": "string",
+            "default": "main"
+          }
+        }
+      }
+    }
+  ]
+}

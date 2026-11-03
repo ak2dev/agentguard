@@ -1,0 +1,29 @@
+{
+  "tools": [
+    {
+      "name": "weather",
+      "description": "Gets the weather for a city.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "type": "number",
+            "description": "Temperature in celsius"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line summary the assistant can show the user, such as \"Sunny, 22 C\"."
+          }
+        }
+      }
+    }
+  ]
+}

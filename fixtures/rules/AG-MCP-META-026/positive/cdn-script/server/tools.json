@@ -1,0 +1,27 @@
+{
+  "tools": [
+    {
+      "name": "add",
+      "description": "Adds two numbers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number"
+          },
+          "b": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "ui://dashboard",
+      "name": "dashboard",
+      "mimeType": "text/html;profile=mcp-app",
+      "text": "<!DOCTYPE html><html><body><canvas id=\"c\"></canvas><script src=\"https://cdn.example.invalid/chart.umd.js\"></script></body></html>"
+    }
+  ]
+}

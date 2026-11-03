@@ -3,7 +3,10 @@ name: Common Weakness Enumeration
 version: "4.20"
 source: https://cwe.mitre.org/
 verified: "2026-10-18"
-notes: Titles checked against the CWE REST API (content version 4.20, 2026-04-30).
+notes: >-
+  Titles checked against the CWE REST API (content version 4.20, 2026-04-30). CWE-340, CWE-346,
+  CWE-400, CWE-477, CWE-522 and CWE-942 were added on 2026-11-03 and checked against content
+  version 4.21 (2026-10-28).
 items:
   - {id: CWE-20, title: Improper Input Validation}
   - {id: CWE-22, title: "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"}
@@ -17,15 +20,21 @@ items:
   - {id: CWE-250, title: Execution with Unnecessary Privileges}
   - {id: CWE-295, title: Improper Certificate Validation}
   - {id: CWE-319, title: Cleartext Transmission of Sensitive Information}
+  - {id: CWE-340, title: Generation of Predictable Numbers or Identifiers}
+  - {id: CWE-346, title: Origin Validation Error}
+  - {id: CWE-400, title: Uncontrolled Resource Consumption}
   - {id: CWE-409, title: Improper Handling of Highly Compressed Data (Data Amplification)}
   - {id: CWE-451, title: User Interface (UI) Misrepresentation of Critical Information}
+  - {id: CWE-477, title: Use of Obsolete Function}
   - {id: CWE-494, title: Download of Code Without Integrity Check}
   - {id: CWE-502, title: Deserialization of Untrusted Data}
   - {id: CWE-506, title: Embedded Malicious Code}
+  - {id: CWE-522, title: Insufficiently Protected Credentials}
   - {id: CWE-598, title: Use of HTTP Request With Sensitive Query String}
   - {id: CWE-798, title: Use of Hard-coded Credentials}
   - {id: CWE-829, title: Inclusion of Functionality from Untrusted Control Sphere}
   - {id: CWE-918, title: Server-Side Request Forgery (SSRF)}
+  - {id: CWE-942, title: Permissive Cross-domain Security Policy with Untrusted Domains}
   - {id: CWE-1007, title: Insufficient Visual Distinction of Homoglyphs Presented to User}
   - {id: CWE-1327, title: Binding to an Unrestricted IP Address}
   - {id: CWE-1336, title: Improper Neutralization of Special Elements Used in a Template Engine}

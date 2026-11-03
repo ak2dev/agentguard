@@ -5,6 +5,8 @@ Pure function of the tree (no filesystem, no network).
 
 from __future__ import annotations
 
+import base64
+import binascii
 import posixpath
 from dataclasses import dataclass, field
 from typing import Any
@@ -60,6 +62,7 @@ class Inventory:
     configs: list[ClientConfig] = field(default_factory=list)
     server_components: dict[tuple[str, str, str], str] = field(default_factory=dict)  # (config, project, name) -> id
     manifests: dict[str, Any] = field(default_factory=dict)           # path -> parsed manifest value
+    deep_manifests: list[str] = field(default_factory=list)           # tool manifests nested past the JSON depth limit
     package_roots: dict[str, str] = field(default_factory=dict)       # root dir -> component id
     notes: list[str] = field(default_factory=list)
     tree: ArtifactTree | None = None
@@ -227,6 +230,9 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             if manifest is not None:
                 _add_manifest(inv, p, text, manifest, new_component, add_artifact, owning_package)
                 continue
+            if p.lower().endswith(".json") and ('"inputSchema"' in text or '"outputSchema"' in text) and '"tools"' in text \
+                    and parse_json(text).error == "JSON nesting exceeds depth limit":
+                inv.deep_manifests.append(p)  # reported by AG-MCP-META-023; its tools cannot be read
         proot = owning_package(p)
         if proot is not None:
             comp = inv.components[inv.package_roots[proot]]
@@ -336,6 +342,20 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     return None
 
 
+def _resource_text(rs: dict[str, Any]) -> str | None:
+    """A resource's inline text; an HTML resource may carry it base64-encoded in
+    `blob` instead (MCP Apps allows either)."""
+    if isinstance(rs.get("text"), str):
+        return rs["text"]
+    blob = rs.get("blob")
+    if isinstance(blob, str) and str(rs.get("mimeType") or "").startswith("text/html") and len(blob) <= 4_000_000:
+        try:
+            return base64.b64decode(blob, validate=True).decode("utf-8", "replace")
+        except (binascii.Error, ValueError):
+            return None
+    return None
+
+
 def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_component, add_artifact, owning_package) -> None:
     proot = owning_package(path)
     if proot is not None:
@@ -380,7 +400,8 @@ def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_c
         if isinstance(rs, dict) and isinstance(rs.get("uri"), str):
             comp.resources.append(
                 ResourceDef(uri=rs["uri"], name=rs.get("name"), title=rs.get("title"), description=rs.get("description"),
-                            mime_type=rs.get("mimeType"), text=rs.get("text") if isinstance(rs.get("text"), str) else None,
+                            mime_type=rs.get("mimeType"), text=_resource_text(rs),
+                            meta=rs["_meta"] if isinstance(rs.get("_meta"), dict) else {},
                             span=Span(path=path, start_line=locate(text, f'"{rs["uri"]}"')))
             )
     if isinstance(v.get("instructions"), str):

@@ -12,7 +12,7 @@ from .capabilities import CapabilityAnalyzer
 from .code import CodeAnalyzer
 from .hidden import HiddenContentAnalyzer
 from .judge_rules import JudgeAnalyzer
-from .mcp import McpConfigAnalyzer, McpMetaAnalyzer, McpUnitsBuilder
+from .mcp import McpClientAuthAnalyzer, McpConfigAnalyzer, McpMetaAnalyzer, McpUnitsBuilder
 from .network_rules import AuthAnalyzer, HijackableAnalyzer, OsvAnalyzer, PackageAgeAnalyzer, ProvenanceAnalyzer
 from .regex_rules import RegexRuleAnalyzer
 from .staged import StagedExecutionAnalyzer
@@ -37,6 +37,7 @@ ANALYZERS: list[type] = [
     HiddenContentAnalyzer,
     RegexRuleAnalyzer,
     McpMetaAnalyzer,
+    McpClientAuthAnalyzer,
     CodeAnalyzer,
     TreeSitterAnalyzer,
     SkillPrivilegeAnalyzer,
