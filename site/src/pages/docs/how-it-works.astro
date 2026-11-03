@@ -68,7 +68,7 @@ const frontmatter = { title: "How it works", description: "Why Agent Guard exist
   <ol>
     <li><strong>Discover</strong> agent configuration, skills and instruction files (or load the path you give).</li>
     <li><strong>Load safely:</strong> size, count and depth limits; archive-bomb caps; symlinks, junctions and path escapes are refused and reported; YAML is safe-loaded with anchors, aliases and custom tags rejected.</li>
-    <li><strong>Normalize:</strong> Unicode is NFKC-normalized and look-alike characters are folded, with offsets mapped back to the original; invisible characters are removed; encoded blobs (base64, hex, percent, gzip) are decoded to depth 3 and rescanned; hidden Markdown (comments, off-screen text, alt text, CSS-hidden elements) is extracted.</li>
+    <li><strong>Normalize:</strong> Unicode is NFKC-normalized and look-alike characters are folded, with offsets mapped back to the original; invisible characters are removed; encoded blobs (base64, hex, percent, gzip) are decoded to depth 3 and rescanned; hidden Markdown (comments, off-screen text, alt text, CSS-hidden elements) is extracted; paths built from parts (<code>path.join(os.homedir(), '.kube', 'config')</code>) are folded into one literal path.</li>
     <li><strong>Analyze</strong> with independent analyzers: skill spec and structure, hidden content, data-defined pattern rules, MCP configuration, MCP metadata, code (taint from tool parameters, followed into helper functions of the same server: Python via the standard <code>ast</code> module, JS/TS by pattern), supply chain and policy. Two optional analyzers need native extensions and are reported as skipped without them: tree-sitter taint for JS/TS handlers and shell scripts (<code>agentguard[code]</code>), and YARA rules over the raw bytes of bundled files (<code>agentguard[yara]</code>).</li>
     <li><strong>Correlate:</strong> deduplicate, escalate findings found inside hidden content by one severity, combine credential access with egress (also across linked files of a skill: a file one script writes and another reads, one script running another, or an import), and build the <strong>capability graph</strong> for toxic flows.</li>
     <li><strong>Score</strong> each finding (AIVSS v0.8, pluggable) and apply suppressions, baselines and policy.</li>
@@ -108,12 +108,12 @@ const frontmatter = { title: "How it works", description: "Why Agent Guard exist
   </table></div></div>
 
   <h2>The code</h2>
-  <p>Agent Guard is mostly Python, and much of its detection logic is data. The engine's own code is pure Python and needs only Pydantic, <code>regex</code> and PyYAML, all of which have WebAssembly builds, so it runs unchanged in the browser. Line counts are from October 2026.</p>
+  <p>Agent Guard is mostly Python, and much of its detection logic is data. The engine's own code is pure Python and needs only Pydantic, <code>regex</code> and PyYAML, all of which have WebAssembly builds, so it runs unchanged in the browser. Line counts are from November 2026.</p>
   <div class="facts corners"><dl class="report-facts">
     <div><dt>Engine, CLI, network</dt><dd><span class="v">15,000</span><span class="sub">lines of Python in <code>src/agentguard</code></span></dd></div>
     <div><dt>Web server</dt><dd><span class="v">2,800</span><span class="sub">lines of Python in <code>web/</code></span></dd></div>
     <div><dt>Rule pack</dt><dd><span class="v">2,600</span><span class="sub">lines of YAML for 174 rules</span></dd></div>
-    <div><dt>Tests</dt><dd><span class="v">206</span><span class="sub">Python test functions, plus two fixtures per rule</span></dd></div>
+    <div><dt>Tests</dt><dd><span class="v">208</span><span class="sub">Python test functions, plus two fixtures per rule</span></dd></div>
   </dl></div>
 
   <h3>Languages and libraries</h3>
@@ -137,6 +137,7 @@ const frontmatter = { title: "How it works", description: "Why Agent Guard exist
     <tbody>
       <tr><td>NFKC + confusable folding</td><td>Normalizes Unicode and folds look-alike letters (Cyrillic "а" to Latin "a"), keeping an offset map so findings still point at the original line and column</td><td><code>normalize/unicode.py</code></td></tr>
       <tr><td>Recursive decoding</td><td>Decodes base64, hex, percent, <code>\x</code> escapes and gzip inside base64, up to three layers deep, and scans what it finds again</td><td><code>normalize/decode.py</code></td></tr>
+      <tr><td>Path folding</td><td>Joins the string-literal parts of <code>path.join</code>, <code>Path.home() / ...</code> and similar calls into one path, so credential rules see <code>~/.kube/config</code></td><td><code>normalize/paths.py</code></td></tr>
       <tr><td>Regex with timeouts</td><td>Runs the data-defined pattern rules with a 0.5 s limit per match, so no pattern can hang a scan</td><td><code>analyzers/regex_rules.py</code></td></tr>
       <tr><td>AST taint analysis</td><td>Follows Python tool parameters through assignments, f-strings, formatting and string methods, and into helper functions up to three deep, to a shell, process arguments, <code>eval</code>, deserialization, file paths, URLs, SQL or templates</td><td><code>analyzers/pytaint.py</code></td></tr>
       <tr><td>Tree-sitter taint</td><td>The same for JavaScript/TypeScript handlers and shell scripts (optional), capped at 1 MB per file and 200,000 nodes per walk</td><td><code>analyzers/treesitter.py</code></td></tr>
