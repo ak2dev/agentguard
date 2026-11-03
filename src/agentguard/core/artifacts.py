@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from .models import Artifact, Span
 from .models.enums import ArtifactRole
 from .normalize.decode import find_blobs
+from .normalize.paths import resolved_lines
 from .normalize.markdown import (
     BangCommand,
     Fence,
@@ -51,6 +52,7 @@ _EXT_LANG = {
     ".applescript": "applescript", ".scpt": "applescript", ".vbs": "vbscript",
 }
 _MD_EXT = (".md", ".mdc", ".markdown", ".mdx", ".txt")
+_FOLDED = "path joins folded into one path"
 
 
 def language_for(path: str, data: bytes | None = None) -> str | None:
@@ -210,6 +212,8 @@ def prepare(artifact: Artifact, data: bytes, *, max_decode_depth: int = 3, max_d
         # The body view masks hidden regions so they are reported once, as hidden.
         masked = mask(body, [(r.start - base, r.end - base) for r in at.hidden])
         at.units.append(_unit(at, "body", masked, base))
+        for s, e, line in resolved_lines(masked):
+            at.units.append(_unit(at, "resolved", line, None, anchor=(s + base, e + base), label=_FOLDED))
         for r in at.hidden:
             at.units.append(_unit(at, "hidden", r.text, r.text_start, hidden_kind=r.kind))
         for b in at.bang:
@@ -217,6 +221,9 @@ def prepare(artifact: Artifact, data: bytes, *, max_decode_depth: int = 3, max_d
     else:
         scope = "code" if role in (ArtifactRole.script, ArtifactRole.source_code) else "body"
         at.units.append(_unit(at, scope, text, 0))
+        # Paths built from parts (path.join(os.homedir(), '.kube', 'config')) as one literal.
+        for s, e, line in resolved_lines(text):
+            at.units.append(_unit(at, "resolved", line, None, anchor=(s, e), label=_FOLDED))
 
     # Unicode tag-character payloads are invisible; decode and scan them as hidden text.
     for run in tag_character_runs(text):

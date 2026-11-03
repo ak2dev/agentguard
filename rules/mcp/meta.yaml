@@ -272,3 +272,47 @@ rules:
     confidence: low
     match: {type: analyzer, analyzer: code}
     remediation: Define tools statically in the server package.
+
+  - id: AG-MCP-META-021
+    version: 1
+    title: Description tells the agent to run a remote script
+    description: A tool, parameter, prompt or resource description, or the server's instructions, contains a download-and-run command (curl | sh, iwr | iex, a downloaded file made executable and run) or a Windows binary that runs remote code. Vendor installers on the AG-SKL-SE-002 allowlist are reported at medium.
+    why: Descriptions reach the model on every request, so a command there asks the agent to fetch and run code the server's author controls, with the agent's shell access. It is a typical rug-pull payload, added after the server was approved.
+    severity: critical
+    confidence: high
+    applies_to: [tool, tool_param, prompt, resource, server_instructions]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [tool_text, server_instructions]
+      patterns:
+        # The pipe-to-shell and LOLBin forms of AG-SKL-SE-002, and the download-then-run form of AG-SKL-SE-001.
+        - |-
+          \b(?:curl|wget|fetch)\b[^\n|]{0,300}https?://[^\n|]*\|\s*(?:sudo\s+)?(?:-E\s+)?(?:ba|z|k|da)?sh\b
+        - |-
+          \b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^\n|]*\|\s*(?:iex|Invoke-Expression)\b
+        - |-
+          \b(?:iex|Invoke-Expression)\s*\(?\s*(?:\(\s*)?(?:New-Object\s+(?:System\.)?Net\.WebClient\)?\.DownloadString|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)
+        - |-
+          \b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b[^)]*https?://
+        - |-
+          \b(?:python3?|node|perl|ruby)\s+(?:-c\s+)?["']?(?:<\(|\$\()\s*(?:curl|wget)\b
+        - |-
+          \bsource\s+<\(\s*(?:curl|wget)\b
+        - |-
+          \bmshta(?:\.exe)?\s+["']?(?:https?|vbscript|javascript):
+        - |-
+          \bregsvr32(?:\.exe)?\b[^\n]*\s/i:\s*["']?https?://
+        - |-
+          \brundll32(?:\.exe)?\b[^\n]*(?:javascript:|\burl\.dll\b[^\n]*https?://|\bmshtml\b[^\n]*RunHTMLApplication)
+        - |-
+          \bmsiexec(?:\.exe)?\b[^\n]*\s/(?:i|package)\s+["']?https?://
+        - |-
+          \b(?:curl|wget|iwr|Invoke-WebRequest|certutil(?:\.exe)?\s+-urlcache)\b[^\n]{0,200}(?:\s-o\s|\s-O\s|--output|-OutFile|\s>\s*\S)[^\n]{0,200}(?:&&|;|\|\|)\s*(?:sudo\s+)?(?:chmod\s+\+x|\./|start\s|Start-Process|open\s|bash\s|sh\s|\.\\)
+      downgrade:
+        - severity: medium
+          patterns:
+            - |-
+              (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
+      window: 0
+    remediation: Remove the command from the description. Descriptions say what the tool does; a dependency the server needs belongs in its install documentation, pinned and verified, where a person reviews it before running it.

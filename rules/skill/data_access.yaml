@@ -1,7 +1,7 @@
 # Credential access and exfiltration sinks.
 rules:
   - id: AG-SKL-CRED-001
-    version: 2
+    version: 3
     title: Reads credential stores
     description: Reads SSH keys, cloud CLI credentials, kube/docker configs, package-registry tokens, .env files, keychains, browser profiles or crypto wallets.
     why: Credential files are the primary target of infostealer skills. Reading them is rarely needed by a skill's stated purpose.
@@ -10,7 +10,7 @@ rules:
     applies_to: [skill_md, instruction_md, reference, script]
     match:
       type: regex
-      scopes: [body, hidden, decoded, command, code]
+      scopes: [body, hidden, decoded, command, code, resolved]
       patterns:
         - |-
           (?:~|\$HOME|%USERPROFILE%|\$env:USERPROFILE|/home/[^/\s]+|/Users/[^/\s]+|/root)?[/\\]?(?:\.ssh[/\\](?:id_[a-z0-9_]+|authorized_keys|config)|\.aws[/\\](?:credentials|config)|\.config[/\\]gcloud|\.azure[/\\]|\.kube[/\\]config|\.docker[/\\]config\.json|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.gnupg[/\\]|\.password-store|Login\s+Data|Cookies\.sqlite|key4\.db|logins\.json|wallet\.dat|\.electrum|\.ethereum[/\\]keystore|Exodus[/\\]|nkbihfbeogaeaoehlefnkodbefgpgknn|login\.keychain(?:-db)?|\.config[/\\]gh[/\\]hosts\.yml|\.claude[/\\]\.credentials\.json)
@@ -26,7 +26,7 @@ rules:
           \b(?:cat|type|Get-Content|gc|less|more|head|tail|read(?:s|ing)?|open|load|copy|cp|scp|rsync|tar|zip|7z|base64|upload|send|post|exfiltrate|collect|harvest|grab|dump|steal|extract|include|attach|readFile(?:Sync)?|read_text|read_bytes|find-generic-password|find-internet-password|dump-keychain|cmdkey|vaultcmd|glob|walk|find)\b
       unless:
         - |-
-          \.env\.(?:example|sample|template|dist)b
+          \.env\.(?:example|sample|template|dist)\b
       window: 0
     remediation: Do not read credential stores. Request only the scoped credential the task needs, through the platform's secret handling.
 

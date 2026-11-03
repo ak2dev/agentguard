@@ -188,6 +188,7 @@
               "hidden",
               "decoded",
               "code",
+              "resolved",
               "tool_text",
               "server_instructions",
               "command"
