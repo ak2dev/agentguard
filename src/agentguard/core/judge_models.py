@@ -11,7 +11,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-JUDGE_PROMPT_VERSION = "1"
+JUDGE_PROMPT_VERSION = "2"
 JudgeKind = Literal["mismatch", "manipulation"]
 
 

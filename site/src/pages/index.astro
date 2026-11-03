@@ -99,7 +99,7 @@ const strip = [
       {scanEnabled
         ? <a class="btn light" href={`${base}/scan/`}>Scan a link</a>
         : <a class="btn light" href={`${base}/docs/install/`}>Install</a>}
-      <code>uvx agentguard scan</code>
+      <code>agentguard scan</code>
     </div>
   </section>
 
@@ -300,7 +300,7 @@ const strip = [
       <i class="f4"><Icon name="lock" /></i><i class="f5"><Icon name="spark" /></i><i class="f6"><Icon name="zap" /></i>
     </div>
     <h2 id="cta-title">Scan before you trust</h2>
-    <p>Thirty seconds, no account, nothing executed: <code>uvx agentguard scan ./my-skill</code></p>
+    <p>Thirty seconds, no account, nothing executed: <code>agentguard scan ./my-skill</code></p>
     <div class="hero-actions">
       <a class="btn light" href={`${base}/docs/install/`}>Install for free</a>
       {scanEnabled && <a class="btn glass" href={`${base}/scan/`}>Scan a link</a>}

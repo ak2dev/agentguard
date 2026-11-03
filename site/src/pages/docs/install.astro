@@ -1,0 +1,35 @@
+---
+import Doc from "../../layouts/Doc.astro";
+import { COMMIT, REPO_URL, SOURCE, requirement } from "../../data/pinned";
+const frontmatter = { title: "Install", description: "Install Agent Guard (PyPI package agentguard-v1) from a pinned commit with pipx or uv." };
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const install = [
+  `pipx install "${requirement()}"`,
+  "agentguard --version",
+].join("\n");
+const extras = [
+  `pipx install "${requirement("code")}"   # tree-sitter taint for JS/TS tool handlers and shell scripts`,
+  `pipx install "${requirement("yara")}"   # YARA rules over bundled binaries (Python 3.12–3.13)`,
+].join("\n");
+const uvx = `uvx --from "${SOURCE}" agentguard scan ./my-skill`;
+---
+<Doc frontmatter={frontmatter}>
+  <h1>Install</h1>
+  <p>Agent Guard needs Python 3.12 or newer. It has no account, no API key and no telemetry.</p>
+  <p><strong>Version 0.1.0 is not on PyPI yet.</strong> It will be published as <code>agentguard-v1</code> (the command is still <code>agentguard</code>); the many other packages named <code>agentguard</code> or <code>agentguard-…</code> on PyPI and npm are not this project. Until then, install from a pinned commit of the <a href={REPO_URL}>repository</a>, never from a moving branch. The commands below pin <code>{COMMIT.slice(0, 12)}</code>, the commit this site was built from.</p>
+  <figure class="evidence code-window"><figcaption class="ev-cap"><span class="ev-dots" aria-hidden="true"><i></i><i></i><i></i></span><code>bash</code></figcaption><pre><code class="language-bash">{install}</code></pre></figure>
+  <p>Optional extras, from the same commit:</p>
+  <figure class="evidence code-window"><figcaption class="ev-cap"><span class="ev-dots" aria-hidden="true"><i></i><i></i><i></i></span><code>bash</code></figcaption><pre><code class="language-bash">{extras}</code></pre></figure>
+  <p>Without an extra, its analyzer is listed as skipped in every report and its rules are not counted in "N rules". To run it once without installing, use uv:</p>
+  <figure class="evidence code-window"><figcaption class="ev-cap"><span class="ev-dots" aria-hidden="true"><i></i><i></i><i></i></span><code>bash</code></figcaption><pre><code class="language-bash">{uvx}</code></pre></figure>
+
+  <h2>Verify a release</h2>
+  <p>From 0.1.0, every release is signed with Sigstore, carries a GitHub build-provenance attestation and ships a CycloneDX SBOM. See <a href={`${base}/security/`}>Security</a> for the verification commands.</p>
+
+  <h2>What it needs</h2>
+  <ul>
+    <li><strong>Filesystem:</strong> read access to the paths you scan (and, for <code>agentguard scan</code> with no path, your agent configuration in your home directory).</li>
+    <li><strong>Network:</strong> none by default. Network features are opt-in flags (<code>--live-metadata</code>, <code>--auth-checks</code>, <code>--osv</code>, <code>--provenance</code>, <code>--registry</code>, <code>--check-hijackable</code>) and every report lists the ones that were used.</li>
+    <li><strong>Processes:</strong> none. Agent Guard installs an audit hook that blocks process creation, so nothing it scans can run — not even by accident.</li>
+  </ul>
+</Doc>

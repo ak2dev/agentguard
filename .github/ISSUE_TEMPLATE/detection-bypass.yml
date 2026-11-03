@@ -1,0 +1,80 @@
+name: Detection bypass
+description: A malicious skill, instruction file, MCP server or config that Agent Guard misses or reports too low.
+title: "Bypass: "
+labels: ["detection-bypass"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Bypasses are the most useful report you can send.
+
+        **Keep it inert.** Use reserved hosts (`example.invalid`, `example.com`, `*.test`, `192.0.2.0/24`), no working
+        payload, no live malware and no real credentials. Non-inert reports are closed and deleted.
+
+        A vulnerability in Agent Guard *itself* (scanned content runs code, reads outside the scan root, reaches the
+        network without a flag, or injects into a report) is not a bypass. Report it privately instead:
+        https://github.com/ak2dev/agentguard/security/advisories/new
+  - type: checkboxes
+    id: inert
+    attributes:
+      label: Inert
+      options:
+        - label: The reproduction uses only reserved hosts, has no working payload and contains no real secrets.
+          required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Agent skill (SKILL.md, scripts, assets)
+        - Instruction or memory file (AGENTS.md, CLAUDE.md, rules)
+        - MCP client configuration
+        - MCP tool, prompt or resource metadata
+        - MCP server code
+        - Plugin, marketplace or hook
+        - Connector (A2A Agent Card, OpenAPI action, remote MCP connector)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: technique
+    attributes:
+      label: Technique
+      description: What the sample does, and how it avoids the rules (paraphrase, encoding, splitting across files, Unicode, ordering, ...).
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Inert reproduction
+      description: The files, inline or as a link to a pinned gist or commit. Give each file's path.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What Agent Guard reported
+      description: The command you ran and its output, or the rule ids and severities. "Nothing" is a valid answer.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: expected
+    attributes:
+      label: Severity it should get
+      options: [critical, high, medium, low]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `agentguard --version`, or the commit SHA you installed from, or "web scanner".
+    validations:
+      required: true
+  - type: input
+    id: credit
+    attributes:
+      label: Credit
+      description: The name or handle to credit when the rule ships. Leave empty to stay anonymous.

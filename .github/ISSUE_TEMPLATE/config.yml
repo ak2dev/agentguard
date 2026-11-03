@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a vulnerability in Agent Guard
+    url: https://github.com/ak2dev/agentguard/security/advisories/new
+    about: Vulnerabilities in the scanner itself go through a private security advisory, not a public issue.

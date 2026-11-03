@@ -4,12 +4,12 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
-    "agentguard",
+    "agentguard-v1",
     "agentguard-web",
 ]
 
 [[package]]
-name = "agentguard"
+name = "agentguard-v1"
 version = "0.1.0.dev0"
 source = { editable = "." }
 dependencies = [
@@ -69,7 +69,7 @@ name = "agentguard-web"
 version = "0.1.0.dev0"
 source = { editable = "web" }
 dependencies = [
-    { name = "agentguard" },
+    { name = "agentguard-v1" },
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
     { name = "redis" },
@@ -84,7 +84,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agentguard", editable = "." },
+    { name = "agentguard-v1", editable = "." },
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "redis", specifier = ">=5.2,<9" },

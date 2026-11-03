@@ -5,6 +5,7 @@ import Base from "../layouts/Base.astro";
 import Icon from "../components/Icon.astro";
 import meta from "../data/generated/meta.json";
 import engine from "../data/engine.json";
+import { requirement } from "../data/pinned";
 export function getStaticPaths() {
   return import.meta.env.PUBLIC_FEATURE_SCAN === "1" ? [{ params: { scan: "scan" } }] : [];
 }
@@ -23,7 +24,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   <noscript>
     <div class="card"><p>This page needs JavaScript because the scanner runs on your device. The command-line scanner works without it:</p>
-      <pre><code>uvx agentguard scan ./my-skill</code></pre></div>
+      <pre><code>{`pipx install "${requirement()}"\nagentguard scan ./my-skill`}</code></pre></div>
   </noscript>
 
   <div id="scanner" class="scanner" hidden

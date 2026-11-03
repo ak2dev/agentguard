@@ -27,10 +27,24 @@ Releases are built in GitHub Actions and signed with Sigstore (keyless). Each re
 ```bash
 python -m pip install sigstore
 python -m sigstore verify identity \
-  --cert-identity "https://github.com/ak2dev/agentguard-v1/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
+  --cert-identity "https://github.com/ak2dev/agentguard/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
   --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
-  agentguard-X.Y.Z-py3-none-any.whl
+  agentguard_v1-X.Y.Z-py3-none-any.whl
 ```
+
+The wheel, sdist, SBOM and rule-pack bundle also carry a GitHub build-provenance attestation (SLSA provenance, signed with Sigstore):
+
+```bash
+gh attestation verify agentguard_v1-X.Y.Z-py3-none-any.whl --repo ak2dev/agentguard
+```
+
+## EU Cyber Resilience Act
+
+Agent Guard is free and open-source software, developed and offered outside any commercial activity: there is no paid edition, no paid support and no paid hosted service. Under the Cyber Resilience Act ([Regulation (EU) 2024/2847](https://eur-lex.europa.eu/eli/reg/2024/2847/oj)), free and open-source software that is not made available in the course of a commercial activity is not subject to the manufacturer obligations, so the maintainer does not act as a manufacturer or as an open-source software steward today.
+
+If that changes (for example a paid hosted scanner, paid support, or a company stewarding the project), this section will be updated before it happens. The CRA's reporting obligations for actively exploited vulnerabilities apply from 11 September 2026 and the rest of the regulation from 11 December 2027.
+
+Until then the project follows the practices the CRA expects anyway: the coordinated disclosure process and supported versions above, an SBOM, signatures and build provenance with every release, and security fixes free of charge. If you ship Agent Guard inside a product of your own, the SBOM, the attestations and the GitHub security advisories of this repository are the material for your own due diligence.
 
 ## IOC feed signing
 
