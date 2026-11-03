@@ -80,6 +80,7 @@ class ResourceDef(BaseModel):
     description: str | None = None
     mime_type: str | None = None
     text: str | None = None  # for ui:// resources supplied statically
+    meta: dict[str, Any] = Field(default_factory=dict)  # `_meta` (MCP Apps: `ui.csp`, `ui.permissions`)
     span: Span | None = None
 
 

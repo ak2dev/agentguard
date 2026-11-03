@@ -1,0 +1,141 @@
+{
+  "tools": [
+    {
+      "name": "nest",
+      "description": "Stores a nested record.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "type": "object",
+                            "properties": {
+                              "x": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "object",
+                                    "properties": {
+                                      "x": {
+                                        "type": "object",
+                                        "properties": {
+                                          "x": {
+                                            "type": "object",
+                                            "properties": {
+                                              "x": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "x": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "x": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "x": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "x": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                  "x": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                      "x": {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                          "x": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                              "x": {
+                                                                                "type": "object",
+                                                                                "properties": {
+                                                                                  "x": {
+                                                                                    "type": "object",
+                                                                                    "properties": {
+                                                                                      "x": {
+                                                                                        "type": "object",
+                                                                                        "properties": {
+                                                                                          "x": {
+                                                                                            "type": "object",
+                                                                                            "properties": {
+                                                                                              "x": {
+                                                                                                "type": "object",
+                                                                                                "properties": {
+                                                                                                  "x": {
+                                                                                                    "type": "object",
+                                                                                                    "properties": {
+                                                                                                      "x": {
+                                                                                                        "type": "object",
+                                                                                                        "properties": {
+                                                                                                          "x": {
+                                                                                                            "type": "object",
+                                                                                                            "properties": {
+                                                                                                              "x": {
+                                                                                                                "type": "string"
+                                                                                                              }
+                                                                                                            }
+                                                                                                          }
+                                                                                                        }
+                                                                                                      }
+                                                                                                    }
+                                                                                                  }
+                                                                                                }
+                                                                                              }
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

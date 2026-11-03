@@ -83,12 +83,13 @@ that fails is **never** a silent pass.
 | Hidden instructions | Unicode tag characters, bidi/zero-width tricks, homoglyphs, HTML comments, CSS-hidden text, encoded blobs (decoded and rescanned) |
 | Instruction-layer attacks | Override directives, forged role delimiters, concealment, approval bypass, persistence into memory files, Claude Code `!` commands and skill hooks |
 | MCP configuration | Shell-string commands, unpinned `npx -y` / `uvx`, Docker socket and home mounts, literal secrets, plain HTTP, auto-approval, shadowed server names |
-| MCP metadata | Tool poisoning, tool shadowing, name collisions, side-channel parameters, unsafe schemas, annotations that lie, MCP Apps UI risks |
+| MCP metadata | Tool poisoning (also in output schemas), tool shadowing, name collisions, side-channel parameters, unsafe schemas, remote `$ref`s and schema bombs, annotations that lie, MCP Apps UI risks (open CSP declarations, unpinned external scripts, requests sent without a user action) |
+| MCP spec conformance | Predictable task IDs (Tasks extension), deprecated Roots/Sampling/Logging, MCP client OAuth code that skips the `iss` check, the `resource` parameter or issuer-bound client credentials. [MCP spec support](https://agentguard-ak2dev.vercel.app/docs/mcp-spec-support/) lists the versions each area covers |
 | Server code | Taint from tool parameters into shell, `eval`, deserialization, file paths, URLs, SQL and templates |
 | Toxic flows | Untrusted input + private data + egress across everything one agent session has enabled, shown as a concrete path |
 | Supply chain | Rug pulls (`lock` / `verify`), signed IOC feed, typosquats, and opt-in SkillJacking checks (`--check-hijackable`) |
 
-174 rules in rule pack 0.1.0, each with an unsafe and a safe test fixture, mapped to the OWASP Top 10 for Agentic
+185 rules in rule pack 0.1.0, each with an unsafe and a safe test fixture, mapped to the OWASP Top 10 for Agentic
 Applications, OWASP MCP Top 10, OWASP Agentic Skills Top 10, OWASP LLM Top 10, the NSA MCP guidance (May 2026) and CWE.
 See the [rule catalog](https://agentguard-ak2dev.vercel.app/rules/) and the [coverage matrix](https://agentguard-ak2dev.vercel.app/coverage/),
 which also lists the gaps.

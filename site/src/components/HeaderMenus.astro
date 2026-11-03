@@ -9,13 +9,14 @@ const docs = [
   ["Get started", [["Install", "install", "uvx, pipx, and what Agent Guard needs"], ["Quickstart", "quickstart", "Scan your machine, a skill, a repo or a config"], ["How it works", "how-it-works", "Why it exists, the pipeline and architecture"]]],
   ["Configure", [["Configuration", "config", "The .agentguard.yaml file"], ["Policy", "policy", "Allow and deny servers, pinning, maximum severity"], ["Suppressions", "suppressions", "Accepting findings with a reason and an expiry"]]],
   ["Integrate", [["CI integration", "ci", "GitHub Action with SARIF alerts, pre-commit"], ["Web scanner", "web-scanner", "Pasted text, files and GitHub links in the browser"], ["Library API", "library-api", "Use the engine from Python, workers or Pyodide"]]],
-  ["Reference", [["CLI reference", "cli", "Every command and option"], ["Output formats", "output", "JSON, SARIF, Markdown, HTML, CycloneDX"], ["Limitations", "limitations", "What it does not do yet, and what's next"]]],
+  ["Reference", [["CLI reference", "cli", "Every command and option"], ["Output formats", "output", "JSON, SARIF, Markdown, HTML, CycloneDX"], ["MCP spec support", "mcp-spec-support", "Which MCP versions each rule area covers"], ["Limitations", "limitations", "What it does not do yet, and what's next"]]],
 ] as const;
 // One entry per section of the rule catalog (src/pages/rules/index.astro), linked by its anchor.
 const areas = [
   ["Skills", "AG-SKL-", "file", "Instruction files, bundles and hidden text"],
   ["MCP configs", "AG-MCP-CFG-", "plug", "How each server is started"],
   ["MCP metadata", "AG-MCP-META-", "layers", "Tool, prompt and resource descriptions"],
+  ["MCP spec", "AG-MCP-SPEC-", "check", "Tasks, deprecations and client OAuth"],
   ["Server code", "AG-CODE-", "code", "Where tool parameters end up"],
   ["Toxic flows", "AG-FLOW-", "alert", "Untrusted input, private data and egress"],
   ["Supply chain", "AG-SC-", "lock", "Lockfile drift, provenance and IOCs"],

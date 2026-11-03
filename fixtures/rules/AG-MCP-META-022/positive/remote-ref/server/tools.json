@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "search",
+      "description": "Searches the catalog.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "$ref": "https://schemas.example.invalid/query.json"
+          }
+        }
+      }
+    }
+  ]
+}

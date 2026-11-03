@@ -24,6 +24,8 @@
             "AG-MCP-META-015",
             "AG-MCP-META-019",
             "AG-MCP-META-021",
+            "AG-MCP-META-024",
+            "AG-MCP-META-027",
             "AG-SKL-EXF-005",
             "AG-SKL-HID-001",
             "AG-SKL-HID-002",
@@ -61,6 +63,9 @@
             "AG-MCP-META-009",
             "AG-MCP-META-010",
             "AG-MCP-META-016",
+            "AG-MCP-META-022",
+            "AG-MCP-META-023",
+            "AG-MCP-META-025",
             "AG-SKL-EXF-001",
             "AG-SKL-EXF-002",
             "AG-SKL-EXF-003",
@@ -86,6 +91,10 @@
             "AG-MCP-CFG-009",
             "AG-MCP-CFG-020",
             "AG-MCP-CFG-021",
+            "AG-MCP-SPEC-001",
+            "AG-MCP-SPEC-003",
+            "AG-MCP-SPEC-004",
+            "AG-MCP-SPEC-005",
             "AG-SKL-CRED-001",
             "AG-SKL-CRED-002",
             "AG-SKL-CRED-010",
@@ -108,6 +117,7 @@
             "AG-MCP-CFG-018",
             "AG-MCP-CFG-022",
             "AG-MCP-META-020",
+            "AG-MCP-META-026",
             "AG-POL-003",
             "AG-SC-001",
             "AG-SC-002",
@@ -193,6 +203,7 @@
             "AG-MCP-META-012",
             "AG-MCP-META-017",
             "AG-MCP-META-018",
+            "AG-MCP-META-027",
             "AG-SKL-INJ-003",
             "AG-SKL-INJ-009",
             "AG-SKL-SE-001",
@@ -233,7 +244,9 @@
             "AG-MCP-CFG-011",
             "AG-MCP-CFG-012",
             "AG-MCP-CFG-019",
-            "AG-MCP-META-017"
+            "AG-MCP-META-017",
+            "AG-MCP-SPEC-004",
+            "AG-MCP-SPEC-005"
           ]
         },
         {
@@ -267,6 +280,7 @@
             "AG-MCP-META-019",
             "AG-MCP-META-020",
             "AG-MCP-META-021",
+            "AG-MCP-META-024",
             "AG-SC-001",
             "AG-SC-003",
             "AG-SC-005"
@@ -283,6 +297,7 @@
             "AG-CODE-028",
             "AG-MCP-CFG-004",
             "AG-MCP-CFG-010",
+            "AG-MCP-META-026",
             "AG-POL-003",
             "AG-SC-004",
             "AG-SC-010",
@@ -325,7 +340,8 @@
           "rules": [
             "AG-FLOW-003",
             "AG-MCP-META-013",
-            "AG-MCP-META-014"
+            "AG-MCP-META-014",
+            "AG-MCP-META-027"
           ]
         },
         {
@@ -346,7 +362,11 @@
             "AG-MCP-CFG-013",
             "AG-MCP-CFG-015",
             "AG-MCP-CFG-016",
-            "AG-MCP-CFG-023"
+            "AG-MCP-CFG-023",
+            "AG-MCP-SPEC-001",
+            "AG-MCP-SPEC-003",
+            "AG-MCP-SPEC-004",
+            "AG-MCP-SPEC-005"
           ]
         },
         {
@@ -383,7 +403,8 @@
             "AG-MCP-META-004",
             "AG-MCP-META-015",
             "AG-MCP-META-016",
-            "AG-MCP-META-018"
+            "AG-MCP-META-018",
+            "AG-MCP-META-025"
           ]
         }
       ],
@@ -600,6 +621,8 @@
             "AG-MCP-META-015",
             "AG-MCP-META-019",
             "AG-MCP-META-021",
+            "AG-MCP-META-024",
+            "AG-MCP-META-027",
             "AG-SKL-HID-001",
             "AG-SKL-HID-002",
             "AG-SKL-HID-003",
@@ -634,6 +657,7 @@
             "AG-MCP-META-004",
             "AG-MCP-META-016",
             "AG-MCP-META-017",
+            "AG-MCP-META-025",
             "AG-SKL-CRED-001",
             "AG-SKL-CRED-002",
             "AG-SKL-CRED-010",
@@ -672,6 +696,7 @@
             "AG-MCP-CFG-006",
             "AG-MCP-CFG-010",
             "AG-MCP-CFG-022",
+            "AG-MCP-META-026",
             "AG-SC-001",
             "AG-SC-002",
             "AG-SC-005",
@@ -774,7 +799,8 @@
           "id": "concerns/insecure-serialization",
           "title": "Insecure context or data serialization",
           "rules": [
-            "AG-CODE-004"
+            "AG-CODE-004",
+            "AG-MCP-META-022"
           ]
         },
         {
@@ -791,6 +817,8 @@
             "AG-MCP-META-011",
             "AG-MCP-META-012",
             "AG-MCP-META-020",
+            "AG-MCP-META-026",
+            "AG-MCP-META-027",
             "AG-SC-001",
             "AG-SC-002",
             "AG-SC-003",
@@ -814,7 +842,11 @@
             "AG-AUTH-011",
             "AG-CODE-029",
             "AG-MCP-CFG-013",
-            "AG-MCP-CFG-019"
+            "AG-MCP-CFG-019",
+            "AG-MCP-SPEC-001",
+            "AG-MCP-SPEC-003",
+            "AG-MCP-SPEC-004",
+            "AG-MCP-SPEC-005"
           ]
         },
         {
@@ -844,7 +876,9 @@
         {
           "id": "concerns/denial-of-service",
           "title": "Denial of service and fatigue-based techniques",
-          "rules": []
+          "rules": [
+            "AG-MCP-META-023"
+          ]
         },
         {
           "id": "examples/tool-parameter-injection",
@@ -903,7 +937,8 @@
             "AG-MCP-META-014",
             "AG-MCP-META-015",
             "AG-MCP-META-019",
-            "AG-MCP-META-021"
+            "AG-MCP-META-021",
+            "AG-MCP-META-024"
           ]
         },
         {
@@ -947,7 +982,9 @@
             "AG-FLOW-006",
             "AG-MCP-CFG-015",
             "AG-MCP-META-016",
-            "AG-MCP-META-018"
+            "AG-MCP-META-018",
+            "AG-MCP-META-025",
+            "AG-MCP-META-026"
           ]
         },
         {
@@ -964,7 +1001,8 @@
             "AG-CODE-008",
             "AG-MCP-META-004",
             "AG-MCP-META-009",
-            "AG-MCP-META-010"
+            "AG-MCP-META-010",
+            "AG-MCP-META-023"
           ]
         },
         {
@@ -1047,7 +1085,6 @@
       "gaps": [
         "concerns/inconsistent-behaviors",
         "concerns/audit-logs",
-        "concerns/denial-of-service",
         "examples/unrestricted-repository-access",
         "recommendations/logging-and-detection"
       ]
@@ -1057,7 +1094,7 @@
       "name": "Common Weakness Enumeration",
       "version": "4.20",
       "source": "https://cwe.mitre.org/",
-      "notes": "Titles checked against the CWE REST API (content version 4.20, 2026-04-30).",
+      "notes": "Titles checked against the CWE REST API (content version 4.20, 2026-04-30). CWE-340, CWE-346, CWE-400, CWE-477, CWE-522 and CWE-942 were added on 2026-11-03 and checked against content version 4.21 (2026-10-28).",
       "items": [
         {
           "id": "CWE-20",
@@ -1153,6 +1190,27 @@
           ]
         },
         {
+          "id": "CWE-340",
+          "title": "Generation of Predictable Numbers or Identifiers",
+          "rules": [
+            "AG-MCP-SPEC-001"
+          ]
+        },
+        {
+          "id": "CWE-346",
+          "title": "Origin Validation Error",
+          "rules": [
+            "AG-MCP-SPEC-003"
+          ]
+        },
+        {
+          "id": "CWE-400",
+          "title": "Uncontrolled Resource Consumption",
+          "rules": [
+            "AG-MCP-META-023"
+          ]
+        },
+        {
           "id": "CWE-409",
           "title": "Improper Handling of Highly Compressed Data (Data Amplification)",
           "rules": [
@@ -1174,6 +1232,13 @@
           ]
         },
         {
+          "id": "CWE-477",
+          "title": "Use of Obsolete Function",
+          "rules": [
+            "AG-MCP-SPEC-002"
+          ]
+        },
+        {
           "id": "CWE-494",
           "title": "Download of Code Without Integrity Check",
           "rules": [
@@ -1181,6 +1246,7 @@
             "AG-CODE-028",
             "AG-MCP-CFG-006",
             "AG-MCP-META-021",
+            "AG-MCP-META-026",
             "AG-SKL-BND-005",
             "AG-SKL-EXEC-003",
             "AG-SKL-SE-001",
@@ -1215,6 +1281,13 @@
           ]
         },
         {
+          "id": "CWE-522",
+          "title": "Insufficiently Protected Credentials",
+          "rules": [
+            "AG-MCP-SPEC-004"
+          ]
+        },
+        {
           "id": "CWE-598",
           "title": "Use of HTTP Request With Sensitive Query String",
           "rules": [
@@ -1238,6 +1311,7 @@
             "AG-MCP-CFG-010",
             "AG-MCP-CFG-022",
             "AG-MCP-META-016",
+            "AG-MCP-META-026",
             "AG-SC-026",
             "AG-SC-027",
             "AG-SC-028",
@@ -1249,7 +1323,15 @@
           "title": "Server-Side Request Forgery (SSRF)",
           "rules": [
             "AG-CODE-006",
-            "AG-MCP-CFG-015"
+            "AG-MCP-CFG-015",
+            "AG-MCP-META-022"
+          ]
+        },
+        {
+          "id": "CWE-942",
+          "title": "Permissive Cross-domain Security Policy with Untrusted Domains",
+          "rules": [
+            "AG-MCP-META-025"
           ]
         },
         {

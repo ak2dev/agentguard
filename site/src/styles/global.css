@@ -875,6 +875,10 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 /* file paths in the How it works code tables stay whole; the table scrolls instead */
 .code-table { min-width: 640px; }
 .code-table code { white-space: nowrap; overflow-wrap: normal; }
+/* the MCP spec support matrix: rule IDs and revision dates stay on one line; the table scrolls instead */
+.matrix-table { min-width: 860px; }
+.matrix-table th, .matrix-table td:not(:first-child) { white-space: nowrap; }
+.matrix-table code { overflow-wrap: normal; }
 /* a row of figures: the report page's facts row in its own frame */
 .facts { margin: 20px 0 8px; border: 1px solid var(--line); }
 .facts .report-facts { border-top: 0; }
