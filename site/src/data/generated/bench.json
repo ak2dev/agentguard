@@ -3,9 +3,9 @@
   "engine_version": "0.1.0.dev0",
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "0de4f12a8d8d25873d0633286721d88a4153aa061835904928ac9a35e6325d75"
+    "digest": "52a669c25447ddcb74fbc525a921ea4f6cd5142c2f0f27eafa3a47c369bc763f"
   },
-  "date": "2026-10-28",
+  "date": "2026-11-03",
   "split": "all",
   "corpus": {
     "items": 286,
@@ -19,23 +19,23 @@
   },
   "overall": {
     "critical": {
-      "tp": 52,
+      "tp": 54,
       "fp": 0,
-      "fn": 24,
+      "fn": 22,
       "tn": 210,
       "precision": 1.0,
-      "recall": 0.6842,
-      "f1": 0.8125,
+      "recall": 0.7105,
+      "f1": 0.8308,
       "fpr": 0.0
     },
     "high": {
-      "tp": 74,
+      "tp": 75,
       "fp": 4,
-      "fn": 2,
+      "fn": 1,
       "tn": 206,
-      "precision": 0.9487,
-      "recall": 0.9737,
-      "f1": 0.961,
+      "precision": 0.9494,
+      "recall": 0.9868,
+      "f1": 0.9677,
       "fpr": 0.019
     },
     "medium": {
@@ -52,33 +52,33 @@
   "by_split": {
     "dev": {
       "critical": {
-        "tp": 31,
+        "tp": 33,
         "fp": 0,
         "fn": 11,
         "tn": 131,
         "precision": 1.0,
-        "recall": 0.7381,
-        "f1": 0.8493,
+        "recall": 0.75,
+        "f1": 0.8571,
         "fpr": 0.0
       },
       "high": {
-        "tp": 41,
+        "tp": 43,
         "fp": 2,
         "fn": 1,
         "tn": 129,
-        "precision": 0.9535,
-        "recall": 0.9762,
-        "f1": 0.9647,
+        "precision": 0.9556,
+        "recall": 0.9773,
+        "f1": 0.9663,
         "fpr": 0.0153
       },
       "medium": {
-        "tp": 42,
+        "tp": 44,
         "fp": 30,
         "fn": 0,
         "tn": 101,
-        "precision": 0.5833,
+        "precision": 0.5946,
         "recall": 1.0,
-        "f1": 0.7368,
+        "f1": 0.7458,
         "fpr": 0.229
       }
     },
@@ -86,31 +86,31 @@
       "critical": {
         "tp": 21,
         "fp": 0,
-        "fn": 13,
+        "fn": 11,
         "tn": 79,
         "precision": 1.0,
-        "recall": 0.6176,
-        "f1": 0.7636,
+        "recall": 0.6562,
+        "f1": 0.7924,
         "fpr": 0.0
       },
       "high": {
-        "tp": 33,
-        "fp": 2,
-        "fn": 1,
-        "tn": 77,
-        "precision": 0.9429,
-        "recall": 0.9706,
-        "f1": 0.9565,
-        "fpr": 0.0253
-      },
-      "medium": {
-        "tp": 34,
+        "tp": 32,
         "fp": 2,
         "fn": 0,
         "tn": 77,
-        "precision": 0.9444,
+        "precision": 0.9412,
         "recall": 1.0,
-        "f1": 0.9714,
+        "f1": 0.9697,
+        "fpr": 0.0253
+      },
+      "medium": {
+        "tp": 32,
+        "fp": 2,
+        "fn": 0,
+        "tn": 77,
+        "precision": 0.9412,
+        "recall": 1.0,
+        "f1": 0.9697,
         "fpr": 0.0253
       }
     }
@@ -118,27 +118,25 @@
   "calibrated": {
     "overall": {
       "items": 76,
-      "severity_met": 73,
-      "severity_met_rate": 0.9605,
+      "severity_met": 75,
+      "severity_met_rate": 0.9868,
       "critical_expected": {
         "items": 54,
-        "tp": 52,
-        "recall": 0.963
+        "tp": 54,
+        "recall": 1.0
       },
       "below_expected": [
-        "h2-cred-node-kube",
-        "h2-rugpull-exec",
         "rugpull-new-tool"
       ]
     },
     "by_split": {
       "dev": {
-        "items": 42,
-        "severity_met": 41,
-        "severity_met_rate": 0.9762,
+        "items": 44,
+        "severity_met": 43,
+        "severity_met_rate": 0.9773,
         "critical_expected": {
-          "items": 31,
-          "tp": 31,
+          "items": 33,
+          "tp": 33,
           "recall": 1.0
         },
         "below_expected": [
@@ -146,18 +144,15 @@
         ]
       },
       "heldout": {
-        "items": 34,
+        "items": 32,
         "severity_met": 32,
-        "severity_met_rate": 0.9412,
+        "severity_met_rate": 1.0,
         "critical_expected": {
-          "items": 23,
+          "items": 21,
           "tp": 21,
-          "recall": 0.913
+          "recall": 1.0
         },
-        "below_expected": [
-          "h2-cred-node-kube",
-          "h2-rugpull-exec"
-        ]
+        "below_expected": []
       }
     }
   },
@@ -266,11 +261,11 @@
     "cred-exfil": {
       "label": "malicious",
       "items": 5,
-      "recall_critical": 0.8,
-      "recall_high": 0.8,
+      "recall_critical": 1.0,
+      "recall_high": 1.0,
       "recall_medium": 1.0,
-      "expected_rule_hit_rate": 0.8,
-      "severity_met_rate": 0.8
+      "expected_rule_hit_rate": 1.0,
+      "severity_met_rate": 1.0
     },
     "env-dump": {
       "label": "malicious",
@@ -302,11 +297,11 @@
     "rug-pull": {
       "label": "malicious",
       "items": 4,
-      "recall_critical": 0.5,
+      "recall_critical": 0.75,
       "recall_high": 0.75,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
-      "severity_met_rate": 0.5
+      "severity_met_rate": 0.75
     },
     "stdio-injection": {
       "label": "malicious",
@@ -368,7 +363,7 @@
     },
     "precision_high": {
       "target": 0.85,
-      "actual": 0.9487,
+      "actual": 0.9494,
       "met": true
     },
     "fpr_high_max": {
@@ -378,12 +373,12 @@
     }
   },
   "performance": {
-    "total_seconds": 35.874,
-    "mean_ms_per_item": 125.4,
+    "total_seconds": 44.937,
+    "mean_ms_per_item": 157.1,
     "perf_check": {
       "skills": 100,
       "configs": 20,
-      "seconds": 1.643,
+      "seconds": 1.7,
       "target_seconds": 10,
       "met": true,
       "findings": 547

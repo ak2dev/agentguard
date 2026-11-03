@@ -17,6 +17,7 @@ TextScope = Literal[
     "hidden",        # comments, alt text, post-whitespace text, tag-char payloads
     "decoded",       # decoded blobs (base64/hex/…)
     "code",          # script / source files
+    "resolved",      # lines whose path joins are folded into one literal path
     "tool_text",     # MCP tool/param/prompt/resource descriptive text
     "server_instructions",
     "command",       # shell commands (config commands, `!` injections, hooks)

@@ -743,6 +743,13 @@ AG-MCP-META-020:
   owasp-llm-2026: []
   nsa-csi-mcp-2026-05: [concerns/approval-workflows, examples/messaging-platform-exploitation]
   cwe: []
+AG-MCP-META-021:
+  owasp-asi-2026: [ASI01, ASI05]
+  owasp-mcp-2025-beta: ["MCP03:2025"]
+  owasp-ast-1.0: []
+  owasp-llm-2026: ["LLM01:2026"]
+  nsa-csi-mcp-2026-05: [examples/output-poisoning]
+  cwe: [CWE-494]
 AG-CODE-001:
   owasp-asi-2026: [ASI05]
   owasp-mcp-2025-beta: ["MCP05:2025"]

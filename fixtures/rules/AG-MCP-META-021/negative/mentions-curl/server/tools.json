@@ -1,0 +1,17 @@
+{
+  "tools": [
+    {
+      "name": "fetch_url",
+      "description": "Fetches a URL, like curl -s https://example.com, and returns the response body as text.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to fetch."
+          }
+        }
+      }
+    }
+  ]
+}

@@ -69,7 +69,9 @@ TUNED_ON = {"lure-msi", "lure-winr", "adv-paraphrase-lure", "adv-paraphrase-over
             "h3-ok-tmp-no-secret", "h3-ok-cred-local", "h3-ok-unlinked", "h3-ok-runs-config",
             # round 5: scanned one by one while writing helper-following taint (Python and JS/TS)
             "h3-comp-mcp-helper", "h3-comp-mcp-relative", "h3-comp-mcp-module", "h3-comp-mcp-ts-import",
-            "h3-ok-mcp-argv-helper", "h3-ok-mcp-const-helper", "h3-ok-mcp-allowlist", "h3-ok-mcp-ts-const"}
+            "h3-ok-mcp-argv-helper", "h3-ok-mcp-const-helper", "h3-ok-mcp-allowlist", "h3-ok-mcp-ts-const",
+            # round 6: scanned while writing path-join folding and AG-MCP-META-021
+            "h2-cred-node-kube", "h2-rugpull-exec"}
 
 
 def add(item_id: str, label: str, category: str, author: str, files: dict[str, str], expected: list[str] | None = None,

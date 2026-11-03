@@ -5,6 +5,7 @@ from agentguard.core.models import Evidence
 from agentguard.core.models.enums import EvidenceKind
 from agentguard.core.normalize.decode import find_blobs
 from agentguard.core.normalize.markdown import claude_bang_commands, fences, hidden_regions, sections
+from agentguard.core.normalize.paths import resolved_lines
 from agentguard.core.normalize.unicode import (
     bidi_controls,
     mixed_script_tokens,
@@ -125,6 +126,28 @@ def test_digest_not_decoded():
 
 def test_identifiers_not_decoded():
     assert not find_blobs("the_quick_brown_fox_jumps_over_the_lazy_dog_function_name")
+
+
+# -- path joins -----------------------------------------------------------------
+def test_path_joins_fold_into_one_path():
+    cases = {
+        "fs.readFileSync(path.join(os.homedir(), '.kube', 'config'))": "fs.readFileSync('~/.kube/config')",
+        "open(os.path.join(os.path.expanduser('~'), '.ssh', 'id_rsa'))": "open('~/.ssh/id_rsa')",
+        "(Path.home() / '.aws' / 'credentials').read_text()": "('~/.aws/credentials').read_text()",
+        "Path(Path.home(), '.kube') / 'config'": "'~/.kube/config'",
+        "path.join(path.join(os.homedir(), '.docker'), 'config.json')": "'~/.docker/config.json'",
+        "Get-Content (Join-Path $HOME '.ssh\\id_rsa')": "Get-Content ('~/.ssh/id_rsa')",
+        'filepath.Join(home, ".kube", "config")': "'home/.kube/config'",
+    }
+    for src, want in cases.items():
+        assert resolved_lines(src) == [(0, len(src), want)], src
+
+
+def test_path_joins_left_alone():
+    text = "names = ', '.join(parts)\ns = os.path.join(base, name)\nconst u = new URL(path, base)\n"
+    assert resolved_lines(text) == []
+    line = "k = path.join(os.homedir(), '.kube', 'config')"
+    assert [(s, e) for s, e, _ in resolved_lines(f"x = 1\n{line}\n")] == [(6, 6 + len(line))]
 
 
 # -- markdown -----------------------------------------------------------------

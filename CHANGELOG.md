@@ -7,7 +7,7 @@ First public version.
 - Agent Guard Web server (`web/`, `agentguard-web`): paste a GitHub, npm, PyPI or MCP Registry link; it is pinned to an exact commit or version (registry digests verified), fetched through an allowlisted SSRF-hardened fetcher, scanned in a throwaway container with no network, and stored as an unlisted report with a permalink, downloads and drift against the previous scan. `docker compose up` runs it locally; CI tests the isolation against real containers.
 - Web scanner (`/scan`): paste text, drop files or a .zip, or give a public GitHub repository, folder, file or gist link; scanned in the browser by the same engine under Pyodide, with zero network requests for pasted and dropped input (tested in CI). GitHub links are pinned to a commit and findings link to the exact file and line. Deployable to Vercel with `vercel.json` security headers.
 - Commands: `scan`, `discover`, `lock`, `verify`, `rules` (`list`, `explain`, `export`), `report`, `bench`, `intel` (`status`, `update`), `schema`.
-- Rule pack 0.1.0 with 173 rules across skills and instruction files, MCP client configuration, MCP metadata, code, toxic flows, supply chain and drift, remote auth conformance, policy, coverage, and the optional LLM judge. Every rule has an unsafe and a safe fixture.
+- Rule pack 0.1.0 with 174 rules across skills and instruction files, MCP client configuration, MCP metadata, code, toxic flows, supply chain and drift, remote auth conformance, policy, coverage, and the optional LLM judge. Every rule has an unsafe and a safe fixture.
 - Outputs: terminal, JSON (schema v1), SARIF 2.1.0, Markdown, single-file HTML, CycloneDX 1.6 inventory.
 - Opt-in network features: read-only remote MCP metadata, OAuth/TLS conformance, npm provenance, OSV, package age, hijackable dependencies, LLM judge (Anthropic, OpenAI-compatible, Ollama).
 - GitHub Action with PR mode and SARIF upload; pre-commit hook.
@@ -17,6 +17,13 @@ First public version.
 
 - Benchmarks page: corpus makeup, false positives on each round's held-out set, targets against actuals, and precision / recall / F1 by threshold. Rule catalog: rules by area. Coverage: a heatmap of rules per standard item with the gaps outlined. Sample report: findings by severity. How it works (now an Astro page): the scan pipeline, the lethal trifecta, a toxic-flow path and how lock / verify catches a rug pull.
 - Static SVG drawn at build time from the generated data (no inline styles or scripts, so the CSP is unchanged), in a wide and a narrow drawing chosen by the card's width. Series colors and the heat ramp were checked for color-vision separation on the dark surface. `gen_site_data.py` also writes `sample.json` (the sample report's findings).
+
+### Folded path joins and descriptions that run scripts (round 6)
+
+- Paths built from parts are folded into one path for path rules: `path.join(os.homedir(), '.kube', 'config')` reads as `'~/.kube/config'`. Covers JS/TS `path.join`/`path.resolve`, Python `os.path.join`, `Path(...)`, `.joinpath(...)` and `Path.home() / ...`, Go `filepath.Join`, Ruby `File.join` and PowerShell `Join-Path`; only string-literal parts are joined. AG-SKL-CRED-001 v3 and the credential-access capability read the folded lines.
+- AG-MCP-META-021 (new, CRITICAL): a tool, parameter, prompt or resource description, or the server's instructions, tells the agent to download and run a script (`curl | sh`, `iwr | iex`, LOLBins, download then run). Allowlisted vendor installers are reported at MEDIUM.
+- AG-SKL-CRED-001 v3: its `unless` pattern ended in a literal `b` instead of `\b` and never matched; lines that name `.env.example`, `.env.sample`, `.env.template` or `.env.dist` are no longer reported.
+- Benchmark round 6: `h2-cred-node-kube` and `h2-rugpull-exec` now reach CRITICAL (both moved to dev); 75 of 76 attacks reach their expected severity, all 54 CRITICAL-expected ones at CRITICAL. No benign item changed. See `docs/benchmark.md`.
 
 ### Cross-file tracing (round 5)
 

@@ -71,7 +71,7 @@ class CapabilityAnalyzer:
                 continue
             code = role in (ArtifactRole.script, ArtifactRole.source_code)
             for unit in at.units:
-                if unit.scope not in ("body", "code", "command", "hidden", "decoded", "frontmatter"):
+                if unit.scope not in ("body", "code", "command", "hidden", "decoded", "frontmatter", "resolved"):
                     continue
                 t = unit.norm.text
                 explicit = code or unit.scope == "command"
@@ -87,6 +87,16 @@ class CapabilityAnalyzer:
                                        snippet=_line(t, m.start()), reason=reason,
                                        kind=EvidenceKind.ast if code else EvidenceKind.regex)
 
+                def cred_paths() -> None:
+                    for m in finditer(CREDENTIAL_PATH, t)[:3]:
+                        line = _line(t, m.start())
+                        if code or search(READ_VERB, line):
+                            cap(CapLabel.credential_access, m, "reads a credential store")
+                            cap(CapLabel.reads_private_data, m, "reads a credential store")
+
+                if unit.scope == "resolved":  # a folded path join adds only the path
+                    cred_paths()
+                    continue
                 for m in finditer(EGRESS_CODE, t)[:3]:
                     cap(CapLabel.external_egress, m, "network request")
                 for m in finditer(EXEC_CODE, t)[:3]:
@@ -94,11 +104,7 @@ class CapabilityAnalyzer:
                 for m in env_dumps(t, at.artifact.language if code else None)[:2]:
                     cap(CapLabel.credential_access, m, "dumps the environment")
                     cap(CapLabel.reads_private_data, m, "dumps the environment")
-                for m in finditer(CREDENTIAL_PATH, t)[:3]:
-                    line = _line(t, m.start())
-                    if code or search(READ_VERB, line):
-                        cap(CapLabel.credential_access, m, "reads a credential store")
-                        cap(CapLabel.reads_private_data, m, "reads a credential store")
+                cred_paths()
                 for m in finditer(TOKEN_ENV, t)[:2]:
                     if code:
                         cap(CapLabel.credential_access, m, "reads a token environment variable", Confidence.medium)

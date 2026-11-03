@@ -202,21 +202,51 @@ resolution is pattern-based: default exports, re-exports, class methods and help
 values are not followed, and the tree-sitter analyzer (`agentguard[code]`) does not follow
 helpers yet.
 
+## Round 6: folded path joins and descriptions that run scripts (2026-11-03)
+
+Round 6 targets the two round-4 held-out attacks still below their expected severity. Both were
+scanned while the changes were written, so both moved to `dev` (`TUNED_ON`); round 6 has no new
+items and no held-out measurement before tuning.
+
+1. **Paths built from parts.** `src/agentguard/core/normalize/paths.py` adds a `resolved` view of
+   each line that builds a path from parts: JS/TS `path.join`/`path.resolve`, Python
+   `os.path.join`, `Path(...)`, `.joinpath(...)` and `Path.home() / ...`, Go `filepath.Join`,
+   Ruby `File.join` and PowerShell `Join-Path`. Home-directory expressions become `~` and
+   string-literal parts are joined, so `path.join(os.homedir(), '.kube', 'config')` reads as
+   `'~/.kube/config'`. AG-SKL-CRED-001 v3 and the credential-access capability read this view.
+   Only literals are joined: a path assembled from values computed elsewhere is still missed.
+2. **AG-MCP-META-021** (new, CRITICAL): a tool, parameter, prompt or resource description, or
+   the server's instructions, contains a download-and-run command (the AG-SKL-SE-002
+   pipe-to-shell and LOLBin forms and the AG-SKL-SE-001 download-then-run form). Vendor
+   installers on the SE-002 allowlist are reported at MEDIUM.
+3. **AG-SKL-CRED-001 v3** also fixes its `unless` pattern, which ended in a literal `b` instead of
+   `\b` and so never matched: a line that names `.env.example`, `.env.sample`, `.env.template` or
+   `.env.dist` (`cp .env.dist .env`) is no longer reported.
+
+After: `h2-cred-node-kube` reaches CRITICAL through AG-SKL-CRED-010 and `h2-rugpull-exec` through
+AG-MCP-META-021. No other item changed: no benign item, synthetic or real, gained or lost a
+finding, and the `unless` fix changed no item.
+
+Still below the expected severity: `rugpull-new-tool` (dev, MEDIUM, expected HIGH), an update
+that only adds a tool with a `url` parameter.
+
 ## Results (bench/results/latest.json)
 
 Item level; AG-FLOW/AG-SYS/AG-POL findings are not counted as detections.
 
 | Threshold | Precision | Recall | FPR | TP / FP / FN / TN |
 |---|---|---|---|---|
-| ≥ CRITICAL | 1.000 | 0.684 | 0.000 | 52 / 0 / 24 / 210 |
-| ≥ HIGH | 0.949 | 0.974 | 0.019 | 74 / 4 / 2 / 206 |
+| ≥ CRITICAL | 1.000 | 0.711 | 0.000 | 54 / 0 / 22 / 210 |
+| ≥ HIGH | 0.949 | 0.987 | 0.019 | 75 / 4 / 1 / 206 |
 | ≥ MEDIUM | 0.704 | 1.000 | 0.152 | 76 / 32 / 0 / 178 |
 
-At the expected severity: 73 of 76 positives; 52 of 54 CRITICAL-expected items are caught at
-CRITICAL. Raw recall at CRITICAL (0.684) also counts the 22 items whose attacks warrant HIGH.
+At the expected severity: 75 of 76 positives; all 54 CRITICAL-expected items are caught at
+CRITICAL. Raw recall at CRITICAL (0.711) also counts the 22 items whose attacks warrant HIGH.
 
-Held-out split at ≥ HIGH: precision 0.943, recall 0.971, FPR 0.025 (2 of 79 benign items: the
+Held-out split at ≥ HIGH: precision 0.941, recall 1.000, FPR 0.025 (2 of 79 benign items: the
 same two as before round 5; the rate rose only because cloudflare's 18 servers left the split).
+Recall rose because round 6 moved the held-out attacks it fixed to dev, not because the held-out
+set was caught: the round-6 rules were written with both items in view.
 The FPR at HIGH over all benign items (0.019, 4 of 210) is just inside the 0.02 target.
 
 These numbers are for the default install. With the optional `agentguard[code,yara]` analyzers installed

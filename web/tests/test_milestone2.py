@@ -162,7 +162,7 @@ def test_probe_budget_caps_requests_and_time():
     with pytest.raises(BlockedRequest, match="budget"):
         c.request("GET", "https://example.invalid/")
     slow = ProbeClient(budget_s=0, resolver=lambda h, p: ["10.0.0.1"])
-    time.sleep(0.01)
+    slow._start -= 1  # not a sleep: Windows' monotonic clock moves in ~15.6 ms steps
     with pytest.raises(FetchError, match="time budget"):
         slow.request("GET", "https://example.invalid/")
 
