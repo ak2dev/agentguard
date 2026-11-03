@@ -16,7 +16,7 @@ COPY mappings mappings
 COPY schemas schemas
 COPY intel intel
 # Exactly the locked dependency set of the engine, with hashes; then the engine itself.
-RUN uv export --frozen --no-dev --no-emit-workspace --package agentguard -o /tmp/requirements.txt \
+RUN uv export --frozen --no-dev --no-emit-workspace --package agentguard-v1 -o /tmp/requirements.txt \
  && python -m pip install --require-hashes -r /tmp/requirements.txt --target /opt/agentguard \
  && python -m pip install --no-deps . --target /opt/agentguard
 

@@ -1,4 +1,4 @@
-"""Optional tree-sitter code analyzer (``code.ts``; install ``agentguard[code]``).
+"""Optional tree-sitter code analyzer (``code.ts``; install ``agentguard-v1[code]``).
 
 Syntax-aware, intra-procedural taint on top of the pattern-based code analyzer:
 

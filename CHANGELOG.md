@@ -13,6 +13,16 @@ First public version.
 - GitHub Action with PR mode and SARIF upload; pre-commit hook.
 - Pure-Python engine that runs under Pyodide.
 
+### Roadmap Phase 0: trust before release
+
+- `docs/roadmap.md`: the plan to industry grade, phase by phase. The README is rewritten (pre-release status, pinned install, a sample finding, release verification), and the competitor table moved to `docs/comparison.md`.
+- Release workflow: a GitHub build-provenance attestation (`actions/attest-build-provenance`) for the wheel, sdist, SBOM and rule-pack bundle, so `gh attestation verify` works. PyPI now receives only the wheel and sdist; `twine check` rejects the other files in `dist/`, which would have failed the first release.
+- Dependabot version updates for Actions, uv, npm, Docker and Compose, with a 7-day cooldown on new releases.
+- `SECURITY.md` states the project's EU Cyber Resilience Act posture (non-commercial open source) and how to verify attestations. `CONTRIBUTING.md` adds the rule checklist and inert-sample rules, with a detection-bypass issue form.
+- LLM judge: delimiter look-alikes (fullwidth and small brackets, confusable letters, zero-width padding, HTML entities, tags split across lines) are neutralized, file-path labels cannot leave their attribute, and the system prompt says the verdict can only add a finding. Prompt version 2, so cached verdicts are not reused. Adversarial fixtures in `fixtures/judge/` test that injected instructions stay inside their data block and that a judge obeying them leaves every deterministic finding unchanged.
+- The PyPI package is `agentguard-v1`: PyPI treats `agentguard` as the existing, unrelated `agent-guard` and will not register it. The command, the import name and the GitHub Action are unchanged. The GitHub repository is now `ak2dev/agentguard` (renamed from `agentguard-v1`); links, verification identities, the SARIF `informationUri` and the HTTP user agent use the new name.
+- Site: `/docs/install/` pins the commit the site was built from (`pipx install "git+https://github.com/ak2dev/agentguard@<commit>"`) instead of an unregistered PyPI name, and the home and scan pages no longer show `uvx agentguard`. HTML reports say "140 of 174 rules applied" instead of "140 rules evaluated".
+
 ### Site charts and diagrams
 
 - Benchmarks page: corpus makeup, false positives on each round's held-out set, targets against actuals, and precision / recall / F1 by threshold. Rule catalog: rules by area. Coverage: a heatmap of rules per standard item with the gaps outlined. Sample report: findings by severity. How it works (now an Astro page): the scan pipeline, the lethal trifecta, a toxic-flow path and how lock / verify catches a rug pull.
@@ -74,8 +84,8 @@ First public version.
 
 ### Optional native analyzers
 
-- `code.ts` (`agentguard[code]`): tree-sitter taint for JavaScript/TypeScript tool handlers (nested destructuring, reassignment, `for … of`, handlers passed by name, `promisify` and import aliases of `child_process`, `fs` and `execa`) and for shell scripts (`$1`, `$@` and `read` into `eval`, `sh -c` and `source`). It adds findings to AG-CODE-001..008 and merges with the pattern analyzer's on the same line.
-- `yara` (`agentguard[yara]`): rules with `match: {type: yara}` are compiled from `rules/yara/*.yar` (includes disabled) and matched against raw file bytes. New rules AG-SKL-BND-004 (bundled binary combining credential-store paths with an exfiltration channel) and AG-SKL-BND-005 (download-and-execute command embedded in a binary).
+- `code.ts` (`agentguard-v1[code]`): tree-sitter taint for JavaScript/TypeScript tool handlers (nested destructuring, reassignment, `for … of`, handlers passed by name, `promisify` and import aliases of `child_process`, `fs` and `execa`) and for shell scripts (`$1`, `$@` and `read` into `eval`, `sh -c` and `source`). It adds findings to AG-CODE-001..008 and merges with the pattern analyzer's on the same line.
+- `yara` (`agentguard-v1[yara]`): rules with `match: {type: yara}` are compiled from `rules/yara/*.yar` (includes disabled) and matched against raw file bytes. New rules AG-SKL-BND-004 (bundled binary combining credential-store paths with an exfiltration channel) and AG-SKL-BND-005 (download-and-execute command embedded in a binary).
 - Without the extra, each analyzer is reported as skipped and its rules are not counted. Fixtures declare `requires:`; CI installs both extras (YARA on Python 3.12, which has wheels) and fails instead of skipping. Benchmark results with both installed are identical item by item.
 
 ### Fixes

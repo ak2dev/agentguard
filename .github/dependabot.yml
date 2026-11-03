@@ -1,0 +1,57 @@
+# Version updates for every pinned dependency. New releases wait a week before a PR
+# opens (cooldown), so a malicious release has time to be caught and yanked first.
+# Security updates are not delayed by the cooldown.
+version: 2
+updates:
+  # .github/workflows and the root action.yml; SHA pins keep their "# vX.Y.Z" comment.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # uv.lock (the workspace: the scanner and web/).
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # The website and the pinned Pyodide used by the Pyodide CI job.
+  - package-ecosystem: "npm"
+    directories:
+      - "/site"
+      - "/tests/pyodide"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Base images of the web server and scanner sandbox.
+  - package-ecosystem: "docker"
+    directory: "/web/docker"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+
+  # Redis and Postgres in compose.yaml.
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

@@ -14,7 +14,7 @@ const fwShort = {
   "owasp-llm-2026": "OWASP LLM", "nsa-csi-mcp-2026-05": "NSA MCP CSI", cwe: "CWE",
 };
 const detection = rule.match_type === "regex" ? "Pattern" : rule.match_type === "yara" ? "YARA" : "Analyzer";
-const detectionNote = (rule.match_type === "regex" ? "Data-defined pattern rule" : rule.match_type === "yara" ? "YARA rule over raw file bytes · requires the optional agentguard[yara] extra" : "Analyzer rule")
+const detectionNote = (rule.match_type === "regex" ? "Data-defined pattern rule" : rule.match_type === "yara" ? "YARA rule over raw file bytes · requires the optional agentguard-v1[yara] extra" : "Analyzer rule")
   + (rule.network ? " · requires an opt-in network feature" : "");
 const { unsafe, safe } = rule.examples;
 ---

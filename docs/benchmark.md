@@ -199,7 +199,7 @@ only measurement taken before tuning.
 Known gaps: the skill link is about files, not values, so a script that reads the relay file
 and, separately, makes an unrelated request is reported as if it sent the file. The JS helper
 resolution is pattern-based: default exports, re-exports, class methods and helpers passed as
-values are not followed, and the tree-sitter analyzer (`agentguard[code]`) does not follow
+values are not followed, and the tree-sitter analyzer (`agentguard-v1[code]`) does not follow
 helpers yet.
 
 ## Round 6: folded path joins and descriptions that run scripts (2026-11-03)
@@ -249,7 +249,7 @@ Recall rose because round 6 moved the held-out attacks it fixed to dev, not beca
 set was caught: the round-6 rules were written with both items in view.
 The FPR at HIGH over all benign items (0.019, 4 of 210) is just inside the 0.02 target.
 
-These numbers are for the default install. With the optional `agentguard[code,yara]` analyzers installed
+These numbers are for the default install. With the optional `agentguard-v1[code,yara]` analyzers installed
 (tree-sitter taint, YARA), every item's flags, maximum severity and fired rules were identical
 (2026-10-02, Python 3.12, before round 5): no new detections and no new false positives on this corpus.
 Round 5's items and changes have not been scanned with the optional analyzers yet.

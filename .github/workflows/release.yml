@@ -40,18 +40,30 @@ jobs:
     permissions:
       id-token: write      # Sigstore keyless signing + PyPI trusted publishing
       contents: write      # attach signed artifacts to the GitHub release
+      attestations: write  # build provenance for `gh attestation verify`
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: dist
           path: dist/
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/agentguard.cdx.json
+            dist/agentguard-rulepack.tgz
       - name: Sign with Sigstore
         uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
         with:
           inputs: ./dist/*.whl ./dist/*.tar.gz ./dist/agentguard.cdx.json ./dist/agentguard-rulepack.tgz ./dist/SHA256SUMS
           release-signing-artifacts: true
+      # twine rejects anything that is not a wheel or sdist (the SBOM, rule pack, sums, Sigstore bundles).
+      - name: Stage the wheel and sdist for PyPI
+        run: mkdir pypi && cp dist/*.whl dist/*.tar.gz pypi/
       - name: Publish to PyPI (trusted publishing)
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
-          packages-dir: dist/
+          packages-dir: pypi/
           skip-existing: true

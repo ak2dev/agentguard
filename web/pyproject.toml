@@ -6,7 +6,7 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
-  "agentguard",
+  "agentguard-v1",
   "fastapi>=0.115,<1",
   "uvicorn>=0.32,<1",
   "redis>=5.2,<9",
@@ -20,7 +20,7 @@ dev = ["pytest>=8.3", "httpx>=0.27"]
 agentguard-web = "agentguard_web.cli:main"
 
 [tool.uv.sources]
-agentguard = { workspace = true }
+agentguard-v1 = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.26"]

@@ -1,4 +1,4 @@
-"""Optional YARA analyzer (``yara``; install ``agentguard[yara]``).
+"""Optional YARA analyzer (``yara``; install ``agentguard-v1[yara]``).
 
 Rules with ``match: {type: yara, rule_file: rules/yara/<name>.yar}`` are
 compiled from the rule pack and matched against the raw bytes of every

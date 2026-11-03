@@ -490,7 +490,7 @@ agentguard/
 │   │   ├── lock/                     # canonical.py (JCS), lockfile.py, diff.py
 │   │   ├── report/                   # json.py, sarif.py, markdown.py, html.py (+templates/), cyclonedx.py, terminal_safe.py
 │   │   └── engine.py                 # scan(tree, options) -> Report
-│   ├── native/                       # OPTIONAL extras: agentguard[code], agentguard[yara]
+│   ├── native/                       # OPTIONAL extras: agentguard-v1[code], agentguard-v1[yara]
 │   │   ├── treesitter/               # parse.py, js_ts.py, python.py, bash.py, taint.py, tool_extract.py
 │   │   └── yara/                     # compile.py (limits), scan.py
 │   ├── io/                           # host-only

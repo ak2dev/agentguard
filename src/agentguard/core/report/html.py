@@ -304,7 +304,7 @@ def render_html(report: Report) -> str:
     parts.append('<dl class="stats">' + "".join((
         _stat("Files", str(stats.files_scanned), _plural(stats.components, "component")),
         _stat("Rule pack", f"v{e(report.rule_pack.version)}",
-              f"{_plural(stats.rules_evaluated, 'rule')} evaluated · digest {e(report.rule_pack.digest[:12])}"),
+              f"{stats.rules_evaluated} of {_plural(report.rule_pack.rule_count, 'rule')} applied · digest {e(report.rule_pack.digest[:12])}"),
         _stat("Engine", e(report.engine_version)),
         _stat("Network", "Used" if network else "Offline", e(", ".join(network)) if network else "No network features used"),
     )) + "</dl>")

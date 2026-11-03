@@ -2,7 +2,7 @@
 the runner. No provider is given tools, and none ever receives credentials
 found in scanned content.
 
-* anthropic      — official ``anthropic`` SDK (install ``agentguard[judge]``).
+* anthropic      — official ``anthropic`` SDK (install ``agentguard-v1[judge]``).
 * openai_compat  — any OpenAI-compatible /chat/completions endpoint (raw HTTP).
 * ollama         — local Ollama /api/chat (raw HTTP, loopback allowed).
 """
@@ -37,7 +37,7 @@ class AnthropicProvider:
         try:
             import anthropic
         except ImportError as exc:  # pragma: no cover - depends on optional extra
-            raise JudgeError("the Anthropic provider needs the optional extra: pip install 'agentguard[judge]'") from exc
+            raise JudgeError("the Anthropic provider needs the optional extra: pip install 'agentguard-v1[judge]'") from exc
         self._anthropic = anthropic
         self.client = anthropic.Anthropic()  # credentials from the environment / `ant auth login`
         self.model = model or DEFAULT_MODELS["anthropic"]

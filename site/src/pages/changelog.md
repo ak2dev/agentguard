@@ -17,6 +17,6 @@ First public version.
 - Opt-in `--check-hijackable` (SkillJacking) on the CLI and in the GitHub Action (`check-hijackable: true`): deleted GitHub owners, unregistered npm/PyPI names, unregistered or expired domains and freed cloud-app hostnames. A GitHub token, when set, goes to api.github.com only.
 - Pure-Python engine that runs under Pyodide.
 - Agent Guard Web: GitHub, npm, PyPI, MCP Registry and remote MCP server links scanned on the server in an isolated sandbox; rescans with current rules, maintainer responses, factual README badges, a self-hosted bot check, and toxic flows drawn as diagrams.
-- Optional native analyzers: tree-sitter taint for JS/TS tool handlers and shell scripts (`agentguard[code]`), and YARA rules over bundled binaries (`agentguard[yara]`).
+- Optional native analyzers: tree-sitter taint for JS/TS tool handlers and shell scripts (`agentguard-v1[code]`), and YARA rules over bundled binaries (`agentguard-v1[yara]`).
 - Benchmark with 163 real benign skills and MCP servers from vendor repositories, plus false-positive tuning. Some documentary matches are now reported at MEDIUM instead of HIGH (see Limitations).
 - Credential paths built with `path.join`, `os.path.join`, `Path.home() / ...` or `Join-Path` are folded into one path before the credential rules read them, and descriptions that tell the agent to download and run a script are reported (AG-MCP-META-021).
