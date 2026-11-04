@@ -1,9 +1,9 @@
 # Supply-chain and drift rules.
 rules:
   - id: AG-SC-001
-    version: 1
+    version: 2
     title: Tool definition changed without a version change (rug pull)
-    description: A server's normalized tool definition (name, title, description, input schema, annotations) differs from agentguard.lock while the server version is unchanged.
+    description: A server's normalized tool definition (name, title, description, input schema, output schema, annotations) differs from agentguard.lock while the server version is unchanged. Locks written before output schemas were pinned (no `tool_hash_version`) are compared without them.
     why: Rug pulls change tool behavior or instructions after users approved the server, without an update anyone would review.
     severity: high
     confidence: high
@@ -31,7 +31,7 @@ rules:
     remediation: Review the new tools, then update the lock.
 
   - id: AG-SC-004
-    version: 1
+    version: 2
     title: Version changed without a lock update
     description: The component version (or a tool definition with it) changed and agentguard.lock was not updated.
     why: Updates should be deliberate and reviewed.

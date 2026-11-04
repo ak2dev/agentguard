@@ -8,7 +8,7 @@ import json
 
 from .models import Artifact, Component, LockEntry, Lockfile, Report, ToolSnapshot, canonical_json
 from .models.enums import CapLabel, ComponentKind
-from .textutil import visible_escape
+from .textutil import sha256_hex, visible_escape
 
 LOCKED_KINDS = (ComponentKind.skill, ComponentKind.mcp_server, ComponentKind.package, ComponentKind.instruction_file,
                 ComponentKind.subagent, ComponentKind.command)
@@ -20,8 +20,24 @@ def lock_key(c: Component) -> str:
     return f"{c.kind.value}:{c.name}@{c.root}"
 
 
+TOOL_HASH_VERSION = 2
+LEGACY_TOOL_KEYS = ("output_schema",)  # canonical keys a version-1 tool hash does not cover
+
+
 def build_lock(report: Report) -> Lockfile:
-    return Lockfile(entries=build_entries(report.inventory, report.artifacts))
+    return Lockfile(tool_hash_version=TOOL_HASH_VERSION, entries=build_entries(report.inventory, report.artifacts))
+
+
+def covered(definition: dict, version: int = TOOL_HASH_VERSION) -> dict:
+    """The part of a canonical tool definition that a lock of tool_hash_version `version` pins."""
+    if version >= 2:
+        return definition
+    return {k: v for k, v in definition.items() if k not in LEGACY_TOOL_KEYS}
+
+
+def tool_hash(definition: dict, version: int = TOOL_HASH_VERSION) -> str:
+    """Hash of a canonical tool definition as a lock of tool_hash_version `version` computed it."""
+    return sha256_hex(canonical_json(covered(definition, version)))
 
 
 def build_entries(components: list[Component], artifacts: list[Artifact]) -> list[LockEntry]:
@@ -61,4 +77,4 @@ def tool_diff(old: dict, new: dict, name: str, max_lines: int = 60) -> str:
     return visible_escape("\n".join(diff))
 
 
-__all__ = ["build_lock", "dump_lock", "lock_key", "tool_diff", "canonical_json"]
+__all__ = ["TOOL_HASH_VERSION", "build_lock", "covered", "dump_lock", "lock_key", "tool_diff", "tool_hash", "canonical_json"]

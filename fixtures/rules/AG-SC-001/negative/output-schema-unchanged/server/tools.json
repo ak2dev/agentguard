@@ -1,0 +1,33 @@
+{
+  "serverInfo": {
+    "name": "weather",
+    "version": "1.0.0"
+  },
+  "tools": [
+    {
+      "name": "forecast",
+      "description": "Gets the weather for a city.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "temperature": {
+            "type": "number",
+            "description": "Temperature in celsius"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line summary of the forecast."
+          }
+        }
+      }
+    }
+  ]
+}

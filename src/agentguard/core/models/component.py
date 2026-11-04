@@ -52,13 +52,18 @@ class ToolDef(BaseModel):
     span: Span | None = None
 
     def canonical(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "name": self.name,
             "title": self.title,
             "description": self.description,
             "input_schema": self.input_schema,
             "annotations": self.annotations,
         }
+        # Only when present, so a tool without an outputSchema hashes exactly as
+        # before outputSchema was covered (lock tool_hash_version 1).
+        if self.output_schema is not None:
+            out["output_schema"] = self.output_schema
+        return out
 
     def normalized_hash(self) -> str:
         return sha256_hex(canonical_json(self.canonical()))
