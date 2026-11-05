@@ -1,0 +1,18 @@
+{
+  "tools": [
+    {
+      "name": "lookup_record",
+      "title": null,
+      "description": "Look up a record by id.",
+      "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}},
+      "outputSchema": null,
+      "annotations": []
+    },
+    {
+      "name": "list_records",
+      "description": "List records.",
+      "input_schema": {"type": "object", "properties": {}},
+      "outputSchema": {"type": "object", "properties": {"total": {"type": "integer"}}}
+    }
+  ]
+}
