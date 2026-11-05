@@ -21,7 +21,7 @@ const W = 760, axisY = 40, xs = [40, 300, 560];
 const down = (x, y) => `M${x - 4},${y - 6}L${x},${y}L${x + 4},${y - 6}`;
 ---
 <Figure id="lockverify" title="Catching a rug pull with lock and verify"
-  note="An MCP server can change what its tools say after you approve it. lock records a hash of every skill file and every normalized tool definition (name, description, input schema, annotations); verify shows what changed as a diff and reports it.">
+  note="An MCP server can change what its tools say after you approve it. lock records a hash of every skill file and every normalized tool definition (name, title, description, input and output schemas, annotations); verify shows what changed as a diff and reports it.">
   <svg class="v-wide big" viewBox={`0 0 ${W} 286`} role="img" aria-labelledby="lockverify-w-d">
     <desc id="lockverify-w-d">Day 1: agentguard lock records hashes. Day 9: the server changes a tool description without a version change. Day 10: agentguard verify shows the diff and reports {finding.rule}, {finding.title}, at {finding.sev}.</desc>
     <line class="d-axis" x1="20" x2={W - 20} y1={axisY} y2={axisY} />
