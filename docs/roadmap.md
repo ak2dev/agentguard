@@ -41,8 +41,8 @@ connectors, grouped into ten areas. ✅ means the README already shows it, 🟡 
 ### B. Spec currency
 | Expectation | Today |
 |---|---|
-| MCP 2026-07-28 (stateless core, JSON Schema 2020-12, MCP Apps, Tasks extension, auth changes) | 🟡 Apps UI risks and auth RFCs are covered, the rest is not stated |
-| Published support matrix by spec version, with a 30-day SLA after each spec release | ❌ |
+| MCP 2026-07-28 (stateless core, JSON Schema 2020-12, MCP Apps, Tasks extension, auth changes) | 🟡 Covered since PR #49: remote `$ref` and schema bombs, `outputSchema` instructions, MCP Apps CSP / scripts / consent, predictable task IDs, deprecated Roots / Sampling / Logging, client `iss`, `resource` and issuer-bound credentials. Not yet: `x-mcp-header` on secrets, DCR `application_type`, state handles that replaced sessions |
+| Published support matrix by spec version, with a 30-day SLA after each spec release | 🟡 [Matrix published](https://agentguard-ak2dev.vercel.app/docs/mcp-spec-support/); the SLA is not written down yet |
 
 ### C. Detection depth (defence in depth, not a single technique)
 | Layer | Today |
@@ -171,7 +171,7 @@ many features it has.
 ### Phase 1: Current with November 2026 (December 2026 → January 2027)
 | Work | Done when |
 |---|---|
-| **MCP 2026-07-28 rules:** remote/`http` `$ref` in tool schemas, schema depth/size bombs, `outputSchema` abuse, MCP Apps UI resources (CSP, external scripts, `postMessage` actions bypassing consent), Tasks extension misuse, reliance on deprecated Roots/Sampling/Logging, missing `iss` validation and issuer-bound credentials in client code, missing `resource` parameter | Each has unsafe + safe fixtures. A spec-version support matrix is published |
+| **MCP 2026-07-28 rules:** remote/`http` `$ref` in tool schemas, schema depth/size bombs, `outputSchema` abuse, MCP Apps UI resources (CSP, external scripts, `postMessage` actions bypassing consent), Tasks extension misuse, reliance on deprecated Roots/Sampling/Logging, missing `iss` validation and issuer-bound credentials in client code, missing `resource` parameter | Each has unsafe + safe fixtures. A spec-version support matrix is published. ✅ Done in PR #49 |
 | **Plugins and marketplaces** (Claude Code, Cursor, Codex, VS Code): parse plugin manifests; flag hooks (`PreToolUse`/`SessionStart` etc.) running network or shell, marketplace sources not on an allowlist, impersonated publisher names, auto-update without pinning, bundled MCP servers and subagents | Plugin is a first-class component in `discover`, `lock` and toxic flows |
 | **Connectors:** A2A Agent Card parser (verify the signature when present, flag unsigned cards, broad skills, plain-HTTP endpoints and weak auth schemes), remote MCP connector configs with OAuth scopes, OpenAPI action specs | Cards and connectors show up in the capability graph |
 | **Subagent definitions and client permission settings** feed the toxic-flow graph (allowed tools, auto-approve, sandbox off) | Toxic-flow paths cite the permission that enables them |
