@@ -360,7 +360,23 @@ def _add_server_json(inv: Inventory, tree: ArtifactTree, path: str, new_componen
     inv.manifests[path] = v
 
 
+def _looks_like_tool(entry: Any) -> bool:
+    """A schema key is MCP's own. A description counts only beside a name: a plain list
+    of tools or plugins often has one or the other, and with both it cannot be told from
+    a tool. No other key may rule an entry out, since the author of the file chooses them."""
+    if not isinstance(entry, dict):
+        return False
+    return "inputSchema" in entry or "input_schema" in entry or ("name" in entry and "description" in entry)
+
+
+def _looks_like_prompt(entry: Any) -> bool:
+    return isinstance(entry, dict) and "name" in entry and any(k in entry for k in ("description", "arguments", "messages"))
+
+
 def _tool_manifest(text: str) -> dict[str, Any] | None:
+    """The manifest in `text`, if it has one. One entry that looks right is enough: a
+    client may drop what it cannot parse and load the rest, so the entries around a tool
+    must not decide whether it is read. `_readable` reports the ones that cannot be."""
     if '"tools"' not in text and '"prompts"' not in text and '"instructions"' not in text:
         return None
     parsed = parse_json(text)
@@ -370,12 +386,40 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     if not isinstance(v, dict):
         return None
     tools = v.get("tools")
-    if isinstance(tools, list) and tools and all(isinstance(t, dict) and "name" in t for t in tools):
-        if any(k in tools[0] for k in ("inputSchema", "input_schema", "description")):
-            return v
-    if isinstance(v.get("prompts"), list) and all(isinstance(t, dict) and "name" in t for t in v["prompts"]):
+    if isinstance(tools, list) and any(_looks_like_tool(t) for t in tools):
+        return v
+    prompts = v.get("prompts")
+    if isinstance(prompts, list) and (
+        any(_looks_like_prompt(p) for p in prompts) or all(isinstance(p, dict) and "name" in p for p in prompts)
+    ):
         return v
     return None
+
+
+def _readable(inv: Inventory, path: str, text: str, list_key: str, entries: list[Any], id_key: str) -> list[dict[str, Any]]:
+    """The entries of a manifest list that have a string `id_key`. The rest cannot be read,
+    so they are noted for AG-SYS-001: one note per list however long it is, and none for
+    empty values, which hold nothing."""
+    readable: list[dict[str, Any]] = []
+    skipped: list[tuple[int, Any]] = []
+    for i, entry in enumerate(entries):
+        if isinstance(entry, dict) and isinstance(entry.get(id_key), str):
+            readable.append(entry)
+        elif entry:
+            skipped.append((i, entry))
+    if skipped:
+        reasons = [
+            f"{list_key}[{i}] " + (f"has no string '{id_key}'" if isinstance(e, dict) else f"is {_JSON_TYPE[type(e)]}")
+            for i, e in skipped[:3]
+        ]
+        more = f" and {len(skipped) - 3} more" if len(skipped) > 3 else ""
+        first, entry = skipped[0]
+        inv.malformed_fields.append((
+            Span(path=path, start_line=locate(text, f'"{list_key}"')),
+            f"{len(skipped)} of {len(entries)} entries in '{list_key}' were not analyzed: {', '.join(reasons)}{more}.",
+            f"{list_key}[{first}]: {str(entry)[:200]}",
+        ))
+    return readable
 
 
 def _resource_text(rs: dict[str, Any], read: Callable[[str, type], Any]) -> str | None:
@@ -405,9 +449,7 @@ def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_c
     add_artifact(path, comp, ArtifactRole.tool_manifest)
     inv.manifests[path] = v
     top = partial(_checked, inv, Span(path=path), "Manifest", v)
-    for t in top("tools", list) or []:
-        if not isinstance(t, dict) or not isinstance(t.get("name"), str):
-            continue
+    for t in _readable(inv, path, text, "tools", top("tools", list) or [], "name"):
         span = Span(path=path, start_line=locate(text, '"tools"', f'"{t["name"]}"'))
         read = partial(_checked, inv, span, f"Tool '{t['name']}'", t)
         comp.tools.append(
@@ -422,31 +464,29 @@ def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_c
                 span=span,
             )
         )
-    for pr in top("prompts", list) or []:
-        if isinstance(pr, dict) and isinstance(pr.get("name"), str):
-            span = Span(path=path, start_line=locate(text, '"prompts"', f'"{pr["name"]}"'))
-            read = partial(_checked, inv, span, f"Prompt '{pr['name']}'", pr)
-            msgs = []
-            for m in read("messages", list) or []:
-                content = m.get("content") if isinstance(m, dict) else None
-                if isinstance(content, dict) and isinstance(content.get("text"), str):
-                    msgs.append(content["text"])
-                elif isinstance(content, str):
-                    msgs.append(content)
-            comp.prompts.append(
-                PromptDef(name=pr["name"], title=read("title", str), description=read("description", str),
-                          arguments=[a for a in read("arguments", list) or [] if isinstance(a, dict)], messages=msgs,
-                          span=span)
-            )
-    for rs in top("resources", list) or []:
-        if isinstance(rs, dict) and isinstance(rs.get("uri"), str):
-            span = Span(path=path, start_line=locate(text, f'"{rs["uri"]}"'))
-            read = partial(_checked, inv, span, f"Resource '{rs['uri']}'", rs)
-            comp.resources.append(
-                ResourceDef(uri=rs["uri"], name=read("name", str), title=read("title", str),
-                            description=read("description", str), mime_type=read("mimeType", str),
-                            text=_resource_text(rs, read), meta=read("_meta", dict) or {}, span=span)
-            )
+    for pr in _readable(inv, path, text, "prompts", top("prompts", list) or [], "name"):
+        span = Span(path=path, start_line=locate(text, '"prompts"', f'"{pr["name"]}"'))
+        read = partial(_checked, inv, span, f"Prompt '{pr['name']}'", pr)
+        msgs = []
+        for m in read("messages", list) or []:
+            content = m.get("content") if isinstance(m, dict) else None
+            if isinstance(content, dict) and isinstance(content.get("text"), str):
+                msgs.append(content["text"])
+            elif isinstance(content, str):
+                msgs.append(content)
+        comp.prompts.append(
+            PromptDef(name=pr["name"], title=read("title", str), description=read("description", str),
+                      arguments=[a for a in read("arguments", list) or [] if isinstance(a, dict)], messages=msgs,
+                      span=span)
+        )
+    for rs in _readable(inv, path, text, "resources", top("resources", list) or [], "uri"):
+        span = Span(path=path, start_line=locate(text, f'"{rs["uri"]}"'))
+        read = partial(_checked, inv, span, f"Resource '{rs['uri']}'", rs)
+        comp.resources.append(
+            ResourceDef(uri=rs["uri"], name=read("name", str), title=read("title", str),
+                        description=read("description", str), mime_type=read("mimeType", str),
+                        text=_resource_text(rs, read), meta=read("_meta", dict) or {}, span=span)
+        )
     instructions = top("instructions", str)
     if instructions is not None:
         comp.instructions = instructions

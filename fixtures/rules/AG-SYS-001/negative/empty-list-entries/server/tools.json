@@ -1,0 +1,23 @@
+{
+  "tools": [
+    null,
+    {},
+    "",
+    {
+      "name": "lookup_record",
+      "description": "Look up a record by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "prompts": [
+    null
+  ],
+  "resources": []
+}

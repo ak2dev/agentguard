@@ -1,0 +1,12 @@
+{
+  "tools": [
+    {
+      "name": "black",
+      "version": "24.8.0"
+    },
+    {
+      "name": "ruff",
+      "version": "0.6.9"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "d555b7793c85bdaf11bf98c6fdfe760039e6b666b732f5c1131548cb753afa2c"
+    "digest": "fe25ab3099ca69afb76a311946fc69b80492a9a259048752ac6c8830dc7ab766"
   },
   "rules": [
     {
@@ -8220,9 +8220,9 @@
     },
     {
       "id": "AG-SYS-001",
-      "version": 2,
+      "version": 3,
       "title": "Content skipped by safety limits",
-      "description": "A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or a field of an MCP tool manifest was not analyzed because it has the wrong JSON type (an `outputSchema` that is a string, say).",
+      "description": "A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or part of an MCP tool manifest was not analyzed because a field has the wrong JSON type (an `outputSchema` that is a string, say) or an entry of `tools`, `prompts` or `resources` is not an object with a string name or URI.",
       "why": "Unscanned content is not \"clean\"; this finding keeps coverage gaps visible.",
       "severity": "info",
       "confidence": "high",
@@ -8249,7 +8249,7 @@
         },
         "safe": {
           "path": "server/tools.json",
-          "text": "{\n  \"tools\": [\n    {\n      \"name\": \"lookup_record\",\n      \"title\": null,\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}},\n      \"outputSchema\": null,\n      \"annotations\": []\n    },\n    {\n      \"name\": \"list_records\",\n      \"description\": \"List records.\",\n      \"input_schema\": {\"type\": \"object\", \"properties\": {}},\n      \"outputSchema\": {\"type\": \"object\", \"properties\": {\"total\": {\"type\": \"integer\"}}}\n    }\n  ]\n}"
+          "text": "{\n  \"tools\": [\n    null,\n    {},\n    \"\",\n    {\n      \"name\": \"lookup_record\",\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  ],\n  \"prompts\": [\n    null\n  ],\n  \"resources\": []\n}"
         }
       }
     },

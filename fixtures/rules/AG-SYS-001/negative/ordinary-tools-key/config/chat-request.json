@@ -1,0 +1,16 @@
+{
+  "model": "example-model",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_time",
+        "description": "Returns the current time.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  ]
+}

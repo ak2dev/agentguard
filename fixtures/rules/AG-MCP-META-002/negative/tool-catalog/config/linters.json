@@ -1,0 +1,11 @@
+{
+  "tools": [
+    {
+      "name": "black"
+    },
+    {
+      "name": "ruff",
+      "description": "A fast Python linter."
+    }
+  ]
+}
