@@ -113,7 +113,7 @@ const frontmatter = { title: "How it works", description: "Why Agent Guard exist
     <div><dt>Engine, CLI, network</dt><dd><span class="v">15,000</span><span class="sub">lines of Python in <code>src/agentguard</code></span></dd></div>
     <div><dt>Web server</dt><dd><span class="v">2,800</span><span class="sub">lines of Python in <code>web/</code></span></dd></div>
     <div><dt>Rule pack</dt><dd><span class="v">2,700</span><span class="sub">lines of YAML for 185 rules</span></dd></div>
-    <div><dt>Tests</dt><dd><span class="v">273</span><span class="sub">Python test functions, plus two fixtures per rule</span></dd></div>
+    <div><dt>Tests</dt><dd><span class="v">279</span><span class="sub">Python test functions, plus two fixtures per rule</span></dd></div>
   </dl></div>
 
   <h3>Languages and libraries</h3>
@@ -159,7 +159,7 @@ const frontmatter = { title: "How it works", description: "Why Agent Guard exist
 
   <h3>How the code is tested</h3>
   <div class="advice cells three corners">
-    <div><h4 class="cell-h">Unit, fixture and safety tests</h4><p>273 Python test functions for the engine and web server, plus an unsafe and a safe fixture for each of the 185 rules. No process may start across the whole fixture corpus.</p></div>
+    <div><h4 class="cell-h">Unit, fixture and safety tests</h4><p>279 Python test functions for the engine and web server, plus an unsafe and a safe fixture for each of the 185 rules. No process may start across the whole fixture corpus.</p></div>
     <div><h4 class="cell-h">CI matrix</h4><p>Linux, macOS and Windows on Python 3.12 and 3.14; the engine again under Pyodide; the web server's isolation tests against real containers; browser tests with Playwright.</p></div>
     <div><h4 class="cell-h">Benchmark gate</h4><p>CI fails if the committed benchmark results are stale or a change makes any item worse.</p></div>
   </div>

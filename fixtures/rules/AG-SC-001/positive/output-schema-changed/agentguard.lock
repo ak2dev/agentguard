@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "capability_labels": [],
+      "content_hash": "c5cbe1cb71e4a9ea679596490944c0d438b5b11a42918c9c22665617fa27427b",
+      "key": "mcp_server:weather@server/tools.json",
+      "kind": "mcp_server",
+      "name": "weather",
+      "tools": {
+        "forecast": {
+          "definition": {
+            "annotations": {},
+            "description": "Gets the weather for a city.",
+            "input_schema": {
+              "properties": {
+                "city": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "name": "forecast",
+            "output_schema": {
+              "properties": {
+                "summary": {
+                  "description": "One-line summary of the forecast.",
+                  "type": "string"
+                },
+                "temperature": {
+                  "description": "Temperature in celsius",
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "title": null
+          },
+          "hash": "618d972fae5c4fac3a1880d206937234ba10e0c2445e317b122c2afebe806265"
+        }
+      },
+      "version": "1.0.0"
+    }
+  ],
+  "generator": "agentguard",
+  "lock_version": 1,
+  "tool_hash_version": 2
+}

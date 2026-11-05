@@ -424,7 +424,7 @@ class LockEntry(BaseModel):
     skill_files: dict[str, str] | None       # path → sha256
     tools: dict[str, ToolSnapshot] | None    # name → {hash, canonical def} (kept for readable diffs)
     capability_labels: list[CapLabel]
-class Lockfile(BaseModel): lock_version: Literal[1]; entries: list[LockEntry]   # sorted by key
+class Lockfile(BaseModel): lock_version: Literal[1]; tool_hash_version: Literal[1, 2]; entries: list[LockEntry]   # sorted by key
 
 # ---- engine I/O ---------------------------------------------------------
 class ScanOptions(BaseModel):

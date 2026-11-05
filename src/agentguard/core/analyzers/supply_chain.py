@@ -9,7 +9,7 @@ from typing import ClassVar
 
 import regex
 
-from ..lock import build_entries, lock_key, tool_diff
+from ..lock import build_entries, covered, lock_key, tool_diff, tool_hash
 from ..mcp_config import package_arg, split_package_spec
 from ..models import Evidence, LockEntry, Span
 from ..models.enums import ComponentKind, EvidenceKind
@@ -44,7 +44,7 @@ class DriftAnalyzer:
             if old.content_hash == cur.content_hash and (old.tools or {}) == (cur.tools or {}):
                 continue
             same_version = (old.version or "") == (cur.version or "")
-            self._tools(ctx, comp.id, comp.name, span, old, cur, same_version)
+            self._tools(ctx, comp.id, comp.name, span, old, cur, same_version, lock.tool_hash_version)
             if (old.skill_files or {}) != (cur.skill_files or {}):
                 changed = sorted(k for k in set(old.skill_files or {}) | set(cur.skill_files or {})
                                  if (old.skill_files or {}).get(k) != (cur.skill_files or {}).get(k))
@@ -61,7 +61,8 @@ class DriftAnalyzer:
                          match=f"{key}:labels", kind=EvidenceKind.lock_diff,
                          message=f"'{comp.name}' gained capabilities since lock: {', '.join(l.value for l in new_labels)}.")
 
-    def _tools(self, ctx: Context, cid: str, name: str, span: Span, old: LockEntry, cur: LockEntry, same_version: bool) -> None:
+    def _tools(self, ctx: Context, cid: str, name: str, span: Span, old: LockEntry, cur: LockEntry, same_version: bool,
+               hash_version: int) -> None:
         o, c = old.tools or {}, cur.tools or {}
         added, removed = sorted(set(c) - set(o)), sorted(set(o) - set(c))
         if added or removed:
@@ -69,8 +70,11 @@ class DriftAnalyzer:
                      match=f"{name}:{added}:{removed}", kind=EvidenceKind.lock_diff,
                      message=f"'{name}' tools changed since lock (added {added or 'none'}, removed {removed or 'none'}).")
         for t in sorted(set(o) & set(c)):
-            if o[t].hash != c[t].hash:
-                diff = tool_diff(o[t].definition, c[t].definition, t)
+            # Compare only what the lock pinned: a lock written before output_schema was hashed
+            # (tool_hash_version 1) must not report every tool that has an outputSchema.
+            cur_def = covered(c[t].definition, hash_version)
+            if o[t].hash != tool_hash(cur_def, hash_version):
+                diff = tool_diff(o[t].definition, cur_def, t)
                 ctx.emit("AG-SC-001" if same_version else "AG-SC-004", component_ids=cid, span=span,
                          snippet=f"tool '{t}' definition changed", match=f"{name}:{t}:{c[t].hash}", kind=EvidenceKind.lock_diff,
                          extra_evidence=[Evidence(kind=EvidenceKind.lock_diff, location=span,

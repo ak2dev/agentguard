@@ -130,6 +130,9 @@ class LockEntry(BaseModel):
 
 class Lockfile(BaseModel):
     lock_version: Literal[1] = 1
+    tool_hash_version: Literal[1, 2] = Field(
+        1, description="What a tool hash covers. 1 (also locks without this field): name, title, description, "
+                       "input_schema and annotations. 2: also output_schema, when the tool has one.")
     generator: str = "agentguard"
     entries: list[LockEntry] = Field(default_factory=list)
 

@@ -24,6 +24,10 @@ Built from the 2026-07-28 specification, its changelog and the official MCP Apps
 - Docs: an MCP spec support page lists which specification revisions and extensions each rule area covers. Six CWE entries added (CWE-340, 346, 400, 477, 522, 942).
 - Benchmark: no item changed flags, maximum severity or benign hits. Four real servers (MCP `everything`, `filesystem`, `git` and playwright-mcp) now also carry AG-MCP-SPEC-002 at info for their Roots use. A first run reported AG-MCP-SPEC-005 at medium on supabase-mcp (a `grant_type` example in a generated API doc comment, in a server whose tests use an MCP client); test files and comment lines are now excluded, and a fixture keeps it that way.
 
+### Lock and verify
+
+- Tool hashes in `agentguard.lock` now cover a tool's `outputSchema`, so changing, adding or removing one after `lock` is reported by AG-SC-001 (or AG-SC-004 with a version bump); before this, a server could put instructions in its output schema (AG-MCP-META-024) after approval without any drift finding. Tools without an output schema hash exactly as before. New locks record `tool_hash_version: 2`; a lock without it was written before output schemas were pinned and is still compared without them, so it reports nothing new until you re-run `agentguard lock`.
+
 ### Roadmap Phase 0: trust before release
 
 - `docs/roadmap.md`: the plan to industry grade, phase by phase. The README is rewritten (pre-release status, pinned install, a sample finding, release verification), and the competitor table moved to `docs/comparison.md`.

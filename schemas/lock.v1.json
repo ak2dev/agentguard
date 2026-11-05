@@ -118,6 +118,16 @@
       "title": "Lock Version",
       "type": "integer"
     },
+    "tool_hash_version": {
+      "default": 1,
+      "description": "What a tool hash covers. 1 (also locks without this field): name, title, description, input_schema and annotations. 2: also output_schema, when the tool has one.",
+      "enum": [
+        1,
+        2
+      ],
+      "title": "Tool Hash Version",
+      "type": "integer"
+    },
     "generator": {
       "default": "agentguard",
       "title": "Generator",
