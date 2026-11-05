@@ -845,7 +845,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 2.3
+      "ms": 10.8
     },
     {
       "id": "stdio-cmd-enc",
@@ -1097,7 +1097,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 4.0
+      "ms": 13.7
     },
     {
       "id": "adv-paraphrase-lure",
@@ -1574,7 +1574,7 @@
         "AG-FLOW-001:high",
         "AG-FLOW-002:high"
       ],
-      "ms": 3.8
+      "ms": 18.3
     },
     {
       "id": "cfg-vscode-inputs",
@@ -1859,7 +1859,7 @@
       "expected_hit": false,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 21.3
     },
     {
       "id": "h2-para-console",
@@ -2168,7 +2168,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 27.3
     },
     {
       "id": "h2-revshell-cfg",
@@ -2524,7 +2524,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.0
+      "ms": 24.2
     },
     {
       "id": "h2-ok-s3-backup",
@@ -2566,7 +2566,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.5
+      "ms": 33.4
     },
     {
       "id": "h2-ok-vendor-installer",
@@ -2679,7 +2679,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.9
+      "ms": 19.8
     },
     {
       "id": "a3-para-void",
@@ -2750,7 +2750,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 22.6
     },
     {
       "id": "a3-revshell-fifo",
@@ -2799,7 +2799,7 @@
       "expected_hit": true,
       "benign_hits": [],
       "flow_findings": [],
-      "ms": 3.9
+      "ms": 29.9
     },
     {
       "id": "a3-ok-install-vendor",
