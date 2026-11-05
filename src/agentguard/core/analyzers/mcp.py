@@ -634,6 +634,7 @@ class McpMetaAnalyzer:
         "AG-MCP-META-004", "AG-MCP-META-006", "AG-MCP-META-007", "AG-MCP-META-008", "AG-MCP-META-009",
         "AG-MCP-META-010", "AG-MCP-META-016", "AG-MCP-META-017", "AG-MCP-META-018", "AG-MCP-META-019",
         "AG-MCP-META-022", "AG-MCP-META-023", "AG-MCP-META-025", "AG-MCP-META-026", "AG-MCP-META-027",
+        "AG-SYS-001",
     )
 
     def run(self, ctx: Context) -> None:
@@ -652,6 +653,10 @@ class McpMetaAnalyzer:
                      match=f"{path}:deep", kind=EvidenceKind.schema,
                      message=f"Tool manifest {path} nests more than 64 levels deep; Agent Guard could not read its tools, "
                      "and validators with a depth or stack limit fail on it.")
+        for span, message, snippet in ctx.inventory.malformed_fields:
+            comp = ctx.inventory.component_for(span.path)
+            ctx.emit("AG-SYS-001", component_ids=[comp.id] if comp else [], span=span, snippet=snippet,
+                     match=f"malformed:{span.path}:{message}", kind=EvidenceKind.loader, message=message)
 
     def _tool(self, ctx: Context, comp: Component, tool: ToolDef) -> None:
         span = tool.span

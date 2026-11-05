@@ -1,7 +1,7 @@
 {
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "e12f046fa9dcfd10f858a1d7767d2b6e9745c500b2a0ccc35bcffad6ce16cd3a"
+    "digest": "cf5d344f708283eea04db7a554113eb3c3bf9b71d98ea1822d1125c97b26ccde"
   },
   "rules": [
     {
@@ -8220,9 +8220,9 @@
     },
     {
       "id": "AG-SYS-001",
-      "version": 1,
+      "version": 2,
       "title": "Content skipped by safety limits",
-      "description": "A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file.",
+      "description": "A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or a field of an MCP tool manifest was not analyzed because it has the wrong JSON type (an `outputSchema` that is a string, say).",
       "why": "Unscanned content is not \"clean\"; this finding keeps coverage gaps visible.",
       "severity": "info",
       "confidence": "high",
@@ -8244,12 +8244,12 @@
       "match_type": "analyzer",
       "examples": {
         "unsafe": {
-          "path": "csv-tool/SKILL.md",
-          "text": "---\nname: csv-tool\ndescription: Summarize CSV files and report column statistics.\n---\n# CSV summarizer\n\nRead the CSV the user provides and report row counts and column types.\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          "path": "server/tools.json",
+          "text": "{\n  \"tools\": [\n    {\n      \"name\": \"lookup_record\",\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}},\n      \"outputSchema\": \"not an object\"\n    }\n  ]\n}"
         },
         "safe": {
-          "path": "csv-tool/SKILL.md",
-          "text": "---\nname: csv-tool\ndescription: Summarize CSV files and report column statistics.\n---\n# CSV summarizer\n\nRead the CSV the user provides and report row counts and column types."
+          "path": "server/tools.json",
+          "text": "{\n  \"tools\": [\n    {\n      \"name\": \"lookup_record\",\n      \"title\": null,\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}},\n      \"outputSchema\": null,\n      \"annotations\": []\n    },\n    {\n      \"name\": \"list_records\",\n      \"description\": \"List records.\",\n      \"input_schema\": {\"type\": \"object\", \"properties\": {}},\n      \"outputSchema\": {\"type\": \"object\", \"properties\": {\"total\": {\"type\": \"integer\"}}}\n    }\n  ]\n}"
         }
       }
     },
