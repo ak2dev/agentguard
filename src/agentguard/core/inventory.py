@@ -8,7 +8,9 @@ from __future__ import annotations
 import base64
 import binascii
 import posixpath
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any
 
 import regex
@@ -63,6 +65,7 @@ class Inventory:
     server_components: dict[tuple[str, str, str], str] = field(default_factory=dict)  # (config, project, name) -> id
     manifests: dict[str, Any] = field(default_factory=dict)           # path -> parsed manifest value
     deep_manifests: list[str] = field(default_factory=list)           # tool manifests nested past the JSON depth limit
+    malformed_fields: list[tuple[Span, str, str]] = field(default_factory=list)  # (where, message, snippet) for AG-SYS-001
     package_roots: dict[str, str] = field(default_factory=dict)       # root dir -> component id
     notes: list[str] = field(default_factory=list)
     tree: ArtifactTree | None = None
@@ -77,6 +80,39 @@ class Inventory:
 
 def _match(pattern: str, path: str) -> bool:
     return bool(regex.search(pattern, path, timeout=TIMEOUT))
+
+
+_JSON_TYPE = {dict: "an object", list: "an array", str: "a string", bool: "a boolean", int: "a number", float: "a number"}
+
+
+def _dict(mapping: dict[str, Any], key: str) -> dict[str, Any]:
+    value = mapping.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _list(mapping: dict[str, Any], key: str) -> list[Any]:
+    value = mapping.get(key)
+    return value if isinstance(value, list) else []
+
+
+def _checked(inv: Inventory, span: Span, owner: str, entry: dict[str, Any], key: str, want: type) -> Any:
+    """`entry[key]` if it has the JSON type `want`, else None.
+
+    A manifest is untrusted input: a value of another type would raise in the models and
+    end the scan, and dropping it quietly would pass it unread, so it is noted for
+    AG-SYS-001. Empty values hold nothing to read (`null` is how SDKs dump an unset field,
+    `[]` how PHP dumps an empty object).
+    """
+    value = entry.get(key)
+    if isinstance(value, want):
+        return value
+    if value:
+        inv.malformed_fields.append((
+            span,
+            f"{owner} field '{key}' is {_JSON_TYPE[type(value)]}, not {_JSON_TYPE[want]}; it was not analyzed.",
+            f"{key}: {str(value)[:200]}",
+        ))
+    return None
 
 
 def _dirname(path: str) -> str:
@@ -155,7 +191,7 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
         if base == "package.json":
             parsed = parse_json(tree.files[p].data.decode("utf-8", "replace"))
             pkg = parsed.value if isinstance(parsed.value, dict) else {}
-            deps = {**(pkg.get("dependencies") or {}), **(pkg.get("devDependencies") or {}), **(pkg.get("peerDependencies") or {})}
+            deps = {**_dict(pkg, "dependencies"), **_dict(pkg, "devDependencies"), **_dict(pkg, "peerDependencies")}
             name = str(pkg.get("name") or posixpath.basename(_dirname(p)) or "package")
             if any(d in deps for d in _MCP_SDK_DEPS) or "mcp" in name.lower():
                 root = _dirname(p)
@@ -175,10 +211,10 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             name, version = posixpath.basename(root) or "package", None
             if base == "pyproject.toml":
                 t = parse_toml(text).value or {}
-                proj = t.get("project") or {}
+                proj = _dict(t, "project")
                 name = str(proj.get("name") or name)
                 version = str(proj.get("version") or "") or None
-                deps_text = " ".join(str(d) for d in (proj.get("dependencies") or []))
+                deps_text = " ".join(str(d) for d in _list(proj, "dependencies"))
             else:
                 deps_text = text
             if regex.search(r"(?im)(^|[\s\"'\[,])(mcp|fastmcp)\b", deps_text, timeout=TIMEOUT) or "mcp" in name.lower():
@@ -314,11 +350,11 @@ def _add_server_json(inv: Inventory, tree: ArtifactTree, path: str, new_componen
     parsed = parse_json(text)
     v = parsed.value if isinstance(parsed.value, dict) else {}
     name = str(v.get("name") or posixpath.basename(_dirname(path)) or "server")
-    version = v.get("version") or (v.get("version_detail") or {}).get("version")
+    version = v.get("version") or _dict(v, "version_detail").get("version")
     comp = new_component(
         ComponentKind.package, name, path, version=str(version) if version else None,
         publisher=name.split("/", 1)[0] if "/" in name else None,
-        metadata={"registry_server_json": "true", "repository": str((v.get("repository") or {}).get("url") or "")},
+        metadata={"registry_server_json": "true", "repository": str(_dict(v, "repository").get("url") or "")},
     )
     add_artifact(path, comp, ArtifactRole.server_json)
     inv.manifests[path] = v
@@ -342,13 +378,14 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     return None
 
 
-def _resource_text(rs: dict[str, Any]) -> str | None:
+def _resource_text(rs: dict[str, Any], read: Callable[[str, type], Any]) -> str | None:
     """A resource's inline text; an HTML resource may carry it base64-encoded in
     `blob` instead (MCP Apps allows either)."""
-    if isinstance(rs.get("text"), str):
-        return rs["text"]
-    blob = rs.get("blob")
-    if isinstance(blob, str) and str(rs.get("mimeType") or "").startswith("text/html") and len(blob) <= 4_000_000:
+    text = read("text", str)
+    if text is not None:
+        return text
+    blob = read("blob", str)
+    if blob is not None and str(rs.get("mimeType") or "").startswith("text/html") and len(blob) <= 4_000_000:
         try:
             return base64.b64decode(blob, validate=True).decode("utf-8", "replace")
         except (binascii.Error, ValueError):
@@ -361,48 +398,55 @@ def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_c
     if proot is not None:
         comp = inv.components[inv.package_roots[proot]]
     else:
-        info = v.get("serverInfo") if isinstance(v.get("serverInfo"), dict) else {}
+        info = _dict(v, "serverInfo")
         name = str(info.get("name") or v.get("name") or posixpath.splitext(posixpath.basename(path))[0])
         comp = new_component(ComponentKind.mcp_server, name, path, version=str(info.get("version") or "") or None,
                              metadata={"manifest": path})
     add_artifact(path, comp, ArtifactRole.tool_manifest)
     inv.manifests[path] = v
-    for t in v.get("tools") or []:
+    top = partial(_checked, inv, Span(path=path), "Manifest", v)
+    for t in top("tools", list) or []:
         if not isinstance(t, dict) or not isinstance(t.get("name"), str):
             continue
+        span = Span(path=path, start_line=locate(text, '"tools"', f'"{t["name"]}"'))
+        read = partial(_checked, inv, span, f"Tool '{t['name']}'", t)
         comp.tools.append(
             ToolDef(
                 name=t["name"],
-                title=t.get("title") if isinstance(t.get("title"), str) else None,
-                description=t.get("description") if isinstance(t.get("description"), str) else None,
-                input_schema=t.get("inputSchema") or t.get("input_schema") or {},
-                output_schema=t.get("outputSchema"),
-                annotations=t.get("annotations") if isinstance(t.get("annotations"), dict) else {},
+                title=read("title", str),
+                description=read("description", str),
+                input_schema=read("inputSchema", dict) or read("input_schema", dict) or {},
+                output_schema=read("outputSchema", dict),
+                annotations=read("annotations", dict) or {},
                 origin="manifest",
-                span=Span(path=path, start_line=locate(text, '"tools"', f'"{t["name"]}"')),
+                span=span,
             )
         )
-    for pr in v.get("prompts") or []:
+    for pr in top("prompts", list) or []:
         if isinstance(pr, dict) and isinstance(pr.get("name"), str):
+            span = Span(path=path, start_line=locate(text, '"prompts"', f'"{pr["name"]}"'))
+            read = partial(_checked, inv, span, f"Prompt '{pr['name']}'", pr)
             msgs = []
-            for m in pr.get("messages") or []:
+            for m in read("messages", list) or []:
                 content = m.get("content") if isinstance(m, dict) else None
                 if isinstance(content, dict) and isinstance(content.get("text"), str):
                     msgs.append(content["text"])
                 elif isinstance(content, str):
                     msgs.append(content)
             comp.prompts.append(
-                PromptDef(name=pr["name"], title=pr.get("title"), description=pr.get("description"),
-                          arguments=pr.get("arguments") or [], messages=msgs,
-                          span=Span(path=path, start_line=locate(text, '"prompts"', f'"{pr["name"]}"')))
+                PromptDef(name=pr["name"], title=read("title", str), description=read("description", str),
+                          arguments=[a for a in read("arguments", list) or [] if isinstance(a, dict)], messages=msgs,
+                          span=span)
             )
-    for rs in v.get("resources") or []:
+    for rs in top("resources", list) or []:
         if isinstance(rs, dict) and isinstance(rs.get("uri"), str):
+            span = Span(path=path, start_line=locate(text, f'"{rs["uri"]}"'))
+            read = partial(_checked, inv, span, f"Resource '{rs['uri']}'", rs)
             comp.resources.append(
-                ResourceDef(uri=rs["uri"], name=rs.get("name"), title=rs.get("title"), description=rs.get("description"),
-                            mime_type=rs.get("mimeType"), text=_resource_text(rs),
-                            meta=rs["_meta"] if isinstance(rs.get("_meta"), dict) else {},
-                            span=Span(path=path, start_line=locate(text, f'"{rs["uri"]}"')))
+                ResourceDef(uri=rs["uri"], name=read("name", str), title=read("title", str),
+                            description=read("description", str), mime_type=read("mimeType", str),
+                            text=_resource_text(rs, read), meta=read("_meta", dict) or {}, span=span)
             )
-    if isinstance(v.get("instructions"), str):
-        comp.instructions = v["instructions"]
+    instructions = top("instructions", str)
+    if instructions is not None:
+        comp.instructions = instructions
