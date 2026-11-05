@@ -1,0 +1,20 @@
+{
+  "tools": [
+    {
+      "name": "lookup_record",
+      "description": "Look up a record by id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "description": "A tool with no name, which no client can call."
+    },
+    "list_records"
+  ]
+}

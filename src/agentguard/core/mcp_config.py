@@ -18,7 +18,7 @@ import regex
 
 from .models import McpServerSpec
 from .models.enums import Transport
-from .parsers import locate, parse_json, parse_toml
+from .parsers import locate, parse_json, parse_toml, undo_ascii_escapes
 from .textutil import TIMEOUT
 
 SERVER_MAP_KEYS = ("mcpServers", "servers", "context_servers", "mcp_servers")
@@ -98,7 +98,7 @@ def parse_config(path: str, text: str) -> ClientConfig | None:
     value = parsed.value
     client, scope = client_for_path(path)
     if parsed.error:
-        if client != "unknown" and "mcp" in text.lower():
+        if client != "unknown" and "mcp" in undo_ascii_escapes(text).lower():
             return ClientConfig(path, client, scope, parsed.fmt, None, error=parsed.error)
         return None
     if not isinstance(value, dict):

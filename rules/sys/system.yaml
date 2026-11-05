@@ -2,9 +2,9 @@
 # not scanned is reported, never silently skipped.
 rules:
   - id: AG-SYS-001
-    version: 2
+    version: 3
     title: Content skipped by safety limits
-    description: A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or a field of an MCP tool manifest was not analyzed because it has the wrong JSON type (an `outputSchema` that is a string, say).
+    description: A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or part of an MCP tool manifest was not analyzed because a field has the wrong JSON type (an `outputSchema` that is a string, say) or an entry of `tools`, `prompts` or `resources` is not an object with a string name or URI.
     why: Unscanned content is not "clean"; this finding keeps coverage gaps visible.
     severity: info
     confidence: high

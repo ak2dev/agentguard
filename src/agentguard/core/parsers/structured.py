@@ -20,6 +20,19 @@ class Parsed:
     fmt: str = "json"
 
 
+_ASCII_ESCAPE = regex.compile(r"\\u00([0-9a-fA-F]{2})")
+
+
+def undo_ascii_escapes(text: str) -> str:
+    r"""`text` with `\u00XX` escapes undone, for checks on raw JSON text that run without
+    a parsed value: a parser reads an escaped key as the plain one. Keys are ASCII, so this
+    is the only form that matters.
+
+    No timeout: the pattern cannot backtrack, and the callers run outside any analyzer's
+    error handling, so a TimeoutError would end the scan."""
+    return _ASCII_ESCAPE.sub(lambda m: chr(int(m[1], 16)), text) if "\\u00" in text else text
+
+
 def _nesting_depth(text: str) -> int:
     depth = best = 0
     in_str = esc = False

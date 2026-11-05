@@ -1,0 +1,13 @@
+{
+  "tools": [
+    {
+      "id": "lint",
+      "description": "Runs the linter over changed files."
+    },
+    {
+      "id": "fmt",
+      "title": "Formatter",
+      "url": "https://example.com/fmt"
+    }
+  ]
+}

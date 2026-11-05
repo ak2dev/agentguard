@@ -1,0 +1,11 @@
+{
+  "version": 4,
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "logs",
+      "instances": []
+    }
+  ]
+}
