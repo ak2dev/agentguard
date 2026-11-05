@@ -35,7 +35,7 @@ from .models import (
     component_id,
 )
 from .models.enums import ArtifactRole, ComponentKind
-from .parsers import locate, parse_json, parse_toml
+from .parsers import locate, parse_json, parse_toml, undo_ascii_escapes
 from .textutil import TIMEOUT, sha256_hex
 from .tree import ArtifactTree
 
@@ -54,7 +54,6 @@ _INSTRUCTION_PATHS = (
 _AGENT_PATH = r"(^|/)\.claude/agents/.+\.md$"
 _COMMAND_PATH = r"(^|/)\.claude/commands/.+\.md$"
 _MCP_SDK_DEPS = ("@modelcontextprotocol/sdk", "fastmcp", "mcp", "@modelcontextprotocol/server", "mcp-framework", "@mastra/mcp")
-_ASCII_ESCAPE = regex.compile(r"\\u00([0-9a-fA-F]{2})")
 
 
 @dataclass
@@ -364,11 +363,8 @@ def _add_server_json(inv: Inventory, tree: ArtifactTree, path: str, new_componen
 def _has_key(text: str, *keys: str) -> bool:
     r"""Whether `text` spells one of `keys` as a JSON string, without parsing it. A parser
     reads `"\u0074ools"` as `tools`, and `\u` is the only JSON escape that yields a letter,
-    so these are undone first. Keys are ASCII, which is all `\u00XX` has to cover.
-
-    No timeout: the pattern cannot backtrack, and a TimeoutError here would end the scan."""
-    if "\\u00" in text:
-        text = _ASCII_ESCAPE.sub(lambda m: chr(int(m[1], 16)), text)
+    so these are undone first."""
+    text = undo_ascii_escapes(text)
     return any(f'"{key}"' in text for key in keys)
 
 
