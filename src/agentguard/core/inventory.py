@@ -62,7 +62,7 @@ _MANIFEST_KEYS = (
     ("tools", ("inputSchema", "input_schema", "outputSchema", "description")),
     ("prompts", _PROMPT_KEYS),
     ("resources", ("uri",)),
-    ("instructions", _SERVER_KEYS),
+    ("instructions", (*_SERVER_KEYS, "jsonrpc")),
 )
 
 
@@ -415,7 +415,9 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
         return None
     parsed = parse_json(text)
     v = parsed.value
+    rpc_response = False
     if isinstance(v, dict) and isinstance(v.get("result"), dict):
+        rpc_response = "jsonrpc" in v
         v = v["result"]
     if not isinstance(v, dict):
         return None
@@ -430,10 +432,11 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     resources = v.get("resources")
     if isinstance(resources, list) and any(_looks_like_resource(r) for r in resources):
         return v
-    # Recipes, prompts and assistant configs have an `instructions` key too. In MCP it comes
-    # only in an `initialize` result, which always has these. `capabilities` alone would not
-    # do: WebDriver configs have that.
-    if "instructions" in v and any(k in v for k in _SERVER_KEYS):
+    # Recipes, prompts and assistant configs have an `instructions` key too, so it takes
+    # evidence in the file itself. In MCP the key comes only in an `initialize` result, which
+    # always has `_SERVER_KEYS`. `capabilities` alone would not do (WebDriver configs have
+    # it), nor would a bare `result` (any API), nor a path (no client reads a file for its path).
+    if "instructions" in v and (rpc_response or any(k in v for k in _SERVER_KEYS)):
         return v
     return None
 

@@ -64,6 +64,20 @@ def test_instructions_are_read_beside_a_server_marker(server):
     assert rules({"jsonrpc": "2.0", "id": 1, "result": {**server, "instructions": POISON}}) == expected
 
 
+def test_a_json_rpc_response_is_evidence_enough_for_instructions():
+    expected = rules({"prompts": [], "instructions": POISON})
+    assert rules({"jsonrpc": "2.0", "id": 1, "result": {"instructions": POISON}}) == expected
+
+
+def test_a_bare_result_key_is_not_evidence_for_instructions():
+    assert manifests({"result": {"instructions": POISON}}) == {}
+
+
+def test_a_path_is_not_evidence_for_instructions():
+    tree = ArtifactTree.from_mapping({"mcp/instructions.json": json.dumps({"instructions": POISON})})
+    assert build_inventory(tree).manifests == {}
+
+
 def test_instructions_of_the_wrong_type_are_reported():
     assert rules({**SERVER, "instructions": [POISON]}) == {"AG-SYS-001"}
 
@@ -107,7 +121,8 @@ def test_a_list_of_links_that_reads_as_a_manifest_reports_nothing():
     {"prompts": [{"name": "greet", "description": POISON}]},
     {"resources": [DESCRIBED]},
     {"serverInfo": SERVER["serverInfo"], "instructions": POISON},
-], ids=["tool with no schema", "prompt", "resource", "instructions"])
+    {"jsonrpc": "2.0", "id": 1, "result": {"instructions": POISON}},
+], ids=["tool with no schema", "prompt", "resource", "instructions", "json-rpc response"])
 def test_a_manifest_too_deep_to_parse_is_not_a_clean_result(doc):
     found = [f for f in findings(padded(doc)) if f.rule_id == "AG-SYS-001"]
     assert [f.message for f in found] == [
