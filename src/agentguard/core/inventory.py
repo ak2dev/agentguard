@@ -54,6 +54,16 @@ _INSTRUCTION_PATHS = (
 _AGENT_PATH = r"(^|/)\.claude/agents/.+\.md$"
 _COMMAND_PATH = r"(^|/)\.claude/commands/.+\.md$"
 _MCP_SDK_DEPS = ("@modelcontextprotocol/sdk", "fastmcp", "mcp", "@modelcontextprotocol/server", "mcp-framework", "@mastra/mcp")
+_PROMPT_KEYS = ("description", "arguments", "messages")
+_RESOURCE_KEYS = ("name", "title", "description", "mimeType", "text", "blob")
+_SERVER_KEYS = ("serverInfo", "protocolVersion")
+# What a file needs to have for each part of a manifest to count, read as text.
+_MANIFEST_KEYS = (
+    ("tools", ("inputSchema", "input_schema", "outputSchema", "description")),
+    ("prompts", _PROMPT_KEYS),
+    ("resources", ("uri",)),
+    ("instructions", _SERVER_KEYS),
+)
 
 
 @dataclass
@@ -266,9 +276,13 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             if manifest is not None:
                 _add_manifest(inv, p, text, manifest, new_component, add_artifact, owning_package)
                 continue
-            if p.lower().endswith(".json") and _has_key(text, "inputSchema", "outputSchema") and _has_key(text, "tools") \
-                    and parse_json(text).error == "JSON nesting exceeds depth limit":
-                inv.deep_manifests.append(p)  # reported by AG-MCP-META-023; its tools cannot be read
+            if p.lower().endswith(".json") and _names_a_manifest(text) and parse_json(text).error == "JSON nesting exceeds depth limit":
+                if _has_key(text, "inputSchema", "outputSchema") and _has_key(text, "tools"):
+                    inv.deep_manifests.append(p)  # reported by AG-MCP-META-023; its tools cannot be read
+                else:
+                    inv.malformed_fields.append((
+                        Span(path=p), f"{p} nests more than 64 levels deep and has the keys of an MCP manifest; it was not analyzed.", p,
+                    ))
         proot = owning_package(p)
         if proot is not None:
             comp = inv.components[inv.package_roots[proot]]
@@ -378,14 +392,26 @@ def _looks_like_tool(entry: Any) -> bool:
 
 
 def _looks_like_prompt(entry: Any) -> bool:
-    return isinstance(entry, dict) and "name" in entry and any(k in entry for k in ("description", "arguments", "messages"))
+    return isinstance(entry, dict) and "name" in entry and any(k in entry for k in _PROMPT_KEYS)
+
+
+def _looks_like_resource(entry: Any) -> bool:
+    """`uri` beside something that describes it. Other `resources` lists (Terraform state,
+    ARM templates, data packages) say `url` or `path`, or have no location at all."""
+    return isinstance(entry, dict) and "uri" in entry and any(k in entry for k in _RESOURCE_KEYS)
+
+
+def _names_a_manifest(text: str) -> bool:
+    """Whether a file has the keys of a manifest, for one too deep to parse and tell."""
+    text = undo_ascii_escapes(text)
+    return any(f'"{key}"' in text and any(f'"{other}"' in text for other in others) for key, others in _MANIFEST_KEYS)
 
 
 def _tool_manifest(text: str) -> dict[str, Any] | None:
     """The manifest in `text`, if it has one. One entry that looks right is enough: a
     client may drop what it cannot parse and load the rest, so the entries around a tool
     must not decide whether it is read. `_readable` reports the ones that cannot be."""
-    if not _has_key(text, "tools", "prompts", "instructions"):
+    if not _has_key(text, *(key for key, _ in _MANIFEST_KEYS)):
         return None
     parsed = parse_json(text)
     v = parsed.value
@@ -400,6 +426,14 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     if isinstance(prompts, list) and (
         any(_looks_like_prompt(p) for p in prompts) or all(isinstance(p, dict) and "name" in p for p in prompts)
     ):
+        return v
+    resources = v.get("resources")
+    if isinstance(resources, list) and any(_looks_like_resource(r) for r in resources):
+        return v
+    # Recipes, prompts and assistant configs have an `instructions` key too. In MCP it comes
+    # only in an `initialize` result, which always has these. `capabilities` alone would not
+    # do: WebDriver configs have that.
+    if "instructions" in v and any(k in v for k in _SERVER_KEYS):
         return v
     return None
 

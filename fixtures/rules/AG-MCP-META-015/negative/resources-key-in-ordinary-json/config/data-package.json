@@ -1,0 +1,9 @@
+{
+  "name": "sales",
+  "resources": [
+    {
+      "name": "data",
+      "path": "data.csv"
+    }
+  ]
+}
