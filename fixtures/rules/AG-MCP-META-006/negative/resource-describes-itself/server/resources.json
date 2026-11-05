@@ -1,0 +1,9 @@
+{
+  "resources": [
+    {
+      "uri": "file:///docs/search.md",
+      "name": "search",
+      "description": "Usage notes for this server's search endpoint."
+    }
+  ]
+}

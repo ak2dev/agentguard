@@ -14,7 +14,7 @@ import regex
 from ..artifacts import TextUnit
 from ..extract.tools import extract_tools
 from ..mcp_config import ClientConfig, ServerEntry, docker_image, exe_name, package_arg, split_package_spec
-from ..models import Component, Span, ToolDef
+from ..models import Component, ResourceDef, Span, ToolDef
 from ..models.enums import ArtifactRole, CapLabel, ComponentKind, Confidence, EvidenceKind, Severity, Transport
 from ..normalize.unicode import normalize
 from ..secrets import find_secrets, is_placeholder, shannon_entropy
@@ -197,7 +197,9 @@ class McpUnitsBuilder:
                 if text.strip():
                     extra.append(_unit(comp, pr.span.path if pr.span else path, pr.span, "prompt", "tool_text", text, f"prompt:{pr.name}"))
             for rs in comp.resources:
-                text = "\n".join(filter(None, [rs.name or "", rs.title or "", rs.description or ""]))
+                # Inline text is what the model reads when it opens the resource. An HTML view is
+                # not read that way, and `_ui_resource` has its own checks for those.
+                text = "\n".join(filter(None, [rs.name, rs.title, rs.description, None if _is_view(rs) else rs.text]))
                 if text.strip():
                     extra.append(_unit(comp, rs.span.path if rs.span else path, rs.span, "resource", "tool_text", text, f"resource:{rs.uri}"))
         # Client-config commands become "command" units (e.g. for AG-MCP-CFG-006).
@@ -627,6 +629,10 @@ def _expanded_size(root: Any, cap: int = 10 * _MAX_EXPANDED) -> int:
     return memo.get(id(root), 0)
 
 
+def _is_view(resource: ResourceDef) -> bool:
+    return resource.uri.startswith("ui://") or (resource.mime_type or "").startswith("text/html")
+
+
 class McpMetaAnalyzer:
     id: ClassVar[str] = "mcp.meta"
     requires: ClassVar[frozenset[str]] = frozenset()
@@ -722,7 +728,7 @@ class McpMetaAnalyzer:
         csp = ui.get("csp") if isinstance(ui, dict) and isinstance(ui.get("csp"), dict) else {}
         if csp:
             self._ui_csp(ctx, comp, rs, csp)
-        if not rs.text or not (rs.uri.startswith("ui://") or (rs.mime_type or "").startswith("text/html")):
+        if not rs.text or not _is_view(rs):
             return
         text = rs.text
         span = rs.span
@@ -817,8 +823,12 @@ class McpMetaAnalyzer:
         all_tools = {(c.id, t.name) for c in servers for t in c.tools}
         for comp in servers:
             others = sorted({n for cid, n in all_tools if cid != comp.id and len(n) >= 4 and ("_" in n or "-" in n or len(n) >= 8)})
-            for tool in comp.tools:
-                desc = normalize(tool.description or "").text
+            # Resources at medium: their descriptions are often documentation, where "when you
+            # call the query tool" can be plain advice.
+            described = [("Tool", t.name, t.description, t.span, None) for t in comp.tools]
+            described += [("Resource", r.uri, r.description, r.span, Severity.medium) for r in comp.resources]
+            for kind, name, description, span, severity in described:
+                desc = normalize(description or "").text
                 if not desc:
                     continue
                 hit = None
@@ -833,8 +843,8 @@ class McpMetaAnalyzer:
                     if m:
                         hit = f"redefines behavior of other tools: '{m.group(0)[:80]}'"
                 if hit:
-                    ctx.emit("AG-MCP-META-006", component_ids=comp.id, span=tool.span, snippet=desc[:240], match=f"{tool.name}:shadow",
-                             kind=EvidenceKind.metadata, message=f"Tool '{tool.name}' {hit}.")
+                    ctx.emit("AG-MCP-META-006", component_ids=comp.id, span=span, snippet=desc[:240], match=f"{name}:shadow",
+                             kind=EvidenceKind.metadata, severity=severity, message=f"{kind} '{name}' {hit}.")
 
 
 # ---------------------------------------------------------------------------

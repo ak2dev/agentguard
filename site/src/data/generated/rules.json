@@ -1,7 +1,7 @@
 {
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "fe25ab3099ca69afb76a311946fc69b80492a9a259048752ac6c8830dc7ab766"
+    "digest": "1b65c1fcc8c876a6316ee6d857a0ef2897cc206a5c5dbbc8e824be6fa3f92ab7"
   },
   "rules": [
     {
@@ -3169,13 +3169,13 @@
     },
     {
       "id": "AG-MCP-META-003",
-      "version": 1,
+      "version": 2,
       "title": "Description directs secrets into tool arguments",
-      "description": "A tool/parameter description tells the model to read sensitive files, keys, the system prompt or conversation history and pass them as an argument.",
+      "description": "A tool, parameter or resource description tells the model to read sensitive files, keys, the system prompt or conversation history and pass them as an argument.",
       "why": "This is the canonical tool-poisoning exfiltration chain; the data leaves in the tool call itself.",
       "severity": "critical",
       "confidence": "high",
-      "remediation": "Remove the instruction. Tools must never ask the model to supply secrets or context it was not explicitly given for the task.",
+      "remediation": "Remove the instruction. Tools and resources must never ask the model to supply secrets or context it was not explicitly given for the task.",
       "references": [],
       "network": false,
       "mappings": [
@@ -3314,13 +3314,13 @@
     },
     {
       "id": "AG-MCP-META-006",
-      "version": 1,
+      "version": 2,
       "title": "Tool shadowing",
-      "description": "A tool description references other servers' tools or tries to redefine how other tools behave.",
+      "description": "A tool or resource description references other servers' tools or tries to redefine how other tools behave. Reported at medium for a resource, whose description is often documentation.",
       "why": "Shadowing lets one server hijack calls made to another (e.g. BCC every email sent with a trusted mail server).",
       "severity": "high",
       "confidence": "medium",
-      "remediation": "Remove cross-tool instructions; a tool description should only describe that tool.",
+      "remediation": "Remove cross-tool instructions; a description should only describe its own tool or resource.",
       "references": [],
       "network": false,
       "mappings": [
@@ -3734,13 +3734,13 @@
     },
     {
       "id": "AG-MCP-META-015",
-      "version": 1,
+      "version": 2,
       "title": "Injection in resource metadata",
-      "description": "Resource names, titles or descriptions contain agent-directed instructions.",
-      "why": "Resource metadata is shown to the model when listing or selecting resources.",
+      "description": "Resource names, titles, descriptions or inline text contain agent-directed instructions (override, concealment, pseudo-tags like <IMPORTANT>). HTML views are checked by AG-MCP-META-016, -017, -018, -026 and -027 instead.",
+      "why": "Resource metadata is shown to the model when listing or selecting resources, and inline text when it reads one.",
       "severity": "medium",
       "confidence": "medium",
-      "remediation": "Keep resource metadata descriptive.",
+      "remediation": "Keep resource metadata and inline text descriptive. Remove any instructions to the model.",
       "references": [],
       "network": false,
       "mappings": [

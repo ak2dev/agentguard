@@ -41,13 +41,13 @@ rules:
     remediation: Keep descriptions to what the tool does and its parameters. Remove any instructions to the model.
 
   - id: AG-MCP-META-003
-    version: 1
+    version: 2
     title: Description directs secrets into tool arguments
-    description: A tool/parameter description tells the model to read sensitive files, keys, the system prompt or conversation history and pass them as an argument.
+    description: A tool, parameter or resource description tells the model to read sensitive files, keys, the system prompt or conversation history and pass them as an argument.
     why: This is the canonical tool-poisoning exfiltration chain; the data leaves in the tool call itself.
     severity: critical
     confidence: high
-    applies_to: [tool, tool_param]
+    applies_to: [tool, tool_param, resource]
     aivss: {threat: attacked}
     match:
       type: regex
@@ -62,7 +62,7 @@ rules:
         - |-
           \bfrom\s+(?:the|your)\s+(?:dashboard|console|settings\s+page|account|website|portal|developer\s+page)\b
       window: 3
-    remediation: Remove the instruction. Tools must never ask the model to supply secrets or context it was not explicitly given for the task.
+    remediation: Remove the instruction. Tools and resources must never ask the model to supply secrets or context it was not explicitly given for the task.
 
   - id: AG-MCP-META-004
     version: 1
@@ -93,14 +93,14 @@ rules:
     remediation: Keep enum values, defaults and titles short and descriptive.
 
   - id: AG-MCP-META-006
-    version: 1
+    version: 2
     title: Tool shadowing
-    description: A tool description references other servers' tools or tries to redefine how other tools behave.
+    description: A tool or resource description references other servers' tools or tries to redefine how other tools behave. Reported at medium for a resource, whose description is often documentation.
     why: Shadowing lets one server hijack calls made to another (e.g. BCC every email sent with a trusted mail server).
     severity: high
     confidence: medium
     match: {type: analyzer, analyzer: mcp.meta}
-    remediation: Remove cross-tool instructions; a tool description should only describe that tool.
+    remediation: Remove cross-tool instructions; a description should only describe its own tool or resource.
 
   - id: AG-MCP-META-007
     version: 1
@@ -186,10 +186,10 @@ rules:
     remediation: Remove directives from prompt templates.
 
   - id: AG-MCP-META-015
-    version: 1
+    version: 2
     title: Injection in resource metadata
-    description: Resource names, titles or descriptions contain agent-directed instructions.
-    why: Resource metadata is shown to the model when listing or selecting resources.
+    description: Resource names, titles, descriptions or inline text contain agent-directed instructions (override, concealment, pseudo-tags like <IMPORTANT>). HTML views are checked by AG-MCP-META-016, -017, -018, -026 and -027 instead.
+    why: Resource metadata is shown to the model when listing or selecting resources, and inline text when it reads one.
     severity: medium
     confidence: medium
     applies_to: [resource]
@@ -198,10 +198,18 @@ rules:
       scopes: [tool_text]
       patterns:
         - |-
-          \b(?:ignore|disregard|override)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|system|safety)\s+(?:instructions?|prompts?|rules?)
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?|HIDDEN|SECRET|ADMIN|CRITICAL)\s*>
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|earlier|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|guidelines?|tools?|requests?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert|mention|reveal|show)\b[^\n.]{0,40}\b(?:user|human|operator)\b
+        - |-
+          \b(?:before|prior\s+to)\s+(?:using|calling|invoking|running|reading)\s+(?:this|any|the)\s+(?:tool|function|resource)\b[^\n]{0,160}\b(?:must|always|first|read|call|run|send|include|pass)\b
+        - |-
+          \b(?:otherwise|or\s+else)\s+(?:the\s+)?(?:tool|server|request|resource)\s+(?:will\s+not|won'?t|cannot|can'?t|will\s+fail)
         - |-
           \bthe\s+(?:assistant|model|agent)\s+(?:must|should)\b|\byou\s+must\s+(?:always|first|now)\b
-    remediation: Keep resource metadata descriptive.
+    remediation: Keep resource metadata and inline text descriptive. Remove any instructions to the model.
 
   - id: AG-MCP-META-016
     version: 2

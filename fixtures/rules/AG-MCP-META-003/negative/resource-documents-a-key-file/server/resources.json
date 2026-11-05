@@ -1,0 +1,9 @@
+{
+  "resources": [
+    {
+      "uri": "file:///docs/keys.md",
+      "name": "keys",
+      "description": "Explains how to read a .env file and how to rotate an API key."
+    }
+  ]
+}
