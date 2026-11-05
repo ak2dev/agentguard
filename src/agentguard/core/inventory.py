@@ -54,6 +54,7 @@ _INSTRUCTION_PATHS = (
 _AGENT_PATH = r"(^|/)\.claude/agents/.+\.md$"
 _COMMAND_PATH = r"(^|/)\.claude/commands/.+\.md$"
 _MCP_SDK_DEPS = ("@modelcontextprotocol/sdk", "fastmcp", "mcp", "@modelcontextprotocol/server", "mcp-framework", "@mastra/mcp")
+_ASCII_ESCAPE = regex.compile(r"\\u00([0-9a-fA-F]{2})")
 
 
 @dataclass
@@ -266,7 +267,7 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             if manifest is not None:
                 _add_manifest(inv, p, text, manifest, new_component, add_artifact, owning_package)
                 continue
-            if p.lower().endswith(".json") and ('"inputSchema"' in text or '"outputSchema"' in text) and '"tools"' in text \
+            if p.lower().endswith(".json") and _has_key(text, "inputSchema", "outputSchema") and _has_key(text, "tools") \
                     and parse_json(text).error == "JSON nesting exceeds depth limit":
                 inv.deep_manifests.append(p)  # reported by AG-MCP-META-023; its tools cannot be read
         proot = owning_package(p)
@@ -360,6 +361,17 @@ def _add_server_json(inv: Inventory, tree: ArtifactTree, path: str, new_componen
     inv.manifests[path] = v
 
 
+def _has_key(text: str, *keys: str) -> bool:
+    r"""Whether `text` spells one of `keys` as a JSON string, without parsing it. A parser
+    reads `"\u0074ools"` as `tools`, and `\u` is the only JSON escape that yields a letter,
+    so these are undone first. Keys are ASCII, which is all `\u00XX` has to cover.
+
+    No timeout: the pattern cannot backtrack, and a TimeoutError here would end the scan."""
+    if "\\u00" in text:
+        text = _ASCII_ESCAPE.sub(lambda m: chr(int(m[1], 16)), text)
+    return any(f'"{key}"' in text for key in keys)
+
+
 def _looks_like_tool(entry: Any) -> bool:
     """A schema key is MCP's own. A description counts only beside a name: a plain list
     of tools or plugins often has one or the other, and with both it cannot be told from
@@ -377,7 +389,7 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
     """The manifest in `text`, if it has one. One entry that looks right is enough: a
     client may drop what it cannot parse and load the rest, so the entries around a tool
     must not decide whether it is read. `_readable` reports the ones that cannot be."""
-    if '"tools"' not in text and '"prompts"' not in text and '"instructions"' not in text:
+    if not _has_key(text, "tools", "prompts", "instructions"):
         return None
     parsed = parse_json(text)
     v = parsed.value

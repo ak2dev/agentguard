@@ -8249,7 +8249,7 @@
         },
         "safe": {
           "path": "server/tools.json",
-          "text": "{\n  \"tools\": [\n    null,\n    {},\n    \"\",\n    {\n      \"name\": \"lookup_record\",\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  ],\n  \"prompts\": [\n    null\n  ],\n  \"resources\": []\n}"
+          "text": "{\n  \"tools\": [\n    {\n      \"name\": \"lookup_record\",\n      \"title\": null,\n      \"description\": \"Look up a record by id.\",\n      \"inputSchema\": {\"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}},\n      \"outputSchema\": null,\n      \"annotations\": []\n    },\n    {\n      \"name\": \"list_records\",\n      \"description\": \"List records.\",\n      \"input_schema\": {\"type\": \"object\", \"properties\": {}},\n      \"outputSchema\": {\"type\": \"object\", \"properties\": {\"total\": {\"type\": \"integer\"}}}\n    }\n  ]\n}"
         }
       }
     },
