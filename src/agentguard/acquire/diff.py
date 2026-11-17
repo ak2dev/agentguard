@@ -29,12 +29,14 @@ def split_range(spec: str) -> tuple[str, str]:
     return spec.strip(), "HEAD"
 
 
-def tree_at(repo: Repo, commit: str, limits: LoadLimits, prefix: str = "", label: str = "") -> ArtifactTree:
+def tree_at(repo: Repo, commit: str, limits: LoadLimits, prefix: str = "", label: str = "",
+            excludes: tuple[str, ...] = ()) -> ArtifactTree:
     """The files of a commit as an ArtifactTree. Submodule links and symlinks are
-    recorded as limit events; nothing is checked out."""
+    recorded as limit events; nothing is checked out. ``excludes`` are the
+    configuration's directory names, skipped as the file walk skips them."""
     tree = ArtifactTree(source=SourceRef(kind=SourceKind.local, locator=label or commit[:12]))
     c = repo.commit(commit)
-    excluded = set(limits.excluded_dirs)
+    excluded = set(limits.excluded_dirs) | set(excludes)
     for path, entry in sorted(repo.walk(c.tree).items()):
         if any(seg in excluded for seg in path.split("/")[:-1]):
             continue
@@ -85,8 +87,10 @@ def config_at_base(root: Path, spec: str) -> tuple[str, str] | None:
     return None
 
 
-def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack) -> tuple[set[str], set[str] | None, list[str]]:
-    """(changed paths, fingerprints present at the base, notes)."""
+def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack,
+               excludes: tuple[str, ...] = ()) -> tuple[set[str], set[str] | None, list[str]]:
+    """(changed paths, fingerprints present at the base, notes). The base is read
+    with the same directory exclusions as the working tree."""
     repo, base, head = base_commit(root, spec)
     notes = [f"diff mode: changes from {base[:12]} to {head[:12]}"]
     try:
@@ -96,7 +100,7 @@ def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack) -> t
             notes.append(f"the working tree is at {head_now[:12]}, not {head[:12]}; findings are located in the working tree")
         base_fps: set[str] | None = None
         try:
-            base_tree = tree_at(repo, base, options.limits)
+            base_tree = tree_at(repo, base, options.limits, excludes=excludes)
             base_opts = options.model_copy(update={"changed_paths": None, "baseline": None, "lock": None,
                                                    "remote_probes": [], "context": None})
             base_fps = {f.fingerprint for f in core_scan(base_tree, base_opts, pack).findings}

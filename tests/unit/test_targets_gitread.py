@@ -246,3 +246,39 @@ def test_diff_mode_reads_the_configuration_from_the_base_commit(repo, monkeypatc
     monkeypatch.chdir(root)
     data = json.loads(runner.invoke(app, ["scan", ".", "-f", "json", "--profile", "quick", "--diff", f"{c1}..{c2}"]).stdout)
     assert "AG-EXEC-001" in {f["id"] for f in data["findings"]} and not data["suppressed_findings"]
+
+
+def test_diff_mode_leaves_out_changes_in_excluded_directories(tmp_path, monkeypatch):
+    # A lockfile inside an excluded directory is a test sample, not the lockfile this scan reads: changing it is not a
+    # change to the scanner's own configuration (AG-POL-010), while changing .agentguard.yaml still is. The base
+    # commit is read with the same exclusions.
+    root = tmp_path / "repo"
+    git = root / ".git"
+    (git / "refs" / "heads").mkdir(parents=True)
+    cfg_v1 = b"version: 1\nexclude:\n  - fixtures\n"
+    cfg_v2 = cfg_v1 + b"profile: quick\n"
+    lock = b'{"version": 1, "components": {}}\n'
+    skill = _obj(git, "blob", SKILL_OK.encode())
+    bad = _obj(git, "blob", SKILL_BAD.encode())
+    t1 = _tree(git, {".agentguard.yaml": (0o100644, _obj(git, "blob", cfg_v1)),
+                     "fixtures": (0o40000, _tree(git, {"old": (0o40000, _tree(git, {"SKILL.md": (0o100644, bad)}))})),
+                     "notes": (0o40000, _tree(git, {"SKILL.md": (0o100644, skill)}))})
+    c1 = _commit(git, t1, [], 1000)
+    case = _tree(git, {"agentguard.lock": (0o100644, _obj(git, "blob", lock)), "SKILL.md": (0o100644, bad)})
+    t2 = _tree(git, {".agentguard.yaml": (0o100644, _obj(git, "blob", cfg_v2)),
+                     "fixtures": (0o40000, _tree(git, {"case": (0o40000, case),
+                                                       "old": (0o40000, _tree(git, {"SKILL.md": (0o100644, bad)}))})),
+                     "notes": (0o40000, _tree(git, {"SKILL.md": (0o100644, skill)}))})
+    c2 = _commit(git, t2, [c1], 2000)
+    (git / "refs" / "heads" / "main").write_text(c2 + "\n")
+    (git / "HEAD").write_text("ref: refs/heads/main\n")
+    (git / "config").write_text("[core]\n\trepositoryformatversion = 0\n")
+    for rel, data in ((".agentguard.yaml", cfg_v2), ("notes/SKILL.md", SKILL_OK.encode()), ("fixtures/old/SKILL.md", SKILL_BAD.encode()),
+                      ("fixtures/case/SKILL.md", SKILL_BAD.encode()), ("fixtures/case/agentguard.lock", lock)):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes(data)
+    monkeypatch.chdir(root)
+    res = runner.invoke(app, ["scan", ".", "-f", "json", "--profile", "quick", "--diff", f"{c1}..{c2}"])
+    data = json.loads(res.stdout)
+    assert {f["location"]["file"] for f in data["findings"] if f["id"] == "AG-POL-010"} == {".agentguard.yaml"}
+    assert not any(f["location"]["file"].startswith("fixtures/") for f in data["findings"] if f.get("location"))

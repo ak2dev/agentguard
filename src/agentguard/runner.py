@@ -211,6 +211,14 @@ def _without(tree: ArtifactTree, base: Path | None, path: Path | None) -> None:
         tree.hints.pop(key, None)
 
 
+def _outside_skipped(changed: set[str], tree: ArtifactTree) -> set[str]:
+    """The changed paths that are part of the scan. A change inside a directory the walk skipped (an ``exclude`` of
+    the configuration, version-control storage) touches no component, and a lockfile there is a sample, not the
+    lockfile this scan reads."""
+    skipped = tuple(f"{e.path}/" for e in tree.limit_events if e.kind == "excluded_dir")
+    return {p for p in changed if not p.startswith(skipped)} if skipped else changed
+
+
 def _context_tree(mode: str, req: ScanRequest, limits: LoadLimits, parts: list[Acquired]) -> tuple[ArtifactTree | None, str]:
     """What the candidate is composed with: the components already installed on
     this machine (``installed``), a directory of them, or nothing."""
@@ -374,7 +382,7 @@ def run_scan(req: ScanRequest) -> ScanOutcome:
             raise UsageError("--diff needs exactly one local repository as the target")
         from .acquire.diff import diff_local
 
-        d_changed, base_fps, d_notes = diff_local(parts[0].local_root, req.diff, options, pack)
+        d_changed, base_fps, d_notes = diff_local(parts[0].local_root, req.diff, options, pack, excludes=actx.excludes)
         changed = (changed or set()) | d_changed
         notes += d_notes
         if base_fps is not None:
@@ -385,7 +393,7 @@ def run_scan(req: ScanRequest) -> ScanOutcome:
                 base_report = core_scan(part.base_tree, options.model_copy(update={"changed_paths": None, "baseline": None,
                                                                                     "lock": None, "remote_probes": []}), pack)
                 options.baseline = (options.baseline or set()) | {f.fingerprint for f in base_report.findings}
-    options.changed_paths = changed
+    options.changed_paths = _outside_skipped(changed, tree) if changed else changed
 
     mode = req.context or (pconf.context if pconf and pconf.context else "installed")
     ctx_tree, ctx_note = _context_tree(mode, req, options.limits, parts)

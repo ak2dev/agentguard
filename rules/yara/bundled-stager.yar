@@ -1,11 +1,11 @@
-// AG-SKL-BND-005. Rule-pack data: compiled with includes disabled.
+// AG-EXEC-001 (variant binary-yara, formerly AG-SKL-BND-005). Rule-pack data: compiled with includes disabled.
 // Download-and-execute commands embedded in a binary or data file. The same
-// commands in SKILL.md or scripts are caught by the text rules (AG-SKL-SE-*).
+// commands in SKILL.md or scripts are caught by the text variants of the same rule.
 
 rule ag_bundled_pipe_to_shell
 {
     meta:
-        agentguard_rule = "AG-SKL-BND-005"
+        agentguard_rule = "AG-EXEC-001"
         description = "curl/wget output piped to a shell"
     strings:
         $curl = /curl[ \t][^\n\x00]{1,200}\|[ \t]*(sudo[ \t]+)?(ba|z|da)?sh\b/
@@ -17,7 +17,7 @@ rule ag_bundled_pipe_to_shell
 rule ag_bundled_powershell_stager
 {
     meta:
-        agentguard_rule = "AG-SKL-BND-005"
+        agentguard_rule = "AG-EXEC-001"
         description = "Encoded PowerShell command or a download cradle"
     strings:
         $enc = /powershell(\.exe)?[ \t][^\n\x00]{0,60}-e(nc|ncodedcommand)?[ \t]+[A-Za-z0-9+\/=]{40,}/ nocase ascii wide
@@ -33,7 +33,7 @@ rule ag_bundled_powershell_stager
 rule ag_bundled_quarantine_removal
 {
     meta:
-        agentguard_rule = "AG-SKL-BND-005"
+        agentguard_rule = "AG-EXEC-001"
         description = "Removes the macOS quarantine attribute (skips Gatekeeper)"
     strings:
         $xattr = /xattr[ \t]+(-[a-z]+[ \t]+)*-[a-z]*d[a-z]*[ \t]+com\.apple\.quarantine/
