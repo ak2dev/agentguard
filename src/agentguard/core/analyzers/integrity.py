@@ -47,6 +47,8 @@ def _cls(*ranges: tuple[int, int]) -> str:
 _URL = regex.compile(r"\bhttps?://[^\s<>\"'`)\]]+", _F)
 _INLINE_CODE = regex.compile(r"`([^`\n]{2,200})`")
 _TOKEN = regex.compile(r"[^\s\"'`<>()\[\]{},;=|&]+")
+# A backslash escape in source text (`\s`, `\n`, `\x41`, `\u0435`): its letters are syntax, not part of a name.
+_BACKSLASH_ESCAPE = regex.compile(r"\\(?:x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|N\{[^}\n]{0,80}\}|.)")
 _VS = regex.compile(_cls((0xFE00, 0xFE0F), (0xE0100, 0xE01EF)) + "{2,}|" + _cls((0xE0100, 0xE01EF)))
 _INVISIBLE_RUN = regex.compile(_cls(*((c, c) for c in (0x200B, 0x200C, 0x200D, 0x2060, 0x2062, 0x2063, 0x2064, 0xFEFF,
                                                              0x034F, 0x00AD, 0x115F, 0x1160, 0x3164, 0xFFA0))) + "{8,}")
@@ -343,7 +345,10 @@ class TextIntegrityAnalyzer:
             for tok in _finditer(_TOKEN, chunk):
                 word = tok.group(0)
                 bad = [c for c in word if c in _CONFUSABLES]
-                if not bad or sum(c.isascii() and c.isalpha() for c in word) < 2:
+                # Latin letters that are part of an escape (`не\s+обращай` in a regular expression) do not make a
+                # word of another script look like a Latin name.
+                letters = _BACKSLASH_ESCAPE.sub("", word) if "\\" in word else word
+                if not bad or sum(c.isascii() and c.isalpha() for c in letters) < 2:
                     continue
                 line = at.index.line_col(start + tok.start())[0]
                 if line in seen_lines:

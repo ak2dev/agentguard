@@ -48,7 +48,7 @@ class _Json:
         t, n = self.t, self.n
         while self.i < n:
             c = t[self.i]
-            if c in " \t\r\n﻿ ":
+            if c in " \t\r\n\ufeff\xa0":
                 self.i += 1
             elif t.startswith("//", self.i):
                 nl = t.find("\n", self.i)
@@ -400,7 +400,7 @@ def line_span(text: str, line: int, starts: list[int] | None = None) -> tuple[in
 def frontmatter_lines(text: str) -> tuple[int, int] | None:
     """1-based (first, last) line numbers of the frontmatter body, between the ``---`` fences."""
     lines = text.split("\n")
-    if not lines or lines[0].lstrip("﻿").rstrip() != "---":
+    if not lines or lines[0].lstrip("\ufeff").rstrip() != "---":
         return None
     for i in range(1, len(lines)):
         if lines[i].rstrip() in ("---", "..."):

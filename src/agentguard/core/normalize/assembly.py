@@ -152,18 +152,32 @@ def fold(line: str, values: dict[str, str] | None = None) -> tuple[str, tuple[st
     return out, tuple(how)
 
 
+_URL_HOST = regex.compile(r"https?://[^\s'\"`/\\]{1,253}", _F)
+
+
+def _word(c: str) -> bool:
+    return c.isalnum() or c == "_"
+
+
 def _reveals(folded: str, original: str) -> bool:
-    """True when ``folded`` holds a sensitive token that ``original`` does not hold as a word of its own."""
+    """True when ``folded`` holds a sensitive token that ``original`` does not hold as a word of its own. Only an
+    edge of the token that is a word character needs a boundary: ``nc`` inside ``sync`` is not shown. A URL counts
+    as shown when its scheme and host are written together (``"https://github.com/" + path`` shows it;
+    ``"https://ev" + "il.invalid"`` does not)."""
     low = original.lower()
     for m in SENSITIVE.finditer(folded, timeout=TIMEOUT):
         token = m.group(0).lower()
+        if token.startswith("http"):
+            host = _URL_HOST.match(folded, m.start(), timeout=TIMEOUT)
+            token = host.group(0).lower() if host else token
         if len(token) < 2:
             continue
+        check_before, check_after = _word(token[0]), _word(token[-1])
         pos, standalone = low.find(token), False
         while pos >= 0:
             before = low[pos - 1] if pos else " "
             after = low[pos + len(token)] if pos + len(token) < len(low) else " "
-            if not (before.isalnum() or before == "_") and not (after.isalnum() or after == "_"):
+            if not (check_before and _word(before)) and not (check_after and _word(after)):
                 standalone = True
                 break
             pos = low.find(token, pos + 1)

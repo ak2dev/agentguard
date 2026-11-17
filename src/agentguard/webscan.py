@@ -96,7 +96,7 @@ _SAFE_DIR = re.compile(r"[^a-z0-9-]+")
 
 def guess_pasted_name(text: str) -> str:
     """Pick a file name that makes the engine treat pasted text as what it is."""
-    s = text.lstrip("﻿ \t\r\n")
+    s = text.lstrip("\ufeff \t\r\n")
     # Parsed too, as JSON is below: the pattern misses a quoted or escaped table name, but
     # it alone still catches a config with a syntax error, which must be reported as one.
     if re.search(r"(?m)^\[mcp_servers[.\]]", s) or "mcp_servers" in (parse_toml(s).value or {}):

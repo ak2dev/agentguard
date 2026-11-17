@@ -197,8 +197,8 @@ _MD_SPECIAL = regex.compile(r"([\\`*_{}\[\]()#+!|<>~])")
 
 def md_escape(text: str) -> str:
     t = _MD_SPECIAL.sub(r"\\\1", text)
-    t = regex.sub(r"@(?=\w)", "@​", t)          # neutralize @mentions
-    t = regex.sub(r"(?<=\s|^)#(?=\d)", "#​", t)  # neutralize #123 refs
+    t = regex.sub(r"@(?=\w)", "@\u200b", t)          # neutralize @mentions
+    t = regex.sub(r"(?<=\s|^)#(?=\d)", "#\u200b", t)  # neutralize #123 refs
     return t.replace("\n", " ")
 
 
@@ -263,7 +263,7 @@ def render_markdown(report: Report, max_findings: int = 50) -> str:
 # ---------------------------------------------------------------- JUnit -----
 def _xml(text: str) -> str:
     # XML 1.0 forbids most control characters even when escaped.
-    cleaned = regex.sub(r"[^\x09\x0A\x0D\x20-퟿-�\U00010000-\U0010FFFF]", "", text)
+    cleaned = regex.sub(r"[^\x09\x0A\x0D\x20-\ud7ff\ue000-\ufffd\U00010000-\U0010FFFF]", "", text)
     return html.escape(cleaned, quote=True)
 
 

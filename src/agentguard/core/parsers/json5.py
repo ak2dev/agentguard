@@ -11,7 +11,7 @@ from typing import Any
 
 from .structured import Parsed
 
-_WS = " \t\r\n﻿   "
+_WS = " \t\r\n\ufeff\xa0\u2028\u2029"
 _ESC = {"b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v", "0": "\0", "\n": "", "\r": ""}
 _IDENT_START = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$"
 _IDENT = _IDENT_START + "0123456789"

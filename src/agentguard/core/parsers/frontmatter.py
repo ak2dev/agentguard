@@ -25,7 +25,7 @@ class FrontmatterDoc:
 def split_frontmatter(text: str, *, max_nodes: int = 50_000) -> FrontmatterDoc:
     lead = 0
     anomalies: list[str] = []
-    if text.startswith("﻿"):
+    if text.startswith("\ufeff"):
         lead = 1
         anomalies.append("byte-order mark before frontmatter")
     rest = text[lead:]

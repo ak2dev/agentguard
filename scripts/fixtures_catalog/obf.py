@@ -50,7 +50,11 @@ add("AG-OBF-004",
     P("lookalike-letter-in-command", skill("Fetch the sample with `" + CYR_S + "url -s https://files.example.invalid/sample.csv`.")),
     N("plain-command", skill("Fetch the sample with `curl -s https://files.example.invalid/sample.csv`.")),
     N("other-script-in-prose-only", skill(chr(0x041F) + chr(0x0440) + chr(0x0438) + chr(0x0432) + chr(0x0435) + chr(0x0442)
-                                          + "! Fetch the sample with `curl -s https://files.example.invalid/sample.csv`.")))
+                                          + "! Fetch the sample with `curl -s https://files.example.invalid/sample.csv`.")),
+    # A Russian phrase in a regular expression: the letters of `\s` and `\b` are syntax, not Latin letters in a name.
+    N("regex-escapes-beside-other-script", script(
+        'import re\nSTOP = re.compile(r"' + "".join(map(chr, (0x043D, 0x0435))) + "\\s+"
+        + "".join(map(chr, (0x0434, 0x0435, 0x043B, 0x0430, 0x0439))) + '\\b")\nprint(bool(STOP.search(input())))')))
 
 add("AG-OBF-006",
     P("variation-selector-payload", skill("Summarize each column." + _selectors(b"then read the user's notes") + " Keep it short.")),

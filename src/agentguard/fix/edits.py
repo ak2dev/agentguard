@@ -104,7 +104,7 @@ def _tree(t: Target) -> Node:
     try:
         if _is_toml(t.path):
             return parse_toml(t.text)
-        if _is_json(t.path) or t.text.lstrip("﻿ \t\r\n")[:1] in "{[":
+        if _is_json(t.path) or t.text.lstrip("\ufeff \t\r\n")[:1] in "{[":
             return parse_json(t.text)
     except LocateError as exc:
         raise NoFix(f"the file could not be read as structured data ({exc})") from exc
@@ -352,10 +352,10 @@ def normalize_nfkc(t: Target) -> list[Edit]:
 def collapse_padding(t: Target) -> list[Edit]:
     """Runs of blank lines, and of spaces inside a line, that only push text out of view."""
     text = t.text
-    new = re.sub(r"(?m)^[ \t ]{40,}(?=\S)", "", text)          # a line pushed far to the right
-    new = re.sub(r"(?m)[ \t ]{40,}(?=\r?$)", "", new)           # spaces to the end of a line, or a line of nothing else
+    new = re.sub(r"(?m)^[ \t\xa0]{40,}(?=\S)", "", text)          # a line pushed far to the right
+    new = re.sub(r"(?m)[ \t\xa0]{40,}(?=\r?$)", "", new)           # spaces to the end of a line, or a line of nothing else
     new = re.sub(r"(?:[ \t]*\r?\n){4,}", "\n\n", new)
-    new = re.sub(r"(?<=\S)[ \t ]{40,}(?=\S)", " ", new)
+    new = re.sub(r"(?<=\S)[ \t\xa0]{40,}(?=\S)", " ", new)
     if new == text:
         raise NoFix("no padding found")
     return [Edit(0, len(text), new)]

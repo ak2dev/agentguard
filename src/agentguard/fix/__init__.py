@@ -115,7 +115,7 @@ def _counts(report: Report) -> Counter[tuple[str, str]]:
 
 def _decode(data: bytes) -> tuple[str, str, str] | None:
     """(text, encoding prefix, newline) or None when the file is not UTF-8 text."""
-    bom = "﻿" if data[:3] == b"\xef\xbb\xbf" else ""
+    bom = "\ufeff" if data[:3] == b"\xef\xbb\xbf" else ""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:

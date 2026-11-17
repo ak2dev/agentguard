@@ -127,8 +127,8 @@ _CLAUDE_KEYS = frozenset({
     "editorMode", "autoCompactEnabled", "claudeMd", "todoFeatureEnabled", "messageIdleNotifThresholdMs", "preferredNotifChannel",
     "theme", "verbose", "autoConnectIde", "autoInstallIdeExtension", "apiKeyHelperTtlMs", "otelHeadersHelperDebounceMs",
 })
-_HIDDEN_CHARS = regex.compile(r"[ ­͏؜ᅟᅠ឴឵᠎ -‏ -  -⁤"
-                              r"⁦-⁯　ㅤ﻿ﾠ\U000e0000-\U000e007f︀-️]|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_HIDDEN_CHARS = regex.compile(r"[\xa0\xad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180e\u2000-\u200f\u2028-\u202f\u205f-\u2064"
+                              r"\u2066-\u206f\u3000\u3164\ufeff\uffa0\U000e0000-\U000e007f\ufe00-\ufe0f]|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _URL_OR_PATH = regex.compile(r"^(?:[a-z][a-z0-9+.\-]*://|~?/|\.{1,2}/|[A-Za-z]:[\\/])|\.(?:sh|py|js|ts|ps1|exe|json|ya?ml|toml)$", _F)
 
 

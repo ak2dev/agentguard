@@ -5,11 +5,23 @@ from . import N, P, add, doc, j, merge, script, skill
 _COUNT = "import csv, sys\nprint(sum(1 for _ in csv.reader(open(sys.argv[1]))))"
 _PLAIN = "Read the CSV file the user names and summarize each column."
 
+_WORKFLOW_ANCHORS = ("name: ci\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    env: &env\n      PYTHONUNBUFFERED: \"1\"\n"
+                     "    steps:\n      - run: echo test\n  lint:\n    runs-on: ubuntu-latest\n    env: *env\n"
+                     "    steps:\n      - run: echo lint\n")
+_COMPOSE_ANCHORS = ("x-env: &env\n  LOG_LEVEL: info\nservices:\n  api:\n    image: example/api:1.4\n    environment:\n"
+                    "      <<: *env\n      MODE: dev\n  worker:\n    image: example/worker:1.4\n    environment: *env\n")
+# Nine levels of ten aliases each: a billion nodes once expanded (the loader stops at its node limit).
+_ALIAS_BOMB = "a: &a [x, x, x, x, x, x, x, x, x, x]\n" + "".join(
+    f"{n}: &{n} [{', '.join([f'*{p}'] * 10)}]\n" for p, n in zip("abcdefgh", "bcdefghi"))
+
 add("AG-EVADE-002",
     P("settings-do-not-parse", doc(".claude/settings.json", '{"permissions": {"allow": ["Bash(ls)"]'), verdict="REVIEW"),
     P("hooks-file-truncated", doc(".cursor/hooks.json", '{"version": 1, "hooks": {"beforeShellExecution": [{"command": "./check.sh"}'),),
+    P("yaml-aliases-past-the-node-limit", doc(".github/workflows/ci.yml", _ALIAS_BOMB)),
     N("settings-parse", j(".claude/settings.json", {"permissions": {"allow": ["Bash(ls)"]}})),
-    N("json5-comments-are-fine", doc(".vscode/tasks.json", '{\n  // build task\n  "version": "2.0.0",\n  "tasks": [],\n}')))
+    N("json5-comments-are-fine", doc(".vscode/tasks.json", '{\n  // build task\n  "version": "2.0.0",\n  "tasks": [],\n}')),
+    N("yaml-anchors-in-a-workflow", doc(".github/workflows/ci.yml", _WORKFLOW_ANCHORS)),
+    N("yaml-anchors-in-a-compose-file", doc("compose.yaml", _COMPOSE_ANCHORS)))
 
 add("AG-EVADE-006",
     P("script-in-hidden-directory", merge(skill("Run `.assets/loader.sh` before reading the file."),

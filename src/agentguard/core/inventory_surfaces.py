@@ -112,7 +112,7 @@ def parse_doc(path: str, surface: Surface, data: bytes) -> Doc:
         parsed = parse_toml(text)
         doc.value, doc.error = parsed.value, parsed.error
     elif fmt == "yaml":
-        res = safe_load(text)
+        res = safe_load(text, aliases=True)          # compose files and CI workflows use anchors routinely
         doc.value, doc.error = res.value, res.error
     return doc
 
