@@ -56,8 +56,13 @@ _CODES = (
 _NUM = regex.compile(r"0x[0-9a-fA-F]{1,4}|\d{1,5}")
 _FROMHEX = regex.compile(r"(?:bytes|bytearray)\.fromhex\(\s*[\"']([0-9a-fA-F\s]{4,800})[\"']\s*\)(?:\.decode\([^)\n]{0,24}\))?")
 _PIECE = r"(?:'[^'\\\n]{0,24}'|\"[^\"\\\n]{0,24}\")"
-_CONCAT = regex.compile(_PIECE + r"(?:\s*\+\s*" + _PIECE + r"){1,24}")
-_ONE = regex.compile(_PIECE)
+# A piece may be repeated by a number ("a." * 3), which binds tighter than "+": the join repeats it, up to a cap. A
+# piece that another tighter operator applies to ("%s" % x, "abc"[1:], "ab" * n, 3 * "ab") is left out of the join,
+# which would otherwise not be what the expression builds.
+_REPEATED = _PIECE + r"(?:\s*\*\s*\d{1,5}\b)?"
+_CONCAT = regex.compile(r"(?<![*%]\s{0,8})" + _REPEATED + r"(?:\s*\+\s*" + _REPEATED + r"){1,24}(?!\s*[*%\[])")
+_ONE = regex.compile("(" + _PIECE + r")(?:\s*\*\s*(\d{1,5})\b)?")
+_JOIN_CAP = 4096                    # characters a join may build
 _REVERSED = regex.compile(r"([\"'])([^\"'\\\n]{3,200})\1(?:\[::-1\]|\.split\(\s*(?:''|\"\")\s*\)\.reverse\(\)\.join\(\s*(?:''|\"\")\s*\))")
 
 
@@ -142,7 +147,14 @@ def fold(line: str, values: dict[str, str] | None = None) -> tuple[str, tuple[st
         note("reversed-string", _REVERSED.sub(lambda m: _quote(m.group(2)[::-1]), out, timeout=TIMEOUT))
     if "+" in out and ("'" in out or '"' in out):
         def joined(m: regex.Match[str]) -> str:
-            return _quote("".join(p[1:-1] for p in _ONE.findall(m.group(0))))
+            text = ""
+            for piece, times in _ONE.findall(m.group(0)):
+                body = piece[1:-1]
+                count = int(times) if times else 1
+                text += body * min(count, _JOIN_CAP // len(body) + 1) if body else ""
+                if len(text) >= _JOIN_CAP:
+                    break
+            return _quote(text[:_JOIN_CAP])
 
         for _ in range(2):
             before = out
@@ -152,7 +164,20 @@ def fold(line: str, values: dict[str, str] | None = None) -> tuple[str, tuple[st
     return out, tuple(how)
 
 
-_URL_HOST = regex.compile(r"https?://[^\s'\"`/\\]{1,253}", _F)
+# A URL's scheme and authority: everything up to its path, query or fragment.
+_URL_AUTHORITY = regex.compile(r"https?://([^\s'\"`/\\?#]*)", _F)
+_MAX_HOST = 253                     # the longest host name DNS allows
+
+
+def _url_token(folded: str, start: int) -> str | None:
+    """The scheme and authority of the URL at ``start``, or None when no host name follows the scheme: nothing, or
+    a run longer than any host name (a test string such as ``"http://" + "a." * 1500``). The host is measured after
+    any user information and before the path, so padding either one cannot pass a URL off as such a string."""
+    m = _URL_AUTHORITY.match(folded, start, timeout=TIMEOUT)
+    if m is None:
+        return None
+    host = m.group(1).rsplit("@", 1)[-1]
+    return m.group(0).lower() if 0 < len(host) <= _MAX_HOST else None
 
 
 def _word(c: str) -> bool:
@@ -163,13 +188,12 @@ def _reveals(folded: str, original: str) -> bool:
     """True when ``folded`` holds a sensitive token that ``original`` does not hold as a word of its own. Only an
     edge of the token that is a word character needs a boundary: ``nc`` inside ``sync`` is not shown. A URL counts
     as shown when its scheme and host are written together (``"https://github.com/" + path`` shows it;
-    ``"https://ev" + "il.invalid"`` does not)."""
+    ``"https://ev" + "il.invalid"`` does not), and a scheme followed by no host name is shown as written."""
     low = original.lower()
     for m in SENSITIVE.finditer(folded, timeout=TIMEOUT):
         token = m.group(0).lower()
         if token.startswith("http"):
-            host = _URL_HOST.match(folded, m.start(), timeout=TIMEOUT)
-            token = host.group(0).lower() if host else token
+            token = _url_token(folded, m.start()) or token
         if len(token) < 2:
             continue
         check_before, check_after = _word(token[0]), _word(token[-1])
