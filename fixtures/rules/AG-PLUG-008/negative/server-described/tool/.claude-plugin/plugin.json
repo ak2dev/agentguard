@@ -1,0 +1,5 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files and adds the Pyright language server."
+}

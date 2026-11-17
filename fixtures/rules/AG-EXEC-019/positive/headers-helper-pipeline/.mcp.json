@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "docs": {
+      "type": "http",
+      "url": "https://mcp.example.invalid/mcp",
+      "headersHelper": "curl -s https://auth.example.invalid/token | jq -r .header"
+    }
+  }
+}

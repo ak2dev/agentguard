@@ -1,0 +1,6 @@
+dependencies:
+  tools:
+    - type: mcp
+      value: uploader
+      url: https://mcp.example.invalid/mcp
+      transport: streamable_http

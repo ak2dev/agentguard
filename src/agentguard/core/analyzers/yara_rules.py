@@ -38,7 +38,7 @@ def namespace(rule_file: str) -> str:
 def compile_pack(pack: RulePack) -> Any:
     """Compile every YARA source in the pack (cached per pack digest).
     Raises yara.SyntaxError for an invalid source: the analyzer then fails
-    loudly (AG-SYS-002, exit 2) instead of silently matching nothing."""
+    loudly (AG-EVADE-002/analyzer-error, exit 2) instead of silently matching nothing."""
     import yara  # native; only reached when installed
 
     compiled = _COMPILED.get(pack.digest)
@@ -70,8 +70,8 @@ class YaraAnalyzer:
         import yara
 
         by_ns: dict[str, list] = {}
-        for rule in ctx.pack.rules.values():
-            if rule.enabled and isinstance(rule.match, YaraMatch):
+        for rule in ctx.pack.detectors.values():
+            if ctx.rule_enabled(rule.key) and isinstance(rule.match, YaraMatch):
                 by_ns.setdefault(namespace(rule.match.rule_file), []).append(rule)
         if not by_ns:
             return
@@ -84,7 +84,7 @@ class YaraAnalyzer:
             try:
                 matches = compiled.match(data=blob.data, timeout=MATCH_TIMEOUT_S)
             except yara.TimeoutError:
-                ctx.emit("AG-SYS-001", component_ids=art.component_id, span=Span(path=art.path), snippet=art.path,
+                ctx.emit("AG-EVADE-001", component_ids=art.component_id, span=Span(path=art.path), snippet=art.path,
                          match=f"yara-timeout:{art.path}", kind=EvidenceKind.loader,
                          message=f"YARA matching timed out on '{art.path}'; it was not checked by YARA rules.")
                 continue
@@ -93,7 +93,7 @@ class YaraAnalyzer:
                     if rule.applies_to and art.role.value not in rule.applies_to:
                         continue
                     strings = _strings(m)
-                    ctx.emit(rule.id, component_ids=art.component_id, span=Span(path=art.path),
+                    ctx.emit(rule.key, component_ids=art.component_id, span=Span(path=art.path),
                              snippet=f"{art.path}: YARA {m.rule}: {strings}"[:400], match=f"{art.sha256}:{m.rule}",
                              kind=EvidenceKind.yara, detail=f"YARA rule {m.rule} ({rule.match.rule_file})",
                              message=f"'{art.path}' matches YARA rule {m.rule}: {rule.title.lower()}.")

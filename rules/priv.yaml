@@ -1,0 +1,136 @@
+# Detection entries for the PRIV family (catalogue: rules/catalog/priv.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-PRIV-001
+    aliases: [AG-SKL-PRIV-001]
+    version: 1
+    description: '`allowed-tools` pre-approves Bash/PowerShell without a command restriction, or with an interpreter that allows arbitrary code.'
+    why: '`allowed-tools` pre-approves tools (it does not restrict them), so unrestricted shell here means commands run without a permission prompt while the skill is active.'
+    confidence: high
+    applies_to: [skill_md, instruction_md]
+    match: {type: analyzer, analyzer: skill.privilege}
+    remediation: Pre-approve only specific commands, e.g. `Bash(git status:*)`, or omit `allowed-tools`. `agentguard fix` proposes the smallest grant that covers what the skill does.
+    fix_action: narrow-grant
+    references: ["https://code.claude.com/docs/en/skills"]
+
+
+  - id: AG-PRIV-002
+    aliases: [AG-SKL-PRIV-002]
+    version: 1
+    description: The description reads as read-only (summarize, review, explain…) but `allowed-tools` pre-approves write, shell or network tools.
+    why: Over-privileged skills turn any injection into write/exec capability (least privilege, AST03).
+    confidence: medium
+    applies_to: [skill_md, instruction_md]
+    match: {type: analyzer, analyzer: skill.privilege}
+    remediation: Remove tools the skill does not need, or update the description to state what it modifies. `agentguard fix` drafts the smallest grant that covers what the skill does.
+    fix_action: narrow-grant
+
+
+  - id: AG-PRIV-004
+    variant: registers-hooks
+    aliases: [AG-SKL-EXEC-002]
+    lane: evidence
+    version: 1
+    title: Skill registers shell hooks
+    description: The skill's frontmatter defines `hooks`, which register shell commands that run on agent events for the rest of the session.
+    why: Hooks keep running after the skill finishes and fire on every matching event.
+    severity: medium
+    confidence: high
+    applies_to: [skill_md, instruction_md]
+    match: {type: analyzer, analyzer: skill.exec}
+    remediation: Avoid skill-scoped hooks unless essential; keep hook commands minimal, local and documented.
+    references: ["https://code.claude.com/docs/en/skills"]
+
+
+  - id: AG-PRIV-008
+    aliases: [AG-CODE-040]
+    version: 2
+    description: A tool's handler executes processes, makes network requests or accesses credentials, and the tool's name/description does not say so.
+    why: Users approve tools based on their descriptions; undeclared capabilities defeat informed approval.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Describe the capability in the tool description (and annotations), or remove it.
+
+
+  - id: AG-PRIV-003
+    version: 1
+    description: A subagent definition sets `permissionMode` to `bypassPermissions`, `dontAsk`, `acceptEdits` or `auto`.
+    why: The subagent's tool calls are not shown for approval. A project subagent keeps this field, so a repository can ship an agent that acts unprompted.
+    match: {type: analyzer, analyzer: privilege}
+    fix_action: remove-frontmatter-key
+    remediation: Remove `permissionMode`, or set it to `default`.
+
+  - id: AG-PRIV-005
+    version: 1
+    description: A skill asks for a credential (an environment variable holding a key, token, password or secret) for a service its stated purpose does not involve.
+    why: A credential a skill does not need is one it can leak or misuse; asking for unrelated secrets is how stealer skills collect them.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Remove the requirement, or state in the description why the skill needs that service.
+
+  - id: AG-PRIV-006
+    version: 1
+    description: "A skill that can run commands, use the network, touch credentials or change the system is loaded into every session (`always: true`)."
+    why: An always-loaded skill is in the model's context for every task, whether or not the user wanted it, so its instructions and capabilities apply everywhere.
+    match: {type: analyzer, analyzer: privilege}
+    fix_action: remove-frontmatter-key
+    remediation: Remove `always`, so the skill loads only when its description matches the task.
+
+  - id: AG-PRIV-007
+    version: 1
+    description: A skill with side effects (it deploys, publishes, sends, deletes, pays, or writes outside the workspace) does not set `disable-model-invocation`.
+    why: The model may start the skill on its own when a request, or text it read, seems to match. Skills with side effects should run only when the user asks for them.
+    match: {type: analyzer, analyzer: privilege}
+    fix_action: "set-frontmatter:disable-model-invocation=true"
+    remediation: "Add `disable-model-invocation: true` to the frontmatter."
+
+  - id: AG-PRIV-008
+    variant: skill-grant
+    title: Skill's tool grant understates what it does
+    version: 1
+    description: A skill's `allowed-tools` declares a narrow grant, and the skill runs commands or scripts, makes network requests or writes files that the grant does not cover.
+    why: The declaration is what a reviewer reads to judge the skill. One that understates the behaviour makes the skill look safer than it is.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Declare the tools the skill really uses, as narrowly as possible, or remove the behaviour.
+
+  - id: AG-PRIV-009
+    version: 1
+    description: A skill, command, subagent or plugin asks to run as root or administrator, on the host, or with the sandbox turned off.
+    why: Elevation and host execution remove the limits that contain a mistake or an injected instruction.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Remove the requirement. If one step truly needs elevation, have the user run that step by hand.
+
+  - id: AG-PRIV-010
+    version: 1
+    description: A tool grant reaches files outside the workspace (`Read(~/**)`, `Read(/**)`), or the component's code reads from the user's home directory.
+    why: Outside the workspace are other projects, documents and configuration the task has no need for.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Limit file access to the workspace and the component's own directory.
+
+  - id: AG-PRIV-011
+    version: 1
+    description: A skill is granted network access to any host (`WebFetch`, `WebSearch`, `Bash(curl …)`) while its stated purpose is local.
+    why: Unrestricted network access is the sending half of an exfiltration; a skill that formats or analyses local files has no use for it.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Remove the network grant, or restrict it to the domains the skill needs.
+
+  - id: AG-PRIV-012
+    version: 1
+    description: "A skill sets `command-dispatch: tool`, sending its slash command's arguments straight to a tool."
+    why: The model never sees the input, so none of its checks apply; what the user (or text pasted by the user) types reaches the tool as is.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Dispatch through the model unless the tool is harmless with any input.
+
+  - id: AG-PRIV-013
+    version: 1
+    description: A component's code or commands reach into the directories where other skills, agents or plugins are installed.
+    why: From there it can read their configuration and secrets, or change their instructions.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: A component should work in its own directory and the workspace only.
+
+  - id: AG-PRIV-014
+    version: 1
+    description: A subagent has every tool (no `tools` list, or `*`) and defines its own MCP server inline.
+    why: The inline server is started for the subagent without the separate approval a project server gets, and the subagent can use everything alongside it.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: List the tools the subagent needs, and move the server to `.mcp.json` where it is approved like any other.

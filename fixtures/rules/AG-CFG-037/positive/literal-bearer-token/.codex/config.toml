@@ -1,0 +1,4 @@
+[mcp_servers.tracker]
+url = "https://mcp.example.invalid/mcp"
+[mcp_servers.tracker.http_headers]
+Authorization = "Bearer 9f3c1d7a5b2e4f608c1a3d5e7f9b0c2d"

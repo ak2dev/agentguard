@@ -1,0 +1,46 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "name": "agentguard-pre-install",
+            "type": "command",
+            "command": "agentguard-hook pre-install --agent gemini",
+            "timeout": 300000,
+            "description": "Scan what a shell command would install and deny it on BLOCK"
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "agentguard-file-changed",
+            "type": "command",
+            "command": "agentguard-hook file-changed --agent gemini",
+            "timeout": 120000,
+            "description": "Re-scan an agent-facing file when it changes"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "agentguard-session-start",
+            "type": "command",
+            "command": "agentguard-hook session-start --agent gemini",
+            "timeout": 120000,
+            "description": "Verify installed components against agentguard.lock"
+          }
+        ]
+      }
+    ]
+  }
+}

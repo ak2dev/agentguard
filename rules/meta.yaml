@@ -1,0 +1,243 @@
+# Detection entries for the META family (catalogue: rules/catalog/meta.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-META-001
+    variant: publisher-mismatch
+    aliases: [AG-SKL-TYP-002]
+    version: 1
+    title: Popular skill name from a different publisher
+    description: The skill uses the exact name of a popular skill but declares a different publisher/author.
+    why: Name reuse with a different publisher is how impersonating skills blend in.
+    severity: medium
+    confidence: medium
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.typosquat}
+    remediation: Install the skill from its original publisher, or rename your own skill.
+
+
+  - id: AG-META-002
+    aliases: [AG-SKL-TYP-001]
+    version: 1
+    description: The skill name is within a small edit distance of, or homoglyph-identical to, a popular skill name.
+    why: Typosquatting is a primary distribution technique on public skill registries.
+    confidence: medium
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.typosquat}
+    remediation: Verify the skill's source and publisher; rename it if it is not the popular skill.
+
+
+  - id: AG-META-004
+    aliases: [AG-SKL-MIS-001]
+    version: 2
+    description: A bundled script makes network requests, reads credentials, dumps the environment or writes persistence locations, and the description does not mention anything like it.
+    why: A mismatch between what a skill says and what its code does is the defining trait of trojanized "utility" skills.
+    confidence: low
+    applies_to: [skill_md, script]
+    match: {type: analyzer, analyzer: capabilities}
+    remediation: Remove the undeclared behavior, or describe it explicitly so users can decide.
+
+  - id: AG-META-004
+    variant: judge
+    aliases: [AG-LLM-001]
+    version: 1
+    title: "Judge: description/behavior mismatch"
+    description: An LLM judge reviewing the declared description and the bundled code reports behavior the description does not disclose.
+    why: Pattern rules catch known shapes of undisclosed behavior; the judge can spot a mismatch in code that looks ordinary line by line.
+    severity: medium
+    confidence: medium
+    network: true
+    match: {type: analyzer, analyzer: judge}
+    remediation: Review the quoted code. Remove the undisclosed behavior or describe it so users can decide.
+
+
+  - id: AG-META-005
+    variant: bad-name
+    aliases: [AG-SKL-SPEC-002]
+    version: 1
+    title: Skill name violates the naming rules
+    description: The `name` must be 1-64 characters of lowercase letters, digits and single hyphens, not starting or ending with a hyphen.
+    why: Non-conforming names break tooling and are a common vector for look-alike (impersonating) names.
+    confidence: high
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Rename the skill using only `a-z`, `0-9` and single hyphens, at most 64 characters.
+    references: ["https://agentskills.io/specification"]
+
+
+  - id: AG-META-005
+    variant: dir-mismatch
+    aliases: [AG-SKL-SPEC-003]
+    version: 1
+    title: Skill name does not match its directory
+    description: The spec requires `name` to match the parent directory name.
+    why: A mismatch lets a skill present itself under a different name than the one reviewers see in the file tree.
+    confidence: high
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Make the directory name and the frontmatter `name` identical.
+    references: ["https://agentskills.io/specification"]
+
+
+  - id: AG-META-005
+    variant: frontmatter-anomaly
+    aliases: [AG-SKL-SPEC-007]
+    version: 1
+    title: Frontmatter anomaly
+    description: Duplicate keys, YAML anchors/aliases or custom tags, non-string `metadata` values, a byte-order mark, or unterminated frontmatter.
+    why: Duplicate keys and aliases let the value an agent loads differ from the value a reviewer reads.
+    confidence: high
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Use plain YAML with unique keys, no anchors/aliases/tags, and string metadata values.
+
+  - id: AG-META-005
+    variant: missing-required
+    aliases: [AG-SKL-SPEC-001]
+    version: 1
+    title: Missing or empty required name/description
+    description: SKILL.md must start with YAML frontmatter containing non-empty `name` and `description`.
+    why: Agents load `name` and `description` at startup to decide when to activate a skill. A skill without them is malformed and cannot be reviewed or matched reliably.
+    confidence: high
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Add YAML frontmatter with a `name` (matching the directory) and a `description` of what the skill does and when to use it.
+    references: ["https://agentskills.io/specification"]
+
+
+  - id: AG-META-005
+    variant: over-length
+    aliases: [AG-SKL-SPEC-004]
+    version: 1
+    title: Frontmatter field exceeds its length limit
+    description: '`description` is limited to 1024 characters and `compatibility` to 500.'
+    why: Oversized metadata is loaded into every session and is a common place to stuff hidden instructions.
+    confidence: high
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Shorten the field; move detail into the SKILL.md body or references/.
+    references: ["https://agentskills.io/specification"]
+
+
+  - id: AG-META-006
+    aliases: [AG-SKL-SPEC-005]
+    version: 1
+    description: A frontmatter key is neither in the Agent Skills spec nor a known platform extension.
+    why: Unknown keys are ignored by some agents and interpreted by others; they deserve a look.
+    confidence: medium
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Remove the key or move it under `metadata` (string values only).
+    references: ["https://agentskills.io/specification", "https://code.claude.com/docs/en/skills"]
+
+# ---- added: meta013 ----
+  - id: AG-META-013
+    version: 1
+    description: A candidate skill's description shares at least 80 percent of its words with the description of an installed skill that has a different name.
+    why: The agent chooses a skill by its description. A near copy competes for the same requests, and the user cannot tell which of the two answered.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not install a skill that duplicates one you already trust, or remove one of the two.
+
+# ---- added: meta_rules ----
+  - id: AG-META-003
+    version: 1
+    description: A skill, command or tool description tells the agent to use it for every request, before anything else, or whatever the task is.
+    why: Agents choose what to load from the description. One that claims every request is loaded into sessions it has nothing to do with, and whatever its instructions say then applies there too.
+    applies_to: [skill_md, command_md, instruction_md, tool, prompt]
+    match:
+      type: regex
+      scopes: [frontmatter, tool_text]
+      patterns:
+        - |-
+          \b(?:use|invoke|load|activate|trigger|call|run|apply|consult)\s+(?:this\s+(?:skill|tool|command|plugin|server)\s+)?(?:for|on|with|in|before|during)\s+(?:every|each|any|all)\s+(?:and\s+(?:every|all)\s+)?(?:single\s+)?(?:user\s+)?(?:requests?|tasks?|quer(?:y|ies)|messages?|prompts?|questions?|conversations?|sessions?|responses?|interactions?)\b
+        - |-
+          \b(?:always|must\s+always|should\s+always)\s+(?:be\s+)?(?:use|used|invoke|invoked|load|loaded|activate|activated|call|called|run|consult|consulted)\s+(?:this\s+(?:skill|tool|command)\s+)?(?:first|before\s+(?:any|every|all)\s+other|for\s+(?:everything|every|any|all)|regardless|no\s+matter)\b
+        - |-
+          \b(?:regardless\s+of|no\s+matter)\s+(?:the\s+|what\s+the\s+)?(?:task|request|topic|question|user\s+(?:asks|says|wants))\b
+        - |-
+          \b(?:use|invoke|load|trigger)\s+(?:this\s+(?:skill|tool)\s+)?(?:for\s+everything|whenever\s+the\s+user\s+(?:says|asks|types|writes)\s+anything|on\s+every\s+turn|at\s+the\s+start\s+of\s+every\s+(?:conversation|session|response|turn))\b
+        - |-
+          \b(?:takes?|has)\s+(?:priority|precedence)\s+over\s+(?:all|any|every)\s+other\s+(?:skills?|tools?|instructions?|commands?)\b
+      unless:
+        - |-
+          \b(?:do\s+not|don'?t|never|not\s+meant|not\s+intended)\b[^.\n]{0,40}\b(?:every|any|all)\b
+      window: 0
+    remediation: Rewrite the description to state what the skill does and the specific requests it is for.
+
+  - id: AG-META-007
+    version: 1
+    description: A skill description is a list of keywords rather than a sentence (many short comma-separated terms, one term repeated many times), or the skill lists twenty-five or more keywords or tags.
+    why: Agents match requests against descriptions, so a stuffed description gets the skill chosen for requests it has nothing to do with.
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: meta}
+    remediation: Replace the keyword list with one or two sentences that say what the skill does and when to use it.
+
+  - id: AG-META-008
+    version: 1
+    description: "A skill, command, plugin or tool describes itself as official, verified, certified, audited or endorsed by a vendor or a security team, in its own metadata."
+    why: Nothing checks such a claim. It is there to lower the reader's guard, and impersonating packages use it more often than genuine ones, which are identified by where they are published.
+    applies_to: [skill_md, command_md, instruction_md, tool, prompt]
+    match:
+      type: regex
+      scopes: [frontmatter, tool_text]
+      patterns:
+        # "verified by Anthropic", "officially endorsed by the vendor". An adjective in front of a
+        # vendor's name ("official OpenAI domains", "trusted Google sources") describes something
+        # else; "the official OpenAI skill" is the next pattern.
+        - |-
+          \b(?:official(?:ly)?\s+(?:from|by)|(?:officially\s+)?(?:verified|certified|approved|endorsed|audited|vetted|trusted)\s+by)\s+(?:anthropic|claude|openai|google|microsoft|github|cursor|aws|amazon|meta|apple|the\s+(?:vendor|security\s+team|maintainers?))\b
+        - |-
+          \b(?:the\s+)?official\s+(?:anthropic|claude|openai|codex|gemini|google|microsoft|github|copilot|cursor)\s+(?:skill|plugin|extension|tool|server|integration|connector)\b
+        - |-
+          \b(?:security[- ]audited|independently\s+audited|passed\s+(?:a\s+|an\s+|the\s+)?(?:security\s+)?(?:audit|review|scan)|(?:virus|malware)[- ]free|100%\s+safe|guaranteed\s+safe|scanned\s+and\s+(?:safe|clean)|verified\s+(?:safe|publisher|skill|plugin)|safe\s+and\s+verified)\b
+      unless:
+        - |-
+          \b(?:not|un)\s*-?(?:official|verified|audited|affiliated|endorsed)\b|\bnot\s+(?:an?\s+)?(?:official|affiliated|endorsed)\b
+      window: 0
+    remediation: Remove the claim. Trust comes from where the component is published and who signed it, not from what it says about itself.
+
+  - id: AG-META-009
+    version: 1
+    description: "Two files that describe the same component disagree: a plugin or extension manifest and the `package.json` beside it give different versions, a marketplace entry and the plugin manifest it points to give different names or versions, or a registry `server.json` and its package disagree."
+    why: Tools and people read different files. A mismatch means one of them is looking at a description of something other than what is installed, which is also what a tampered or repackaged component looks like.
+    match: {type: analyzer, analyzer: meta}
+    remediation: Make the files agree, and check which one describes what is actually shipped.
+
+  - id: AG-META-010
+    version: 1
+    description: "A skill in a folder that several agents load limits itself with fields only one of them reads (`disable-model-invocation`, `user-invocable: false`, `disallowed-tools`, or Codex's `allow_implicit_invocation: false`), and carries no equivalent for the others."
+    why: The restriction holds in the agent that understands it and silently does not in the rest, so a skill reviewed as user-invoked only can start on its own elsewhere.
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: meta}
+    remediation: Add the equivalent restriction for every agent that loads this folder, or move the skill to a folder only the intended agent reads.
+
+  - id: AG-META-011
+    version: 1
+    description: "A skill, command or plugin name contains a word the skill specification reserves (`anthropic`, `claude`)."
+    why: A name with the vendor's name in it reads as coming from the vendor. The specification reserves these words for that reason, and impersonating packages rely on it.
+    match: {type: analyzer, analyzer: meta}
+    remediation: Do not install it unless it comes from that vendor's own repository. Rename your own component.
+    references: ["https://agentskills.io/specification"]
+
+  - id: AG-META-012
+    version: 1
+    description: A project or personal skill or command has the name of a command or skill the agent ships with, and sits in a folder whose definitions are loaded alongside the built-in ones.
+    why: A request for the built-in can resolve to this file instead, so the user runs something other than what they asked for under a name they trust.
+    match: {type: analyzer, analyzer: meta}
+    remediation: Do not install it. Rename your own skill or command so it cannot be mistaken for a built-in.
+
+  - id: AG-META-014
+    version: 1
+    description: "The `compatibility` field says the skill needs root or administrator rights, unrestricted network access, the Docker socket or system-wide access, and the description gives no purpose that would need it."
+    why: A stated requirement nobody questions becomes the reason the skill is later granted that access.
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: meta}
+    remediation: Remove the requirement, or say in the description what it is needed for.
+
+  - id: AG-META-015
+    version: 1
+    description: The name of a skill, command, plugin, server, marketplace or subagent contains characters from another script that look like Latin letters (Cyrillic, Greek, full-width forms).
+    why: The name displays like a known one and is a different string, so it can sit beside the real component or pass for it in a list.
+    match: {type: analyzer, analyzer: meta}
+    remediation: Rename the component using plain ASCII letters.
+    fix_action: fold-confusables

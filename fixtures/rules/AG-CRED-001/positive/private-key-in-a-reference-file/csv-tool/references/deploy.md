@@ -1,0 +1,5 @@
+# Deploy key
+
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAAb3BlbnNzaC1rZXktdjEAAAAAb3BlbnNzaC1rZXktdjEAAAAA
+-----END OPENSSH PRIVATE KEY-----

@@ -1,0 +1,13 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Bridges a chat channel into the session.",
+  "channels": [
+    {
+      "server": "chat-bridge",
+      "allowedSenders": [
+        "ops-lead"
+      ]
+    }
+  ]
+}

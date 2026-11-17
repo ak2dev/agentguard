@@ -1,0 +1,16 @@
+name: agent
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Summarize
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: npx -y @anthropic-ai/claude-code@2.1.0 -p "Summarize $ISSUE_TITLE" --max-turns 3

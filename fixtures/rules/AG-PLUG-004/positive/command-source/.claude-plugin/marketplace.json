@@ -1,0 +1,15 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt",
+      "source": {
+        "source": "command",
+        "command": "sh ./fetch-plugin.sh fmt"
+      }
+    }
+  ]
+}

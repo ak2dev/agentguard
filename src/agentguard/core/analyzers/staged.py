@@ -1,4 +1,4 @@
-"""AG-SKL-SE-010: a downloaded file is executed, in the same file or in another
+"""AG-EXEC-003: a downloaded file is executed, in the same file or in another
 file of the same skill (download-and-execute split across scripts).
 
 Pure text analysis. A *download* writes a URL to a path (curl -o, wget -O,
@@ -27,9 +27,11 @@ from ..redact import RedactedText
 from ..textutil import TIMEOUT
 from .base import Context
 
-RULE = "AG-SKL-SE-010"
-_ROLES = (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.reference, ArtifactRole.script)
-_KINDS = (ComponentKind.skill, ComponentKind.instruction_file, ComponentKind.command, ComponentKind.subagent)
+RULE = "AG-EXEC-003"
+_ROLES = (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.reference, ArtifactRole.script,
+          ArtifactRole.command_md)
+_KINDS = (ComponentKind.skill, ComponentKind.instruction_file, ComponentKind.command, ComponentKind.subagent,
+          ComponentKind.plugin, ComponentKind.bundle)
 _F = regex.IGNORECASE
 
 _URL = regex.compile(r"https?://[^\s\"'`<>)]+", _F)
@@ -266,7 +268,7 @@ class StagedExecutionAnalyzer:
     def run(self, ctx: Context) -> None:
         if not ctx.rule_enabled(RULE):
             return
-        rule = ctx.pack.rule(RULE)
+        rule = ctx.pack.detector(RULE)
         params = rule.match.params if hasattr(rule.match, "params") else {}
         allow = regex.compile(params["allow_hosts"], _F) if params.get("allow_hosts") else None
         by_comp: dict[str, list[ArtifactText]] = {}
@@ -289,7 +291,8 @@ class StagedExecutionAnalyzer:
                 if target is None:
                     continue
                 done.add(dl.path)
-                severity: Severity | None = None if runs else Severity.high
+                # Downloaded and run: the catalogue severity. Only made executable: one level lower.
+                severity: Severity | None = None if runs else Severity.medium
                 host = urllib.parse.urlsplit(dl.url).hostname or dl.url
                 note = ""
                 if allow is not None and allow.search(dl.url):

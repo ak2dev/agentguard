@@ -1,0 +1,3 @@
+[mcp_servers.tracker]
+url = "https://mcp.example.invalid/mcp"
+bearer_token_env_var = "TRACKER_TOKEN"

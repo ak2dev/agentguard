@@ -29,7 +29,7 @@ const byRule = sample.findings;
       <text class="c-sub" x={cx} y={cy + 24} text-anchor="middle">findings</text>
     </svg>
     <ul class="donut-list">
-      {byRule.map((f) => <li><span class={`sev ${f.severity}`}>{f.severity}</span> <code>{f.rule_id}</code> <span class="muted">{f.title}</span></li>)}
+      {byRule.map((f) => <li><span class={`sev ${f.severity}`}>{f.severity}</span> <code>{f.key ?? f.id}</code> <span class="muted">{f.title}{f.lane ? ` · ${f.lane} lane` : ""}</span></li>)}
     </ul>
   </div>
 </Figure>

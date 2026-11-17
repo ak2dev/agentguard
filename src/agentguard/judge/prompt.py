@@ -17,6 +17,7 @@ import regex
 
 from ..core.judge_models import JudgeKind
 from ..core.normalize.unicode import normalize
+from ..core.redact import redact_secrets
 from ..core.textutil import TIMEOUT
 
 MAX_ITEM_CHARS = 12_000
@@ -84,7 +85,8 @@ def build_prompt(kind: JudgeKind, sections: list[tuple[str, str]]) -> tuple[str,
     truncated = False
     blocks = []
     for label, text in sections:
-        body, cut = clip(neutralize(text), min(MAX_ITEM_CHARS, max(budget, 0)))
+        # Secrets never leave the machine: they are redacted before the text is placed in a prompt.
+        body, cut = clip(neutralize(redact_secrets(text)), min(MAX_ITEM_CHARS, max(budget, 0)))
         truncated = truncated or cut
         budget -= len(body)
         safe_label = _LABEL_UNSAFE.sub("_", neutralize(label))[:120]

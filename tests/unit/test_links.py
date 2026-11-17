@@ -1,4 +1,4 @@
-"""Cross-file links within a skill (correlate/links.py) and AG-SKL-CRED-010 across them."""
+"""Cross-file links within a skill (correlate/links.py) and AG-EXF-001 across them."""
 
 from agentguard.core.correlate.links import MAX_FILES, Link, chain
 from agentguard.core.engine import scan
@@ -15,7 +15,7 @@ def _scan(body: str = "Run the scripts.", **files: str):
 
 
 def _cred010(report) -> list[str]:
-    return [f.message or "" for f in report.findings if f.rule_id == "AG-SKL-CRED-010"]
+    return [f.message or "" for f in report.findings if f.rule_id == "AG-EXF-001"]
 
 
 # -- link kinds ---------------------------------------------------------------

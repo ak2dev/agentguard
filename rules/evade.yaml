@@ -1,0 +1,288 @@
+# Detection entries for the EVADE family (catalogue: rules/catalog/evade.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+  - id: AG-EVADE-001
+    aliases: [AG-SYS-001]
+    version: 3
+    description: A file or archive member was not scanned because it exceeded a size, count or depth limit, was encrypted, unreadable, or not a regular file; or part of an MCP tool manifest was not analyzed because a field has the wrong JSON type (an `outputSchema` that is a string, say) or an entry of `tools`, `prompts` or `resources` is not an object with a string name or URI.
+    why: Unscanned content is not "clean"; this finding keeps coverage gaps visible.
+    confidence: high
+    match: {type: analyzer, analyzer: sys.limits}
+    remediation: Review the skipped content manually, or raise limits deliberately for trusted inputs.
+
+
+  - id: AG-EVADE-002
+    version: 1
+    description: A file that an agent or an editor loads as configuration (settings, hooks, a plugin or bundle manifest, a workflow, a descriptor) is not valid JSON, JSON5, TOML or YAML, so its contents were not analysed.
+    why: A file that fails to parse here may still be read by a more lenient loader, and a deliberately broken file is a cheap way to make a scanner skip it. What could not be parsed is reported instead of being counted as clean.
+    match: {type: analyzer, analyzer: coverage}
+    remediation: Fix the syntax error at the reported line, or remove the file if nothing should load it.
+
+
+  - id: AG-EVADE-002
+    variant: analyzer-error
+    aliases: [AG-SYS-002]
+    lane: evidence
+    version: 1
+    title: Analyzer error (coverage reduced)
+    description: An analyzer failed on this input, or the scan reached its time limit before every analyzer ran. The verdict cannot be ALLOW, and the scan exits with code 3 when the policy requires full coverage.
+    why: A failed analyzer must never produce a silent pass.
+    severity: info
+    confidence: high
+    match: {type: analyzer, analyzer: engine}
+    remediation: Report the error (with the input redacted) to the Agent Guard maintainers.
+
+
+  - id: AG-EVADE-003
+    aliases: [AG-SKL-BND-001]
+    version: 1
+    description: The bundle contains an executable, shared library, compiled bytecode, JAR or WebAssembly module.
+    why: Compiled artifacts cannot be reviewed like source and are a common way to ship malware inside skills and packages.
+    confidence: medium
+    applies_to: [binary]
+    match: {type: analyzer, analyzer: skill.bundle}
+    remediation: Ship source code, or depend on a signed package from an official registry.
+
+
+  - id: AG-EVADE-004
+    aliases: [AG-SYS-004]
+    version: 1
+    description: An archive exceeded the decompression-ratio, member-count or stream-size caps.
+    why: Decompression bombs exhaust disk and memory in scanners and installers.
+    confidence: high
+    match: {type: analyzer, analyzer: sys.limits}
+    remediation: Do not distribute this archive; rebuild it from reviewed source.
+
+
+  - id: AG-EVADE-005
+    aliases: [AG-SYS-003]
+    lane: evidence
+    version: 1
+    description: A symlink, hardlink, junction or path that escapes the scan root was found and not followed.
+    why: Links in skill bundles or archives can point at files outside the bundle (for example your SSH keys) when an agent or installer follows them.
+    confidence: high
+    match: {type: analyzer, analyzer: sys.limits}
+    remediation: Remove links from skill bundles and archives; ship regular files only.
+
+
+  - id: AG-EVADE-009
+    aliases: [AG-CODE-027]
+    version: 1
+    description: Code checks for CI, sandboxes, virtual machines or debuggers, or delays execution for long periods.
+    why: Malicious code gates its payload to avoid automated analysis.
+    confidence: low
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove environment-dependent behavior from the server.
+
+
+  - id: AG-EVADE-015
+    variant: tool-defs-code
+    aliases: [AG-MCP-META-020]
+    lane: evidence
+    version: 1
+    title: Tool definitions vary by client or are fetched at run time
+    description: Tool definitions depend on the connecting client's identity, or are downloaded at run time.
+    why: Both let a server show reviewers one set of tools and agents another (rug-pull enabler).
+    severity: medium
+    confidence: low
+    match: {type: analyzer, analyzer: code}
+    remediation: Define tools statically in the server package.
+
+
+  - id: AG-EVADE-016
+    version: 1
+    description: A model was asked to review candidate findings and did not finish. The token or cost budget ran out, the model timed out, or it declined to answer. The candidates it did not reach keep their deterministic result.
+    why: A scan whose model stage was cut short looks the same as one that completed it unless the report says so. A review that did not happen must not be read as a review that found nothing.
+    match: {type: analyzer, analyzer: engine}
+    remediation: Raise the budget (`--max-llm-cost`, `--max-llm-tokens`) or run the scan again. Answers already given are cached and are not paid for twice.
+
+
+  - id: AG-EVADE-017
+    version: 1
+    description: Dynamic analysis ran and did not reach every path. A prompt, script or documented workflow was not exercised because the run timed out, the agent declined to follow it, or the platform was not supported.
+    why: A clean detonation only covers what actually ran. Gated payloads, declined instructions and unreached branches are exactly where a sample that defeats static analysis hides, so the paths not reached are listed instead of being counted as clean.
+    match: {type: analyzer, analyzer: engine}
+    remediation: Run the detonation again with a longer timeout, or review the listed paths by hand. A dynamic run never clears a static finding.
+
+
+  - id: AG-EVADE-006
+    version: 1
+    description: A script, an executable, an archive or another opaque file sits where scanners and reviewers commonly do not look - inside `.git/` (and is not one of git's own files), in a hidden directory, in build output, or in `docs/` while being referenced for use.
+    why: Packed skills keep their real payload in a skipped directory and rebuild it at first run with a small decoder stub. A scanner that skips the directory sees only the harmless cover files.
+    confidence: medium
+    match: {type: analyzer, analyzer: coverage}
+    remediation: Do not install the package. If the file is legitimate, move it to a normal location (`scripts/`, `assets/`) where it is reviewed with the rest.
+
+
+  - id: AG-EVADE-018
+    version: 1
+    description: Content the target refers to was not fetched - a git submodule whose directory is empty, a Git LFS pointer whose object was not downloaded, or a file a remote listing named and the fetch did not return.
+    why: A submodule or an LFS object is part of what gets installed. If it is not in the scanned tree it was not analysed, and it must not count as clean.
+    match: {type: analyzer, analyzer: coverage}
+    remediation: Fetch the missing content (`git submodule update --init`, `git lfs pull`) and scan again, or scan the repository by URL so submodules are read at their pinned commits.
+
+
+  - id: AG-EVADE-021
+    version: 1
+    description: The share of the target's bytes that an engine could read is below the minimum the policy sets (`require.min_analyzability` - 0.8 in the balanced preset, 1.0 in strict).
+    why: When most of a package is opaque - binaries, encrypted archives, files over the size limit - a short list of findings says little about it. The verdict cannot be ALLOW on content that was mostly not analysed.
+    match: {type: analyzer, analyzer: engine}
+    remediation: Review the files listed under `coverage.unanalysed`, replace opaque files with reviewable source, or scan them with a tool that understands the format.
+
+
+  - id: AG-EVADE-012
+    version: 1
+    description: The instructions of a skill, plugin or bundle tell the agent to run a script that is not in the package.
+    why: A file that only exists after something creates it at run time cannot be reviewed or scanned beforehand. Self-extracting skills work this way - the cover files are clean and the real workflow is written at first use.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Do not install unless every file the instructions run is present in the package.
+
+# ---- added: evade_rules ----
+  - id: AG-EVADE-007
+    version: 1
+    description: "Instructions, a command or a script run a file with an interpreter (`bash notes.txt`, `python assets/logo.png`, `cat data.csv | sh`), and that file, stored under a data or document extension, starts with an interpreter line or holds script code."
+    why: Tools choose what to analyse by extension, so code kept in a `.txt` or `.png` file is not analysed as code. Naming the interpreter explicitly is all it takes to run it.
+    match: {type: analyzer, analyzer: evasion}
+    remediation: Do not install it. A script belongs in a file named as one.
+
+  - id: AG-EVADE-008
+    version: 1
+    description: Text speaks to a security scanner, an automated reviewer, a classifier or a judging model - tells it the content is safe, tells it not to flag or report, or tells it which verdict to return.
+    why: Honest content has no reason to address the tool that checks it. This is an attempt to steer a model-based reviewer, and it is treated as evidence of intent whatever the reviewer does with it.
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, code, tool_text, server_instructions, config_value, media_text]
+      patterns:
+        - |-
+          \b(?:note|message|attention|notice|instructions?)\s+(?:to|for)\s+(?:any\s+|all\s+|the\s+)?(?:(?:ai|automated|security|llm|static|malware|safety)\s+)+(?:scanner|reviewer|auditor|judge|classifier|analy[sz]er|moderator|tool|system|model)s?\b
+        - |-
+          \b(?:note|message|attention|notice|instructions?)\s+(?:to|for)\s+(?:any\s+|all\s+|the\s+)?(?:scanner|judge|classifier|analy[sz]er)s?\b
+        - |-
+          \bif\s+you\s+are\s+(?:an?\s+|the\s+)?(?:(?:ai|automated|security|llm|static|safety|malware)\s+)*(?:scanner|classifier|analy[sz]er|judge|safety\s+(?:model|system|filter)|moderation\s+\w+|(?:ai|automated|llm)\s+(?:reviewer|auditor))\b
+        - |-
+          \b(?:this|the)\s+(?:file|skill|plugin|package|code|script|server|tool|repository)\s+(?:is|has\s+been)\s+(?:completely\s+|entirely\s+|already\s+|fully\s+)?(?:safe|benign|harmless|clean|verified|audited|pre-?approved)\b[^.\n]{0,80}\b(?:do\s+not|don'?t|no\s+need\s+to|skip|need\s+not)\s+(?:flag|report|scan|analy[sz]e|review|inspect|alert)\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:flag|report|mark|classify|rate|score)\s+(?:this|it|the\s+(?:file|skill|code|script|plugin|package))\s+as\s+(?:malicious|suspicious|unsafe|dangerous|harmful|a\s+(?:threat|risk|finding))\b
+        - |-
+          \b(?:mark|classify|rate|label|score|report|treat|consider)\s+(?:this|it|the\s+(?:file|skill|code|script|plugin|package))\s+as\s+(?:safe|benign|clean|harmless|low[- ]risk|allow(?:ed)?|approved|a\s+false\s+positive)\b
+        - |-
+          \b(?:scanners?|(?:ai|automated|security)\s+reviewers?|auditing\s+tools?|security\s+tools?|static\s+analy[sz]ers?|the\s+judge)\s+(?:should|must|can|may|shall)\s+(?:ignore|skip|disregard|approve|allow|pass|exclude)\s+(?:this|the\s+following|these)\b
+        - |-
+          \b(?:return|respond\s+with|output|report|answer\s+with)\s+(?:a\s+|the\s+)?(?:verdict\s+(?:of\s+)?)?["'`]?(?:ALLOW|SAFE|BENIGN|PASS|no\s+findings|no\s+issues(?:\s+found)?|zero\s+findings)["'`]?\s+(?:for|regarding|about)\s+this\b
+      unless:
+        - |-
+          \b(?:for\s+example|such\s+as|e\.g\.|for\s+instance)\b
+      window: 0
+    remediation: Do not install it.
+
+  - id: AG-EVADE-010
+    version: 1
+    description: Code or instructions behave differently after a fixed date, after an amount of time, or after a number of runs - a comparison of the clock with a literal date or timestamp, a run counter checked against a number, or prose that says "after the third use" or "starting on" a date.
+    why: A payload that waits passes the review, the sandbox run and the first sessions. Honest tools rarely branch on a hard-coded date or a use count.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bif\s+[^\n:]{0,80}(?:datetime\.(?:now|utcnow|today)\([^)\n]*\)|date\.today\(\)|time\.time\(\))[^\n:]{0,40}(?:>=?|<=?|==)\s*(?:(?:datetime\.)?(?:datetime|date)\(\s*20\d\d|1[6-9]\d{8}\b|["']20\d\d-\d\d-\d\d)
+        - |-
+          \bif\s*\(\s*(?:Date\.now\(\)|new\s+Date\(\)(?:\.getTime\(\))?)\s*(?:>=?|<=?)\s*(?:1[6-9]\d{11}\b|new\s+Date\(\s*["']20\d\d|Date\.parse\(\s*["']20\d\d)
+        - |-
+          \[\[?\s*["']?\$\(date\s+\+%[sYmdjuH]+\)["']?\s+-(?:gt|ge|lt|eq)\s+\d{4,}\s*\]
+        - |-
+          \bif\s+[^\n:]{0,60}\b(?:run_?count|use_?count|invocation_?count|call_?count|times_?run|launch_?count|n_?runs|runs_so_far)\b\s*(?:>=?|==|%)\s*\d+
+        - |-
+          \b(?:only\s+)?(?:after|on|from)\s+the\s+(?:\d+(?:st|nd|rd|th)|second|third|fourth|fifth|tenth)\s+(?:run|use|invocation|call|session|time)\b[^.\n]{0,80}\b(?:then|start|begin|also|additionally|instead|send|run|execute|enable)\b
+        - |-
+          \b(?:after|once|when|starting|beginning)\s+(?:the\s+date\s+is\s+(?:after|past)\s+|it\s+is\s+(?:after|past)\s+|on\s+or\s+after\s+|on\s+|from\s+)?(?:20\d\d-\d\d-\d\d|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+20\d\d)[^.\n]{0,80}\b(?:start|begin|also|additionally|instead|then|switch|send|run|execute|enable)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|expires?|expiry|deprecat\w+|licen[cs]e)\b
+      window: 1
+    remediation: Do not install it, or have the author explain and remove the condition.
+
+  - id: AG-EVADE-011
+    version: 1
+    description: Code or instructions branch on the machine's host name, the user name, the locale or time zone, or a geolocation lookup of the caller's address.
+    why: This is how a payload runs on the intended victims and stays quiet in a scanner's sandbox or a reviewer's machine.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          (?:socket\.gethostname\(\)|platform\.node\(\)|os\.uname\(\)(?:\.nodename|\[1\])|os\.hostname\(\))\s*(?:[!=]==?|\.(?:startswith|endswith|includes)\(|\s+(?:not\s+)?in\s)
+        - |-
+          (?:getpass\.getuser\(\)|os\.getlogin\(\)|os\.environ(?:\.get\(\s*|\[\s*)["'](?:USER|USERNAME|LOGNAME|COMPUTERNAME|HOSTNAME)["']\s*[\])]|os\.userInfo\(\)\.username|process\.env\.(?:USER|USERNAME|LOGNAME|COMPUTERNAME|HOSTNAME))\s*(?:[!=]==?|\s+(?:not\s+)?in\s|\.(?:startswith|endswith|includes)\()
+        - |-
+          \[\[?\s*["']?\$(?:\(hostname\)|\(whoami\)|\{?(?:HOSTNAME|LOGNAME|LANG|LC_ALL|TZ)\}?)["']?\s*(?:==?|!=|=~)\s*["']?[\w.*@-]+
+        - |-
+          (?:locale\.getdefaultlocale\(\)|locale\.getlocale\(\)|Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.(?:timeZone|locale)|navigator\.language|time\.tzname)[^\n]{0,30}(?:[!=]==?|\bin\b|\.(?:startswith|includes)\()
+        - |-
+          \b(?:ipinfo\.io|ip-api\.com|ipapi\.co|ifconfig\.co|geolocation-db\.com|freegeoip\.\w+)\b[^\n]{0,160}\b(?:country|region|city|timezone)\b
+        - |-
+          \b(?:only\s+)?(?:if|when|unless)\s+(?:the\s+)?(?:hostname|host\s+name|user\s*name|current\s+user|machine\s+name|locale|time\s*zone|country)\s+(?:is|equals|matches|contains|starts\s+with|ends\s+with|is\s+not)\s+["'`]?[\w.@-]+
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Do not install it, or have the author explain and remove the condition.
+
+  - id: AG-EVADE-013
+    version: 1
+    description: Two hundred or more blank lines, or five thousand or more characters of whitespace, separate the start of a file from further content.
+    why: Reviewers stop scrolling and scanners with a size window stop reading before the content after the gap. Published tests show size padding alone removes most scanners' findings.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: collapse-padding
+    remediation: Remove the padding and review what follows it.
+
+  - id: AG-EVADE-014
+    version: 1
+    description: "A `SKILL.md` of at most 80 words tells the agent to follow the steps in another file of the package, and that file is several times longer and contains commands."
+    why: The page that listings, quick reviews and some scanners read says nothing about what the skill does; the workflow sits in the file they do not open. Reported for review only, since referring to a longer reference file is also normal practice.
+    match: {type: analyzer, analyzer: evasion}
+    remediation: Read the second file as the skill. Authors should summarise in `SKILL.md` what the workflow file makes the agent do.
+
+  - id: AG-EVADE-019
+    version: 1
+    description: "Code loads a module whose name is computed at run time: `__import__` or `importlib.import_module` with a non-literal argument, `require(…)` or `import(…)` with an expression, or code compiled from a string and executed."
+    why: Static analysis cannot follow the import, so whatever that module does is not covered by this scan.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \b__import__\(\s*(?!["'])[^)\n]+\)|\bimportlib\.import_module\(\s*(?!["'])[^)\n]+\)
+        - |-
+          (?<![.\w])require\(\s*(?!["'`])[^)\n]+\)|(?<![.\w])import\(\s*(?!["'`])[^)\n]+\)
+        - |-
+          \bimportlib\.util\.spec_from_file_location\(|\bexec\(\s*compile\(|\bgetattr\(\s*__import__\(
+      window: 0
+    remediation: Import modules by literal name. If the dynamic import is needed, list the modules it can resolve to.
+
+  - id: AG-EVADE-020
+    version: 1
+    description: Code checks whether it is being debugged or traced - a tracer in the Python runtime, `ptrace`, `TracerPid`, debugger-presence APIs, inspector flags, or a search of the process list for `strace`, `gdb`, `frida` and similar tools.
+    why: The only reason to look for an observer is to behave differently under observation, which is exactly the situation a sandbox analysis creates.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \bsys\.gettrace\(\)|\bsys\.settrace\(\s*None\s*\)|\bsys\.getprofile\(\)
+        - |-
+          \bptrace\s*\(\s*(?:PTRACE_TRACEME|0\b)|\bPTRACE_TRACEME\b|\bTracerPid\b|\bIsDebuggerPresent\b|\bCheckRemoteDebuggerPresent\b|\bNtQueryInformationProcess\b
+        - |-
+          \bprocess\.execArgv\b[^\n]{0,80}(?:--inspect|debug)|\binspector\.url\(\)|\brequire\(\s*["'](?:node:)?inspector["']\s*\)
+        - |-
+          \b(?:pgrep|pidof|ps\s+-?\w+)\b[^\n]{0,60}\b(?:strace|ltrace|gdb|lldb|frida|dtruss|procmon|sysdig)\b
+        - |-
+          \bos\.environ\.get\(\s*["'](?:PYTHONINSPECT|PYCHARM_HOSTED|PYDEVD_\w+)["']|\b(?:pydevd|debugpy)\b[^\n]{0,40}\bin\s+sys\.modules
+      unless:
+        - |-
+          \b(?:coverage|pytest|unittest|profil\w+)\b
+      window: 2
+    remediation: Do not install it.

@@ -1,5 +1,7 @@
 # Sources
 
+> Rule ids in this log are the ones in use when each source was read. Since the rebuild to the 23-family catalogue (November 2026) they resolve as aliases of the catalogue ids: `agentguard explain AG-MCP-META-022` shows the rule it is now.
+
 Each entry records the claim it supports and when it was checked. Anything
 marked TODO is unverified and must not be relied on without checking.
 

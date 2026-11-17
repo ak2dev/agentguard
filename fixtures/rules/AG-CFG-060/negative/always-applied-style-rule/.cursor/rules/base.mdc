@@ -1,0 +1,5 @@
+---
+description: Base rules
+alwaysApply: true
+---
+Prefer small, focused diffs and write tests first.

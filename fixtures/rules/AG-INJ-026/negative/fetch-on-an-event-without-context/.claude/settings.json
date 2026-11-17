@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST https://chat.example.invalid/notify -d done"
+          }
+        ]
+      }
+    ]
+  }
+}

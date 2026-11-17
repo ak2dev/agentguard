@@ -19,6 +19,24 @@ from ..core.models.enums import SourceKind
 from ..core.tree import ArtifactTree
 
 _REPARSE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+# Git's own files. Anything else inside `.git/` was put there by someone, so it is read (AG-EVADE-006);
+# hooks that are not the shipped samples are read too (AG-WS-005).
+_GIT_FILES = frozenset({
+    "HEAD", "config", "config.worktree", "description", "index", "packed-refs", "ORIG_HEAD", "FETCH_HEAD", "MERGE_HEAD",
+    "CHERRY_PICK_HEAD", "REVERT_HEAD", "REBASE_HEAD", "BISECT_LOG", "BISECT_START", "BISECT_EXPECTED_REV",
+    "COMMIT_EDITMSG", "MERGE_MSG", "MERGE_MODE", "MERGE_RR", "SQUASH_MSG", "TAG_EDITMSG", "AUTO_MERGE", "shallow",
+    "gitk.cache", "index.lock", "HEAD.lock", "commondir", "gitdir", "NOTES_MERGE_REF", "fsmonitor--daemon.ipc",
+})
+_GIT_DIRS = frozenset({
+    "objects", "refs", "logs", "info", "modules", "lfs", "worktrees", "rebase-merge", "rebase-apply", "branches",
+    "rr-cache", "svn", "annex", "reftable", "sequencer", "fsmonitor--daemon", "filter-repo",
+})
+# A directory holding one of these is an agent package: its dependency directories are part of what
+# gets installed, so they are walked instead of skipped.
+_PACKAGE_MARKERS = frozenset({"skill.md", ".claude-plugin", ".codex-plugin", ".cursor-plugin", "gemini-extension.json",
+                              "openclaw.plugin.json"})
+_VCS_DIRS = frozenset({".git", ".hg", ".svn"})
+
 _O_FLAGS = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
 
 
@@ -81,9 +99,10 @@ def load_path(
     root = target_path.resolve()
     tree = ArtifactTree(source=SourceRef(kind=SourceKind.local, locator=str(target_path)), display_root=str(root))
     excluded = set(limits.excluded_dirs) | set(extra_excludes)
-    stack: list[tuple[Path, str, int]] = [(root, "", 0)]
+    # (directory, path relative to the root, depth, inside an agent package, position inside `.git`)
+    stack: list[tuple[Path, str, int, bool, str]] = [(root, "", 0, False, "")]
     while stack:
-        dir_path, rel_dir, depth = stack.pop()
+        dir_path, rel_dir, depth, in_package, git_pos = stack.pop()
         if depth > limits.max_depth:
             tree.limit_events.append(LimitEvent(kind="too_deep", path=rel_dir))
             continue
@@ -92,7 +111,9 @@ def load_path(
         except OSError as exc:
             tree.limit_events.append(LimitEvent(kind="unreadable", path=rel_dir or ".", detail=type(exc).__name__))
             continue
-        subdirs: list[tuple[Path, str, int]] = []
+        if not in_package and not git_pos and any(e.name.lower() in _PACKAGE_MARKERS for e in entries):
+            in_package = True
+        subdirs: list[tuple[Path, str, int, bool, str]] = []
         for entry in entries:
             rel = f"{rel_dir}/{entry.name}" if rel_dir else entry.name
             try:
@@ -104,9 +125,22 @@ def load_path(
                 tree.limit_events.append(LimitEvent(kind="symlink", path=rel))
                 continue
             if stat.S_ISDIR(est.st_mode):
-                if entry.name in excluded:
+                if git_pos:
+                    if git_pos == "top" and entry.name in _GIT_DIRS:
+                        continue                     # git's own storage; `.git` is already listed as excluded
+                    subdirs.append((Path(entry.path), rel, depth + 1, in_package, "hooks" if git_pos == "top" and entry.name == "hooks" else "other"))
                     continue
-                subdirs.append((Path(entry.path), rel, depth + 1))
+                if entry.name in excluded:
+                    if entry.name in extra_excludes or entry.name in _VCS_DIRS or not in_package:
+                        tree.limit_events.append(LimitEvent(kind="excluded_dir", path=rel, detail="not walked"))
+                        if entry.name == ".git":
+                            subdirs.append((Path(entry.path), rel, depth + 1, in_package, "top"))
+                        continue
+                subdirs.append((Path(entry.path), rel, depth + 1, in_package, ""))
+                continue
+            if git_pos == "top" and entry.name in _GIT_FILES:
+                continue
+            if git_pos == "hooks" and entry.name.endswith(".sample"):
                 continue
             if not stat.S_ISREG(est.st_mode):
                 tree.limit_events.append(LimitEvent(kind="special_file", path=rel))

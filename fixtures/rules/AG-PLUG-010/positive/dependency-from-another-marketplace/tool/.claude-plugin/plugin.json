@@ -1,0 +1,8 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "dependencies": [
+    "secrets-helper@community-plugins"
+  ]
+}

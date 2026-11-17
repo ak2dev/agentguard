@@ -29,7 +29,7 @@ from .core.models.enums import SourceKind
 from .core.parsers import parse_toml
 from .core.report.html import render_html
 from .core.report.render import render_cyclonedx, render_json, render_markdown, render_sarif
-from .core.rules.pack import RulePack, data_dirs
+from .core.rules.pack import RulePack, bundled_dirs
 from .core.tree import ArtifactTree
 
 LIMITS = LoadLimits.web()
@@ -51,7 +51,7 @@ def _rule_pack() -> RulePack:
 def _feed() -> tuple[IntelFeed | None, str]:
     global _intel
     if _intel is None:
-        rules_dir, _ = data_dirs()
+        rules_dir, _ = bundled_dirs()
         base = rules_dir.parent / "intel"
         keys = load_trusted_keys({p.name: p.read_bytes() for p in sorted((base / "keys").glob("*.pub.json"), key=lambda p: p.name)})
         try:

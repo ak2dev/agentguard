@@ -1,0 +1,1 @@
+{ hooks: { enabled: true, token: "hook123" } }

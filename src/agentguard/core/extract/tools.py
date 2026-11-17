@@ -104,7 +104,8 @@ def extract_python(path: str, text: str) -> list[ExtractedTool]:
                 origin="source_extraction",
                 span=Span(path=path, start_line=node.lineno),
             )
-            out.append(ExtractedTool(tool, off(node.lineno, 0), off(end_line, 0) if end_line < len(starts) else len(text), params))
+            # The handler runs to the end of its last line (the start of the line after it).
+            out.append(ExtractedTool(tool, off(node.lineno, 0), starts[end_line] if end_line < len(starts) else len(text), params))
             break
     _ = idx
     return out

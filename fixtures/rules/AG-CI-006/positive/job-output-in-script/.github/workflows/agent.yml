@@ -1,0 +1,23 @@
+name: agent
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      commands: ${{ steps.a.outputs.result }}
+    steps:
+      - id: a
+        uses: anthropics/claude-code-action@0123456789abcdef0123456789abcdef01234567
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Summarize the open pull requests."
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - run: bash -c "${{ needs.plan.outputs.commands }}"

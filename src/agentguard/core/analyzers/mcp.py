@@ -1,5 +1,5 @@
 """MCP analyzers: unit building (tool metadata → scannable text), client
-configuration (AG-MCP-CFG-*), and tool/prompt/resource metadata (AG-MCP-META-*)."""
+configuration (AG-MCP-001..012), and tool/prompt/resource metadata (AG-MCP-020..034)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import regex
 from ..artifacts import TextUnit
 from ..extract.tools import extract_tools
 from ..mcp_config import ClientConfig, ServerEntry, docker_image, exe_name, package_arg, split_package_spec
-from ..models import Component, ResourceDef, Span, ToolDef
+from ..models import Component, PromptDef, ResourceDef, Span, ToolDef
 from ..models.enums import ArtifactRole, CapLabel, ComponentKind, Confidence, EvidenceKind, Severity, Transport
 from ..normalize.unicode import normalize
 from ..secrets import find_secrets, is_placeholder, shannon_entropy
@@ -22,6 +22,7 @@ from ..textutil import TIMEOUT
 from .base import Context
 from .heuristics import damerau_levenshtein, finditer, search
 
+_SERVER_SOURCE_KINDS = (ComponentKind.mcp_server, ComponentKind.plugin, ComponentKind.bundle)
 SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish", "cmd", "powershell", "pwsh"}
 INTERPRETERS = {"python", "python3", "node", "deno", "bun", "perl", "ruby", "php", "osascript"}
 _INLINE_FLAGS = {"-c", "-e", "--eval", "-p", "--print", "-r", "eval", "-Command", "-command", "-EncodedCommand", "-enc", "-ec"}
@@ -76,7 +77,7 @@ def tool_units(comp: Component, tool: ToolDef) -> list[TextUnit]:
     span = tool.span
     units: list[TextUnit] = []
     if tool.description:
-        units.append(_unit(comp, path, span, "tool", "tool_text", tool.description, f"tool:{tool.name}.description"))
+        units.append(_unit(comp, path, tool.description_span or span, "tool", "tool_text", tool.description, f"tool:{tool.name}.description"))
     if tool.title:
         units.append(_unit(comp, path, span, "tool_title", "tool_text", tool.title, f"tool:{tool.name}.title"))
     props = (tool.input_schema or {}).get("properties") or {}
@@ -143,6 +144,43 @@ def _schema_texts(schema: Any, limit: int = 500) -> list[tuple[str, str]]:
     return out
 
 
+def _add_served(comp: Component, span: Span | None, tools: list[Any], prompts: list[Any], resources: list[Any],
+                instructions: str | None, server_info: dict[str, Any] | None) -> None:
+    """Fold what a running server listed into its component: definitions the manifest and source did not show."""
+    def text(d: dict[str, Any], key: str) -> str | None:
+        return d[key] if isinstance(d.get(key), str) else None
+
+    known = {t.name for t in comp.tools}
+    for t in tools:
+        if isinstance(t, dict) and isinstance(t.get("name"), str) and t["name"] not in known:
+            known.add(t["name"])
+            comp.tools.append(ToolDef(
+                name=t["name"], title=text(t, "title"), description=text(t, "description"),
+                input_schema=t.get("inputSchema") if isinstance(t.get("inputSchema"), dict) else {},
+                output_schema=t.get("outputSchema") if isinstance(t.get("outputSchema"), dict) else None,
+                annotations=t.get("annotations") if isinstance(t.get("annotations"), dict) else {},
+                origin="live_list", span=span))
+    have = {p.name for p in comp.prompts}
+    for p in prompts:
+        if isinstance(p, dict) and isinstance(p.get("name"), str) and p["name"] not in have:
+            have.add(p["name"])
+            comp.prompts.append(PromptDef(
+                name=p["name"], title=text(p, "title"), description=text(p, "description"),
+                arguments=[a for a in p.get("arguments") or [] if isinstance(a, dict)] if isinstance(p.get("arguments"), list) else [],
+                span=span))
+    uris = {r.uri for r in comp.resources}
+    for r in resources:
+        if isinstance(r, dict) and isinstance(r.get("uri"), str) and r["uri"] not in uris:
+            uris.add(r["uri"])
+            comp.resources.append(ResourceDef(
+                uri=r["uri"], name=text(r, "name"), title=text(r, "title"), description=text(r, "description"),
+                mime_type=text(r, "mimeType"), meta=r.get("_meta") if isinstance(r.get("_meta"), dict) else {}, span=span))
+    if instructions and not comp.instructions:
+        comp.instructions = instructions
+    if server_info and isinstance(server_info.get("version"), str):
+        comp.version = server_info["version"]
+
+
 class McpUnitsBuilder:
     id: ClassVar[str] = "mcp.units"
     requires: ClassVar[frozenset[str]] = frozenset()
@@ -153,9 +191,12 @@ class McpUnitsBuilder:
         extra: list[TextUnit] = ctx.data.setdefault("extra_units", [])  # type: ignore[assignment]
         handlers: list[ToolHandler] = ctx.data.setdefault("tool_handlers", [])  # type: ignore[assignment]
         # Tool registrations extracted from server source code.
-        for at in ctx.texts("source_code"):
+        # Server source lives in an MCP package, or as a script inside a plugin or bundle that ships a server.
+        for at in ctx.texts("source_code", "script"):
             comp = inv.components.get(at.artifact.component_id)
-            if comp is None or comp.kind != ComponentKind.mcp_server:
+            if comp is None or comp.kind not in _SERVER_SOURCE_KINDS:
+                continue
+            if at.artifact.role == ArtifactRole.script and comp.kind == ComponentKind.mcp_server:
                 continue
             known = {t.name for t in comp.tools}
             for ex in extract_tools(at.path, at.text, at.artifact.language):
@@ -173,18 +214,18 @@ class McpUnitsBuilder:
                     continue
                 span = comp.server.config_span if comp.server else None
                 known = {t.name for t in comp.tools}
-                for t in probe.tools:
-                    if isinstance(t.get("name"), str) and t["name"] not in known:
-                        comp.tools.append(ToolDef(
-                            name=t["name"], title=t.get("title") if isinstance(t.get("title"), str) else None,
-                            description=t.get("description") if isinstance(t.get("description"), str) else None,
-                            input_schema=t.get("inputSchema") if isinstance(t.get("inputSchema"), dict) else {},
-                            annotations=t.get("annotations") if isinstance(t.get("annotations"), dict) else {},
-                            origin="live_list", span=span))
-                if probe.instructions and not comp.instructions:
-                    comp.instructions = probe.instructions
-                if probe.server_info and isinstance(probe.server_info.get("version"), str):
-                    comp.version = probe.server_info["version"]
+                _add_served(comp, span, probe.tools, probe.prompts, probe.resources, probe.instructions, probe.server_info)
+        # What a local server served when it was started inside the sandbox (recorded on the host).
+        served = ctx.options.facts.get("served") if isinstance(ctx.options.facts, dict) else None
+        for key, record in sorted(served.items()) if isinstance(served, dict) else []:
+            comp = next((c for c in sorted(inv.components.values(), key=lambda c: c.id)
+                         if c.server is not None and key in (c.name, c.root, c.id)), None)
+            if comp is None or not isinstance(record, dict):
+                continue
+            _add_served(comp, comp.server.config_span if comp.server else None,
+                        *(record.get(k) if isinstance(record.get(k), list) else [] for k in ("tools", "prompts", "resources")),
+                        record.get("instructions") if isinstance(record.get("instructions"), str) else None,
+                        record.get("server_info") if isinstance(record.get("server_info"), dict) else None)
         for comp in sorted(inv.components.values(), key=lambda c: c.id):
             for tool in comp.tools:
                 extra.extend(tool_units(comp, tool))
@@ -202,7 +243,7 @@ class McpUnitsBuilder:
                 text = "\n".join(filter(None, [rs.name, rs.title, rs.description, None if _is_view(rs) else rs.text]))
                 if text.strip():
                     extra.append(_unit(comp, rs.span.path if rs.span else path, rs.span, "resource", "tool_text", text, f"resource:{rs.uri}"))
-        # Client-config commands become "command" units (e.g. for AG-MCP-CFG-006).
+        # Client-config commands become "command" units (e.g. for AG-MCP-003).
         for cfg in inv.configs:
             for entry in cfg.servers:
                 sid = inv.server_components.get((cfg.path, entry.project or "", entry.name))
@@ -221,11 +262,11 @@ class McpConfigAnalyzer:
     id: ClassVar[str] = "mcp.config"
     requires: ClassVar[frozenset[str]] = frozenset()
     rules: ClassVar[tuple[str, ...]] = (
-        "AG-MCP-CFG-001", "AG-MCP-CFG-002", "AG-MCP-CFG-003", "AG-MCP-CFG-004", "AG-MCP-CFG-007",
-        "AG-MCP-CFG-008", "AG-MCP-CFG-009", "AG-MCP-CFG-010", "AG-MCP-CFG-011", "AG-MCP-CFG-012",
-        "AG-MCP-CFG-013", "AG-MCP-CFG-014", "AG-MCP-CFG-015", "AG-MCP-CFG-016", "AG-MCP-CFG-017",
-        "AG-MCP-CFG-018", "AG-MCP-CFG-019", "AG-MCP-CFG-020", "AG-MCP-CFG-021", "AG-MCP-CFG-022",
-        "AG-MCP-CFG-023", "AG-SYS-001",
+        "AG-MCP-002/shell-string", "AG-MCP-002/inline-code", "AG-MCP-010", "AG-MCP-001", "AG-MCP-009/privileged",
+        "AG-MCP-009/docker-socket", "AG-MCP-009/home-mount", "AG-IMG-001", "AG-CRED-009", "AG-MCP-005",
+        "AG-MCP-004", "AG-SUPPLY-011/mcp-raw-ip", "AG-EXF-014/mcp-config", "AG-MCP-041/config-bind-all", "AG-MCP-007/near-duplicate",
+        "AG-MCP-007/conflicting-definitions", "AG-CRED-007/mcp-url", "AG-CRED-015", "AG-MCP-072", "AG-MCP-071",
+        "AG-MCP-011", "AG-EVADE-001",
     )
 
     def run(self, ctx: Context) -> None:
@@ -233,7 +274,7 @@ class McpConfigAnalyzer:
         for cfg in inv.configs:
             if cfg.error:
                 cc = next((c for c in inv.components.values() if c.kind == ComponentKind.mcp_client_config and c.root == cfg.path), None)
-                ctx.emit("AG-SYS-001", component_ids=[cc.id] if cc else [], span=Span(path=cfg.path), snippet=cfg.path,
+                ctx.emit("AG-EVADE-001", component_ids=[cc.id] if cc else [], span=Span(path=cfg.path), snippet=cfg.path,
                          match=f"unparseable:{cfg.path}", kind=EvidenceKind.loader, detail=cfg.error,
                          message=f"MCP client config could not be parsed ({cfg.error}); it was not analyzed.")
             self._settings(ctx, cfg)
@@ -268,17 +309,17 @@ class McpConfigAnalyzer:
                     script = " ".join(args[flag_idx + 1 :])
                     single_program = len(args) - flag_idx > 2 and not search(_SHELL_META, script)
                     if not single_program:
-                        emit("AG-MCP-CFG-001", f"Server '{entry.name}' runs a shell script string via {exe}.")
+                        emit("AG-MCP-002/shell-string", f"Server '{entry.name}' runs a shell script string via {exe}.")
                         ctx.add_capability(sid, CapLabel.code_exec, confidence=Confidence.high, span=span, snippet=cmdline,
                                            reason="shell command string", kind=EvidenceKind.config)
             if exe.rstrip("0123456789.") in INTERPRETERS and any(a in _INLINE_FLAGS for a in args[:3]):
-                emit("AG-MCP-CFG-002", f"Server '{entry.name}' runs inline code via {exe}.")
+                emit("AG-MCP-002/inline-code", f"Server '{entry.name}' runs inline code via {exe}.")
             if "$(" in cmdline or "`" in cmd or any("`" in a or "$(" in a for a in args) or regex.search(r"\$\{?[A-Za-z_]", cmd, timeout=TIMEOUT):
-                emit("AG-MCP-CFG-003", f"Server '{entry.name}' builds its command from variable expansion or command substitution.")
+                emit("AG-MCP-010", f"Server '{entry.name}' builds its command from variable expansion or command substitution.")
             runner, pkg = package_arg(inner_exe, inner_args)
             if runner and not spec.pinned:
                 auto = "-y" in inner_args or "--yes" in inner_args
-                emit("AG-MCP-CFG-004", f"Server '{entry.name}' runs an unpinned package ({spec.pin_detail})"
+                emit("AG-MCP-001", f"Server '{entry.name}' runs an unpinned package ({spec.pin_detail})"
                      + (" and auto-confirms installation (-y)" if auto else "") + ".")
             if exe in ("docker", "podman", "nerdctl"):
                 self._docker(ctx, entry, sid, span, args, cmdline)
@@ -298,20 +339,20 @@ class McpConfigAnalyzer:
             else:
                 for s in find_secrets(a, include_placeholders=False):
                     if s.kind != "generic_assignment":
-                        ctx.emit("AG-MCP-CFG-011", component_ids=sid, span=span, snippet=a, match=f"{entry.name}:{s.value}",
+                        ctx.emit("AG-CRED-009", component_ids=sid, span=span, snippet=a, match=f"{entry.name}:{s.value}",
                                  kind=EvidenceKind.config, message=f"Server '{entry.name}' has a literal {s.kind.replace('_', ' ')} in args[{i}].")
         # Remote URL checks
         if spec.url:
             self._url(ctx, entry, sid, span, spec.url)
         for a in args:
             if regex.search(r"(?:^|[=\s])0\.0\.0\.0(?::\d+)?$|^--host(?:=|\s)0\.0\.0\.0", a, timeout=TIMEOUT):
-                emit("AG-MCP-CFG-016", f"Server '{entry.name}' is configured to listen on all interfaces (0.0.0.0).", match=f"{entry.name}:bind")
+                emit("AG-MCP-041/config-bind-all", f"Server '{entry.name}' is configured to listen on all interfaces (0.0.0.0).", match=f"{entry.name}:bind")
                 break
         if isinstance(raw.get("env"), dict) and any(str(v) == "0.0.0.0" for k, v in raw["env"].items() if "HOST" in str(k).upper()):
-            emit("AG-MCP-CFG-016", f"Server '{entry.name}' is configured to listen on all interfaces (0.0.0.0).", match=f"{entry.name}:bind")
+            emit("AG-MCP-041/config-bind-all", f"Server '{entry.name}' is configured to listen on all interfaces (0.0.0.0).", match=f"{entry.name}:bind")
         sensitive_env = [n for n in spec.env_names if _SECRET_NAME.search(n)]
         if sensitive_env:
-            emit("AG-MCP-CFG-020", f"Server '{entry.name}' receives sensitive environment variables: {', '.join(sensitive_env[:6])}.",
+            emit("AG-CRED-015", f"Server '{entry.name}' receives sensitive environment variables: {', '.join(sensitive_env[:6])}.",
                  snippet=", ".join(sensitive_env), match=f"{entry.name}:env")
             ctx.add_capability(sid, CapLabel.credential_access, confidence=Confidence.low, span=span,
                                snippet=", ".join(sensitive_env), reason="receives secrets via env", kind=EvidenceKind.config)
@@ -319,15 +360,15 @@ class McpConfigAnalyzer:
         auto_keys = [k for k in ("alwaysAllow", "autoApprove", "trust", "autoApproveTools") if raw.get(k)]
         if auto_keys:
             detail = ", ".join(f"{k}={raw[k]!r}"[:80] for k in auto_keys)
-            emit("AG-MCP-CFG-021", f"Server '{entry.name}' tools are auto-approved ({detail}).", snippet=detail,
+            emit("AG-MCP-072", f"Server '{entry.name}' tools are auto-approved ({detail}).", snippet=detail,
                  match=f"{entry.name}:auto")
             ctx.add_capability(sid, CapLabel.auto_approved, confidence=Confidence.high, span=span, snippet=detail,
                                reason="auto-approved in client config", kind=EvidenceKind.config)
         if spec.transport == Transport.stdio and spec.scope in ("project", "workspace") and cfg.client != "unknown":
-            emit("AG-MCP-CFG-022", f"Project-scoped config '{cfg.path}' defines STDIO server '{entry.name}', which runs a local command when the project is opened/trusted.",
+            emit("AG-MCP-071", f"Project-scoped config '{cfg.path}' defines STDIO server '{entry.name}', which runs a local command when the project is opened/trusted.",
                  match=f"{entry.name}:project")
         if spec.transport == Transport.sse_deprecated:
-            emit("AG-MCP-CFG-023", f"Server '{entry.name}' uses the deprecated HTTP+SSE transport.", snippet=spec.url or "",
+            emit("AG-MCP-011", f"Server '{entry.name}' uses the deprecated HTTP+SSE transport.", snippet=spec.url or "",
                  match=f"{entry.name}:sse")
 
     def _docker(self, ctx: Context, entry: ServerEntry, sid: str, span: Span, args: list[str], cmdline: str) -> None:
@@ -335,7 +376,7 @@ class McpConfigAnalyzer:
         priv = regex.findall(r"--privileged\b|--cap-add(?:=|\s+)(?:ALL|SYS_ADMIN)\b|--(?:pid|network|net|ipc|uts)(?:=|\s+)host\b|"
                              r"--security-opt(?:=|\s+)(?:seccomp|apparmor)[=:]unconfined", joined, timeout=TIMEOUT)
         if priv:
-            ctx.emit("AG-MCP-CFG-007", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:priv",
+            ctx.emit("AG-MCP-009/privileged", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:priv",
                      kind=EvidenceKind.config, message=f"Container for '{entry.name}' runs with elevated host access ({', '.join(sorted(set(priv)))}).")
         mounts: list[str] = []
         for i, a in enumerate(args):
@@ -350,27 +391,27 @@ class McpConfigAnalyzer:
                     mounts.append(m.group(1))
         for src in mounts:
             if "docker.sock" in src or "docker_engine" in src or src in ("/", "\\", "C:\\"):
-                ctx.emit("AG-MCP-CFG-008", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{src}",
+                ctx.emit("AG-MCP-009/docker-socket", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{src}",
                          kind=EvidenceKind.config, message=f"Container for '{entry.name}' mounts {src}, which gives full control of the host.")
             elif _SENSITIVE_MOUNT.search(src):
-                ctx.emit("AG-MCP-CFG-009", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{src}",
+                ctx.emit("AG-MCP-009/home-mount", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{src}",
                          kind=EvidenceKind.config, message=f"Container for '{entry.name}' mounts {src} (home or credential directory).")
                 ctx.add_capability(sid, CapLabel.reads_private_data, confidence=Confidence.high, span=span, snippet=cmdline,
                                    reason=f"mounts {src}", kind=EvidenceKind.config)
         image = docker_image(args)
         if image and "@sha256:" not in image:
-            ctx.emit("AG-MCP-CFG-010", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{image}",
+            ctx.emit("AG-IMG-001", component_ids=sid, span=span, snippet=cmdline, match=f"{entry.name}:{image}",
                      kind=EvidenceKind.config, message=f"Container image '{image}' for '{entry.name}' is not pinned by digest.")
 
     def _secret(self, ctx: Context, entry: ServerEntry, sid: str, span: Span, where: str, key: str, value: str) -> None:
         provider = [s for s in find_secrets(value, include_placeholders=False) if s.kind != "generic_assignment"]
         snippet = f"{key}={value}"
         if provider:
-            ctx.emit("AG-MCP-CFG-011", component_ids=sid, span=span, snippet=snippet, match=f"{entry.name}:{value}",
+            ctx.emit("AG-CRED-009", component_ids=sid, span=span, snippet=snippet, match=f"{entry.name}:{value}",
                      kind=EvidenceKind.config,
                      message=f"Server '{entry.name}' has a literal {provider[0].kind.replace('_', ' ')} in {where}.")
         elif _SECRET_NAME.search(key) and len(value) >= 16 and shannon_entropy(value) >= 3.5 and not value.startswith(("http://", "https://", "/", "./")):
-            ctx.emit("AG-MCP-CFG-012", component_ids=sid, span=span, snippet=snippet, match=f"{entry.name}:{value}",
+            ctx.emit("AG-MCP-005", component_ids=sid, span=span, snippet=snippet, match=f"{entry.name}:{value}",
                      kind=EvidenceKind.config, message=f"Server '{entry.name}' has a high-entropy literal in {where}.")
 
     def _url(self, ctx: Context, entry: ServerEntry, sid: str, span: Span, url: str) -> None:
@@ -384,18 +425,18 @@ class McpConfigAnalyzer:
         ctx.add_capability(sid, CapLabel.external_egress, confidence=Confidence.medium, span=span, snippet=url,
                            reason="remote MCP server", kind=EvidenceKind.config)
         if parsed.scheme == "http" and not _loopback(host):
-            emit("AG-MCP-CFG-013", f"Remote server '{entry.name}' uses plain HTTP ({host}).")
+            emit("AG-MCP-004", f"Remote server '{entry.name}' uses plain HTTP ({host}).")
         ip = _ip(host)
         if host in _METADATA_HOSTS or (ip is not None and ip.is_link_local):
-            emit("AG-MCP-CFG-015", f"Server '{entry.name}' targets a cloud-metadata or link-local address ({host}).")
+            emit("AG-EXF-014/mcp-config", f"Server '{entry.name}' targets a cloud-metadata or link-local address ({host}).")
         elif ip is not None and ip.is_global:
-            emit("AG-MCP-CFG-014", f"Remote server '{entry.name}' is addressed by raw IP ({host}).")
+            emit("AG-SUPPLY-011/mcp-raw-ip", f"Remote server '{entry.name}' is addressed by raw IP ({host}).")
         if ip is not None and ip.is_unspecified:
-            emit("AG-MCP-CFG-016", f"Server '{entry.name}' URL uses 0.0.0.0.")
+            emit("AG-MCP-041/config-bind-all", f"Server '{entry.name}' URL uses 0.0.0.0.")
         q = urllib.parse.parse_qs(parsed.query)
         bad = [k for k, v in q.items() if _SECRET_NAME.search(k) and any(x.strip() and "${" not in x for x in v)]
         if bad:
-            emit("AG-MCP-CFG-019", f"Server '{entry.name}' passes {', '.join(bad)} in the URL query string.")
+            emit("AG-CRED-007/mcp-url", f"Server '{entry.name}' passes {', '.join(bad)} in the URL query string.")
 
     def _settings(self, ctx: Context, cfg: ClientConfig) -> None:
         cc = next((c for c in ctx.inventory.components.values() if c.kind == ComponentKind.mcp_client_config and c.root == cfg.path), None)
@@ -403,7 +444,7 @@ class McpConfigAnalyzer:
             return
         risky = {k: v for k, v in cfg.settings.items() if k in ("enableAllProjectMcpServers", "chat.tools.autoApprove") and v is True}
         for k in sorted(risky):
-            ctx.emit("AG-MCP-CFG-021", component_ids=cc.id, span=Span(path=cfg.path), snippet=f'"{k}": true', match=f"{cfg.path}:{k}",
+            ctx.emit("AG-MCP-072", component_ids=cc.id, span=Span(path=cfg.path), snippet=f'"{k}": true', match=f"{cfg.path}:{k}",
                      kind=EvidenceKind.config, message=f"Client setting '{k}' auto-approves MCP servers/tools.")
             for (path, _proj, _name), sid in ctx.inventory.server_components.items():
                 if path == cfg.path or k == "chat.tools.autoApprove":
@@ -426,7 +467,7 @@ class McpConfigAnalyzer:
             paths = {p for p, _, _ in items}
             if len(sigs) > 1 and len(paths) > 1:
                 p0, e0, s0 = items[0]
-                ctx.emit("AG-MCP-CFG-018", component_ids=[s for _, _, s in items], span=Span(path=p0, start_line=e0.line),
+                ctx.emit("AG-MCP-007/conflicting-definitions", component_ids=[s for _, _, s in items], span=Span(path=p0, start_line=e0.line),
                          snippet="; ".join(f"{p}: {self._signature(e)}" for p, e, _ in items)[:240],
                          match=f"collide:{name}", kind=EvidenceKind.config,
                          related=[Span(path=p, start_line=e.line) for p, e, _ in items[1:]],
@@ -440,7 +481,7 @@ class McpConfigAnalyzer:
                     continue
                 if fa == fb or (abs(len(a) - len(b)) <= 1 and damerau_levenshtein(fa, fb, cap=1) == 1):
                     ia, ib = by_name[a][0], by_name[b][0]
-                    ctx.emit("AG-MCP-CFG-017", component_ids=[ia[2], ib[2]], span=Span(path=ia[0], start_line=ia[1].line),
+                    ctx.emit("AG-MCP-007/near-duplicate", component_ids=[ia[2], ib[2]], span=Span(path=ia[0], start_line=ia[1].line),
                              snippet=f"{ia[1].name} ~ {ib[1].name}", match=f"near:{a}|{b}", kind=EvidenceKind.config,
                              related=[Span(path=ib[0], start_line=ib[1].line)],
                              message=f"Server names '{ia[1].name}' and '{ib[1].name}' are near-duplicates (possible shadowing).")
@@ -472,14 +513,18 @@ _SIDE_CHANNEL_DESC = regex.compile(
     r"(?i)\b(?:conversation|chat\s+history|previous\s+messages|system\s+prompt|all\s+(?:the\s+)?(?:context|files|content|messages)|"
     r"full\s+(?:contents?|history|transcript)|entire\s+(?:conversation|file|context)|everything\s+(?:the\s+user|you)|"
     r"user'?s?\s+(?:messages|data|files|credentials)|contents?\s+of\s+(?:any|all|the)\s+(?:files?|documents?|\S+\.(?:json|env|txt|md)))")
-_DANGEROUS_PARAM = regex.compile(r"(?i)^(?:command|cmd|code|script|shell|exec|expression|expr|eval|program|"
-                                 r"path|file|filepath|file_path|filename|dir|directory|url|uri|endpoint|sql|query|statement)$")
+# Parameters that are run. A path, URL or search query cannot be constrained by a schema in any useful
+# way; what the server's code does with them is judged there (AG-MCP-049, AG-VULN-002, AG-VULN-003).
+_DANGEROUS_PARAM = regex.compile(r"(?i)^(?:command|cmd|code|script|shell|exec|expression|expr|eval|program|sql|statement)$")
 _SHADOW_GENERIC = regex.compile(
     r"(?i)\b(?:when|whenever|before|after|every\s+time)\s+(?:you\s+)?(?:use|call|invoke|run)(?:s|ing)?\s+(?:the\s+|any\s+)?[`'\"]?[\w.\-]+[`'\"]?\s+(?:tool|function)\b"
+    r"|\b(?:when|whenever|before|after|every\s+time)\s+(?:the\s+|any\s+)?[`'\"]?[\w.\-]+[`'\"]?\s+(?:tool|function)\b[^.\n]{0,60}\b(?:is|are|gets?)\s+(?:used|called|invoked|run)\b"
+    r"|\b(?:side\s+)?effect\s+on\s+the\s+(?:also\s+present\s+)?[`'\"]?[\w.\-]+[`'\"]?\s+(?:tool|function)\b"
+    r"|\bthe\s+[`'\"]?[\w.\-]*[_.\-][\w.\-]*[`'\"]?\s+(?:tool|function)\s+(?:must|should|has\s+to|needs\s+to)\b"
     r"|\b(?:this\s+tool|use\s+this)\s+(?:replaces|overrides|supersedes|takes\s+precedence\s+over)\b"
     r"|\b(?:do\s+not|don'?t|never)\s+use\s+(?:the\s+)?[`'\"]?[\w.\-]+[`'\"]?\s+tool\b"
     r"|\ball\s+(?:emails?|messages?|requests?|calls?)\s+(?:sent|made)\s+(?:with|via|through)\s+(?:any|other)\s+tools?\b")
-# External scripts are AG-MCP-META-026's (it also checks integrity and the declared CSP).
+# External scripts are AG-MCP-070/unpinned-script's (it also checks integrity and the declared CSP).
 _UI_FETCH = regex.compile(r"(?i)\b(?:fetch|XMLHttpRequest|navigator\.sendBeacon|WebSocket|EventSource)\s*\(\s*[`'\"]?(https?://[^`'\"\s)]+)|"
                           r"<(?:img|link)\b[^>]*\b(?:src|href)\s*=\s*[\"'](https?://[^\"']+)")
 _UI_CRED = regex.compile(r"(?i)<input\b[^>]*type\s*=\s*[\"']?password|<(?:label|input|span|p)\b[^>]*>[^<]{0,60}\b(?:password|api[\s_-]?key|secret|seed\s+phrase|private\s+key|access\s+token)\b"
@@ -637,10 +682,10 @@ class McpMetaAnalyzer:
     id: ClassVar[str] = "mcp.meta"
     requires: ClassVar[frozenset[str]] = frozenset()
     rules: ClassVar[tuple[str, ...]] = (
-        "AG-MCP-META-004", "AG-MCP-META-006", "AG-MCP-META-007", "AG-MCP-META-008", "AG-MCP-META-009",
-        "AG-MCP-META-010", "AG-MCP-META-016", "AG-MCP-META-017", "AG-MCP-META-018", "AG-MCP-META-019",
-        "AG-MCP-META-022", "AG-MCP-META-023", "AG-MCP-META-025", "AG-MCP-META-026", "AG-MCP-META-027",
-        "AG-SYS-001",
+        "AG-MCP-025", "AG-MCP-022", "AG-MCP-023/collision", "AG-MCP-023/near-identical", "AG-MCP-048/unconstrained-parameter",
+        "AG-MCP-033", "AG-MCP-070/external-origins", "AG-CRED-011/mcp-app-form", "AG-MCP-070/external-frame", "AG-MCP-032/description-stuffing",
+        "AG-SUPPLY-009/schema-ref", "AG-MCP-032/schema-bomb", "AG-MCP-070/open-csp", "AG-MCP-070/unpinned-script", "AG-MCP-070/no-user-action",
+        "AG-EVADE-001",
     )
 
     def run(self, ctx: Context) -> None:
@@ -655,13 +700,13 @@ class McpMetaAnalyzer:
         self._shadowing(ctx, servers)
         for path in ctx.inventory.deep_manifests:
             comp = ctx.inventory.component_for(path)
-            ctx.emit("AG-MCP-META-023", component_ids=[comp.id] if comp else [], span=Span(path=path), snippet=path,
+            ctx.emit("AG-MCP-032/schema-bomb", component_ids=[comp.id] if comp else [], span=Span(path=path), snippet=path,
                      match=f"{path}:deep", kind=EvidenceKind.schema,
                      message=f"Tool manifest {path} nests more than 64 levels deep; Agent Guard could not read its tools, "
                      "and validators with a depth or stack limit fail on it.")
         for span, message, snippet in ctx.inventory.malformed_fields:
             comp = ctx.inventory.component_for(span.path)
-            ctx.emit("AG-SYS-001", component_ids=[comp.id] if comp else [], span=span, snippet=snippet,
+            ctx.emit("AG-EVADE-001", component_ids=[comp.id] if comp else [], span=span, snippet=snippet,
                      match=f"malformed:{span.path}:{message}", kind=EvidenceKind.loader, message=message)
 
     def _tool(self, ctx: Context, comp: Component, tool: ToolDef) -> None:
@@ -670,7 +715,7 @@ class McpMetaAnalyzer:
         props = schema.get("properties") or {}
         desc = tool.description or ""
         if len(desc) > 2000 or regex.search(r"\n{15,}|[ \t]{200,}", desc, timeout=TIMEOUT):
-            ctx.emit("AG-MCP-META-019", component_ids=comp.id, span=span, snippet=desc[:200], match=f"{tool.name}:stuffing",
+            ctx.emit("AG-MCP-032/description-stuffing", component_ids=comp.id, span=span, snippet=desc[:200], match=f"{tool.name}:stuffing",
                      kind=EvidenceKind.metadata, message=f"Tool '{tool.name}' has an unusually long or padded description ({len(desc)} chars).")
         for which, sch in (("inputSchema", schema), ("outputSchema", tool.output_schema)):
             if isinstance(sch, dict) and sch:
@@ -685,17 +730,17 @@ class McpMetaAnalyzer:
             if (_SIDE_CHANNEL_NAMES.match(str(pname)) and pdesc and search(_SIDE_CHANNEL_DESC, pdesc)) or (
                 pdesc and regex.search(r"(?i)\b(?:system\s+prompt|conversation\s+history|chat\s+history|previous\s+messages)\b", pdesc, timeout=TIMEOUT)
             ):
-                ctx.emit("AG-MCP-META-004", component_ids=comp.id, span=span, snippet=f"{pname}: {pdesc}", match=f"{tool.name}.{pname}",
+                ctx.emit("AG-MCP-025", component_ids=comp.id, span=span, snippet=f"{pname}: {pdesc}", match=f"{tool.name}.{pname}",
                          kind=EvidenceKind.metadata,
                          message=f"Parameter '{pname}' of tool '{tool.name}' asks the model to fill it with conversation or file contents.")
             if _DANGEROUS_PARAM.match(str(pname)) and ps.get("type", "string") == "string" and not any(k in ps for k in ("enum", "const", "pattern")):
                 dangerous.append(str(pname))
         if dangerous:
-            ctx.emit("AG-MCP-META-009", component_ids=comp.id, span=span, snippet=f"{tool.name}({', '.join(dangerous)})",
+            ctx.emit("AG-MCP-048/unconstrained-parameter", component_ids=comp.id, span=span, snippet=f"{tool.name}({', '.join(dangerous)})",
                      match=f"{tool.name}:{','.join(dangerous)}", kind=EvidenceKind.schema,
                      message=f"Tool '{tool.name}' accepts unconstrained {', '.join(dangerous)} string(s) (no enum/pattern).")
             if schema.get("additionalProperties") is True:
-                ctx.emit("AG-MCP-META-010", component_ids=comp.id, span=span, snippet=f"{tool.name}: additionalProperties: true",
+                ctx.emit("AG-MCP-033", component_ids=comp.id, span=span, snippet=f"{tool.name}: additionalProperties: true",
                          match=f"{tool.name}:additional", kind=EvidenceKind.schema,
                          message=f"Tool '{tool.name}' accepts arbitrary extra arguments (additionalProperties: true).")
 
@@ -704,21 +749,21 @@ class McpMetaAnalyzer:
         refs = _remote_refs(schema)
         if refs:
             internal = [r for r in refs if _ssrf_target(r)]
-            ctx.emit("AG-MCP-META-022", component_ids=comp.id, span=span, snippet=", ".join((internal or refs)[:3])[:240],
+            ctx.emit("AG-SUPPLY-009/schema-ref", component_ids=comp.id, span=span, snippet=", ".join((internal or refs)[:3])[:240],
                      match=f"{tool.name}:{which}:ref", kind=EvidenceKind.schema,
                      severity=Severity.high if internal else None,
                      message=f"Tool '{tool.name}' {which} has a $ref to a network URI ({(internal or refs)[0][:120]})"
                      + (", an internal or cloud-metadata address" if internal else "") + ".")
         depth, nodes = _schema_shape(schema)
         if depth > _MAX_DEPTH or nodes > _MAX_NODES:
-            ctx.emit("AG-MCP-META-023", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: depth {depth}, {nodes} objects",
+            ctx.emit("AG-MCP-032/schema-bomb", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: depth {depth}, {nodes} objects",
                      match=f"{tool.name}:{which}:size", kind=EvidenceKind.schema,
                      message=f"Tool '{tool.name}' {which} is " + (f"nested more than {_MAX_DEPTH} levels deep" if depth > _MAX_DEPTH
                                                                   else f"made of more than {_MAX_NODES:,} subschemas") + ".")
             return
         expanded = _expanded_size(schema)
         if expanded > _MAX_EXPANDED:
-            ctx.emit("AG-MCP-META-023", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: {nodes} objects, over {_MAX_EXPANDED:,} with $refs inlined",
+            ctx.emit("AG-MCP-032/schema-bomb", component_ids=comp.id, span=span, snippet=f"{tool.name}.{which}: {nodes} objects, over {_MAX_EXPANDED:,} with $refs inlined",
                      match=f"{tool.name}:{which}:size", kind=EvidenceKind.schema, confidence=Confidence.high,
                      message=f"Tool '{tool.name}' {which} has {nodes} subschemas but more than {_MAX_EXPANDED:,} once its local $refs are "
                      "followed: its $defs reuse each other exponentially.")
@@ -742,28 +787,28 @@ class McpMetaAnalyzer:
         if scripts:
             url, snippet = scripts[0]
             ok = _origin_declared(url, declared)
-            ctx.emit("AG-MCP-META-026", component_ids=comp.id, span=span, snippet=snippet[:240], match=f"{rs.uri}:script",
+            ctx.emit("AG-MCP-070/unpinned-script", component_ids=comp.id, span=span, snippet=snippet[:240], match=f"{rs.uri}:script",
                      kind=EvidenceKind.metadata,
                      message=f"UI resource {rs.uri} runs a script from {url[:120]} with no integrity hash"
                      + ("" if ok else "; its origin is not declared in _meta.ui.csp.resourceDomains, so a host that follows MCP Apps blocks it")
                      + ".")
         m = search(_UI_ACTION, text)
         if m and not search(_UI_GESTURE, text):
-            ctx.emit("AG-MCP-META-027", component_ids=comp.id, span=span, snippet=m.group(0)[:240], match=f"{rs.uri}:auto",
+            ctx.emit("AG-MCP-070/no-user-action", component_ids=comp.id, span=span, snippet=m.group(0)[:240], match=f"{rs.uri}:auto",
                      kind=EvidenceKind.metadata,
                      message=f"UI resource {rs.uri} sends {m.group(1) or m.group(2)} and has no click, key or form handler, "
                      "so it sends it without any user action.")
         m = search(_UI_FETCH, text)
         if m:
-            ctx.emit("AG-MCP-META-016", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:net",
+            ctx.emit("AG-MCP-070/external-origins", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:net",
                      kind=EvidenceKind.metadata, message=f"UI resource {rs.uri} loads or sends data to an external origin.")
         m = search(_UI_CRED, text)
         if m:
-            ctx.emit("AG-MCP-META-017", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:cred",
+            ctx.emit("AG-CRED-011/mcp-app-form", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:cred",
                      kind=EvidenceKind.metadata, message=f"UI resource {rs.uri} contains a credential-style form field.")
         m = search(_UI_FRAME, text)
         if m:
-            ctx.emit("AG-MCP-META-018", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:frame",
+            ctx.emit("AG-MCP-070/external-frame", component_ids=comp.id, span=span, snippet=m.group(0), match=f"{rs.uri}:frame",
                      kind=EvidenceKind.metadata, message=f"UI resource {rs.uri} embeds an external frame ({m.group(1)[:80]}).")
 
     def _ui_csp(self, ctx: Context, comp: Component, rs, csp: dict[str, Any]) -> None:
@@ -788,7 +833,7 @@ class McpMetaAnalyzer:
         if worst is None:
             return
         rank, key, entry, why = worst
-        ctx.emit("AG-MCP-META-025", component_ids=comp.id, span=rs.span, snippet=f"{key}: {entry}"[:240], match=f"{rs.uri}:csp",
+        ctx.emit("AG-MCP-070/open-csp", component_ids=comp.id, span=rs.span, snippet=f"{key}: {entry}"[:240], match=f"{rs.uri}:csp",
                  kind=EvidenceKind.metadata, severity=Severity.high if rank >= 2 else None,
                  message=f"UI resource {rs.uri} declares _meta.ui.csp.{key} entry '{entry[:80]}', which {why}.")
 
@@ -800,7 +845,7 @@ class McpMetaAnalyzer:
         for name, items in sorted(owners.items()):
             comps = {c.id for c, _ in items}
             if len(comps) > 1:
-                ctx.emit("AG-MCP-META-007", component_ids=sorted(comps), span=items[0][1].span, snippet=name, match=f"collide:{name}",
+                ctx.emit("AG-MCP-023/collision", component_ids=sorted(comps), span=items[0][1].span, snippet=name, match=f"collide:{name}",
                          kind=EvidenceKind.metadata, related=[t.span for _, t in items[1:] if t.span],
                          message=f"Tool name '{name}' is defined by {len(comps)} servers ({', '.join(sorted(c.name for c, _ in items))}).")
         names = sorted(owners)
@@ -815,7 +860,7 @@ class McpMetaAnalyzer:
                     continue
                 fb = normalize(b).text.lower()
                 if fa == fb or damerau_levenshtein(fa, fb, cap=1) == 1:
-                    ctx.emit("AG-MCP-META-008", component_ids=sorted(ca | cb), span=owners[a][0][1].span, snippet=f"{a} ~ {b}",
+                    ctx.emit("AG-MCP-023/near-identical", component_ids=sorted(ca | cb), span=owners[a][0][1].span, snippet=f"{a} ~ {b}",
                              match=f"near:{a}|{b}", kind=EvidenceKind.metadata,
                              message=f"Tool names '{a}' and '{b}' from different servers are near-identical.")
 
@@ -825,7 +870,7 @@ class McpMetaAnalyzer:
             others = sorted({n for cid, n in all_tools if cid != comp.id and len(n) >= 4 and ("_" in n or "-" in n or len(n) >= 8)})
             # Resources at medium: their descriptions are often documentation, where "when you
             # call the query tool" can be plain advice.
-            described = [("Tool", t.name, t.description, t.span, None) for t in comp.tools]
+            described = [("Tool", t.name, t.description, t.description_span or t.span, None) for t in comp.tools]
             described += [("Resource", r.uri, r.description, r.span, Severity.medium) for r in comp.resources]
             for kind, name, description, span, severity in described:
                 desc = normalize(description or "").text
@@ -843,7 +888,7 @@ class McpMetaAnalyzer:
                     if m:
                         hit = f"redefines behavior of other tools: '{m.group(0)[:80]}'"
                 if hit:
-                    ctx.emit("AG-MCP-META-006", component_ids=comp.id, span=span, snippet=desc[:240], match=f"{name}:shadow",
+                    ctx.emit("AG-MCP-022", component_ids=comp.id, span=span, snippet=desc[:240], match=f"{name}:shadow",
                              kind=EvidenceKind.metadata, severity=severity, message=f"{kind} '{name}' {hit}.")
 
 
@@ -877,7 +922,7 @@ _COMMENT_LINE = regex.compile(r"(?m)^[ \t]*(?://|/\*|\*|#).*$")
 class McpClientAuthAnalyzer:
     id: ClassVar[str] = "mcp.client_auth"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-MCP-SPEC-003", "AG-MCP-SPEC-004", "AG-MCP-SPEC-005")
+    rules: ClassVar[tuple[str, ...]] = ("AG-MCP-044/client-no-iss", "AG-MCP-044/client-credentials-unbound", "AG-MCP-044/client-no-resource")
 
     def run(self, ctx: Context) -> None:
         texts = [at for at in ctx.texts("source_code") if not search(_TEST_PATH, at.path)]
@@ -901,7 +946,7 @@ class McpClientAuthAnalyzer:
 
         m = search(_CALLBACK_CODE, text)
         if m and search(_OAUTH_CONTEXT, at.text) and not search(_ISS, text):
-            emit("AG-MCP-SPEC-003", m, "iss", "Reads the authorization code from the OAuth redirect but never reads `iss`, so a response "
+            emit("AG-MCP-044/client-no-iss", m, "iss", "Reads the authorization code from the OAuth redirect but never reads `iss`, so a response "
                  "from a different authorization server (mix-up attack, RFC 9207) is accepted.")
         lines = text.split("\n")
         for rx, key, what in ((_AUTHZ_REQUEST, "authz", "authorization request"), (_TOKEN_REQUEST, "token", "token request")):
@@ -909,12 +954,12 @@ class McpClientAuthAnalyzer:
                 line = text.count("\n", 0, m.start())
                 window = "\n".join(lines[max(0, line - _PARAM_WINDOW) : line + _PARAM_WINDOW + 1])
                 if not search(_RESOURCE_PARAM, window):
-                    emit("AG-MCP-SPEC-005", m, key, f"Builds an OAuth {what} without the `resource` parameter (RFC 8707), "
+                    emit("AG-MCP-044/client-no-resource", m, key, f"Builds an OAuth {what} without the `resource` parameter (RFC 8707), "
                          "so the token is not bound to the MCP server it is meant for.")
                     break
         m = search(_CLIENT_STORE, text)
         if m and not search(_ISSUER, text):
-            emit("AG-MCP-SPEC-004", m, "issuer", "Stores OAuth client credentials without the authorization server's issuer, "
+            emit("AG-MCP-044/client-credentials-unbound", m, "issuer", "Stores OAuth client credentials without the authorization server's issuer, "
                  "so they can be reused with a different authorization server.")
 
 

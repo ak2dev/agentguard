@@ -1,0 +1,419 @@
+# Detection entries for the CFG family (catalogue: rules/catalog/cfg.yaml): agent settings and hooks.
+# All are evaluated by the `settings` analyzer on parsed configuration. A rule about a "repository file" is
+# skipped, or reported one level lower, on a file in the user's own home directory.
+rules:
+  # ---- Claude Code ----------------------------------------------------------------------------------
+  - id: AG-CFG-001
+    description: A Claude Code settings file sets `enableAllProjectMcpServers` to true.
+    why: With this key every MCP server defined in a repository's `.mcp.json` starts without an approval prompt once the folder is trusted, and headless and SDK runs treat the folder as trusted. A repository that ships both the key and a server gets code execution on open.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove `enableAllProjectMcpServers` and approve each project MCP server by hand.
+
+  - id: AG-CFG-002
+    description: A repository settings file lists servers in `enabledMcpjsonServers`, which pre-approves them from `.mcp.json`.
+    why: The approval that should come from the person opening the repository is supplied by the repository itself.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove `enabledMcpjsonServers` from the committed file; each user approves servers in their own local settings.
+
+  - id: AG-CFG-003
+    description: "`permissions.allow` holds a broad rule: every shell command, a command that can run arbitrary code or reach the network, file access to the home directory or credential files, any URL, or every MCP tool."
+    why: Allow rules skip the permission prompt, and list-valued keys merge across settings files, so one broad rule in a project file widens what runs unasked for everyone who trusts the folder.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Replace the rule with the narrowest form that covers the real need, for example `Bash(npm run test:*)` instead of `Bash(npm *)`.
+
+  - id: AG-CFG-004
+    description: "`permissions.defaultMode` is `bypassPermissions`, `auto`, `acceptEdits` or `dontAsk`."
+    why: The default mode decides whether tool calls are shown for approval. A committed file should not choose a permissive mode for other people; where the agent ignores the value from project files, its presence still shows intent.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove `permissions.defaultMode` from the file, or set it to `default`.
+
+  - id: AG-CFG-005
+    description: "`skipDangerousModePermissionPrompt` is set."
+    why: The key removes the confirmation shown before bypass mode starts; with it, a bypass flag takes effect silently and MCP approval is skipped too.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove `skipDangerousModePermissionPrompt`.
+
+  - id: AG-CFG-006
+    description: A hook command, or the script it runs, uses the network, executes dynamic content, or reads credentials or the environment.
+    why: Hooks run outside the sandbox with the user's permissions and without a prompt. A hook that downloads, evaluates or reads secrets is a ready-made foothold; this is how the published plugin and settings hijacks ran code.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook. If the behaviour is needed, move it to a reviewed script that does not fetch, evaluate or read secrets.
+
+  - id: AG-CFG-007
+    description: A PreToolUse or PermissionRequest hook returns an allow decision or `updatedPermissions`.
+    why: The hook answers the permission prompt on the user's behalf. Tool calls it matches run without being shown, and `updatedPermissions` makes the grant permanent.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook. A hook may deny or ask; it should never approve.
+
+  - id: AG-CFG-008
+    description: A hook returns `updatedInput`, replacing the arguments of the tool call it intercepts.
+    why: The command that runs is no longer the one the model proposed or the user approved. A rewrite can add a flag, a recipient or a second command.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Review exactly what the hook changes. Prefer denying a call over rewriting it.
+
+  - id: AG-CFG-009
+    description: A hook adds text it reads from files or the network to the model's context (`additionalContext`, or standard output on events where output becomes context).
+    why: Hook-supplied context is trusted by the model. Whoever can change the file or the remote content controls part of the agent's instructions in every session.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Inject only fixed text, or content from files the repository itself contains and reviews.
+
+  - id: AG-CFG-010
+    description: An HTTP hook posts to a URL outside the machine.
+    why: The hook payload carries the session id, the transcript path, the working directory and the tool input. Posted to an external host it is a running copy of what the user and the agent do.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the HTTP hook, or restrict hooks with `allowedHttpHookUrls` to hosts you operate.
+
+  - id: AG-CFG-011
+    description: A hook with side effects (writes, installs, network, a script) is attached to an event that fires when the session or configuration loads.
+    why: Load-time hooks run before the user has asked for anything, so opening the folder is enough to trigger them.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Move the work to an explicit command the user runs, or limit the hook to read-only checks.
+
+  - id: AG-CFG-012
+    description: A hook that acts as a policy check (PreToolUse, PermissionRequest) does not set `onFailure` to `block`.
+    why: Most hook events fail open. If the check crashes or times out, the action it was meant to stop goes through.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: "set-sibling:onFailure=block"
+    remediation: 'Add `"onFailure": "block"` to the hook handler.'
+
+  - id: AG-CFG-013
+    description: A repository settings file sets a key whose value is a shell command - `statusLine`, `subagentStatusLine`, `fileSuggestion`, `apiKeyHelper`, `awsAuthRefresh`, `awsCredentialExport`, `gcpAuthRefresh` or `otelHeadersHelper`.
+    why: These commands run automatically and repeatedly on the machine of everyone who trusts the folder; `apiKeyHelper` and the cloud helpers also sit in the path of credentials.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key from the committed file; command-valued settings belong in a user's own settings.
+
+  - id: AG-CFG-014
+    description: The `env` block of a repository settings file sets a security-relevant variable - a model API base URL, a proxy, `PATH`, `NODE_OPTIONS`, `LD_PRELOAD`, `GIT_SSH_COMMAND`, a package index, and similar.
+    why: The block applies to every session and every subprocess. Through it a repository can route API traffic through its own host, preload code into every process, or change which binaries run.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the variable from the committed `env` block.
+
+  - id: AG-CFG-015
+    description: A settings file weakens the sandbox - turns it off, excludes commands from it, allows unsandboxed commands, weakens isolation, allows all domains, or allows writes to the home directory or the filesystem root.
+    why: The sandbox is what limits a command the agent was tricked into running. Each of these settings removes part of that limit.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the setting; if one command truly needs to run outside the sandbox, exclude that exact command only.
+
+  - id: AG-CFG-016
+    description: A repository settings file registers a marketplace that is not Anthropic's, or enables plugins from one.
+    why: After folder trust the repository's marketplace can offer plugins and its `enabledPlugins` entries switch them on. Plugins ship hooks, servers and executables, and nobody verifies what a third-party marketplace contains.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Review the marketplace and each enabled plugin before trusting the folder, or remove the entries.
+
+  - id: AG-CFG-017
+    description: "`permissions.additionalDirectories` grants the home directory, the filesystem root or another directory far above the project."
+    why: File tools then reach SSH keys, cloud credentials and other projects.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-list-item
+    remediation: List only the specific directories the project needs.
+
+  - id: AG-CFG-018
+    description: A repository settings file sets `disableAllHooks` or `disableSkillShellExecution` to false.
+    why: Both are safety switches a user turns on. A project file that sets them to false can turn them back off for that project.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key from the committed file.
+
+  - id: AG-CFG-019
+    description: A `.claude/settings.local.json` file is shipped with the repository.
+    why: The file is meant for one person's local overrides. Committed, it applies that person's permission grants and environment to everyone, and often carries paths and tokens.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the file from the repository and add `.claude/settings.local.json` to `.gitignore`.
+
+  - id: AG-CFG-020
+    description: "`autoMemoryDirectory` or `plansDirectory` points at a shared, temporary or sensitive path."
+    why: Memory files are loaded into every later session. In a world-writable or shared location another user or process can write instructions into them, and what the agent records can be read by others.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key so the default per-project location is used.
+
+  - id: AG-CFG-021
+    description: A repository settings file sets `claudeMdExcludes`.
+    why: The key stops matching instruction files from loading. It can be used to drop the instructions that would otherwise restrain the agent.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Check that each excluded pattern is intended, or remove the key.
+
+  - id: AG-CFG-022
+    description: An instruction file imports (`@path`) a file from the home directory or by absolute path, such as `@~/.ssh/config`.
+    why: The imported file is loaded into the model's context. A credential file imported this way is handed to the model and to whatever the model then sends anywhere.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-import
+    remediation: Remove the import. Instruction files should import only files inside the repository.
+
+  - id: AG-CFG-023
+    description: An instruction file imports a relative path that leaves the repository.
+    why: The instructions the agent receives then depend on a file that is not in the repository and was not reviewed with it.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Copy the needed text into the repository, or remove the import.
+
+  # ---- Codex -------------------------------------------------------------------------------------------
+  - id: AG-CFG-030
+    description: 'A Codex configuration file sets `sandbox_mode = "danger-full-access"` or `approval_policy = "never"`.'
+    why: The first removes the sandbox and the second removes every approval prompt. Together the agent runs anything it is told, including what an injected instruction tells it.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key, or use `workspace-write` with `on-request`.
+
+  - id: AG-CFG-031
+    description: "`sandbox_workspace_write.network_access` is true, or `writable_roots` includes the home directory or the filesystem root."
+    why: Network access lets a sandboxed command send data out; broad writable roots let it change files far outside the project.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the setting, or list only the directories that must be writable.
+
+  - id: AG-CFG-032
+    description: '`shell_environment_policy` passes the whole environment to commands: `inherit = "all"` with no `exclude`, or `ignore_default_excludes = true`.'
+    why: Every command the agent runs then sees every key and token in the environment.
+    match: {type: analyzer, analyzer: settings}
+    remediation: 'Use `inherit = "core"`, or add `exclude` patterns for key, secret and token variables.'
+
+  - id: AG-CFG-033
+    description: A Codex configuration sets a key whose value is a command - `notify`, `model_providers.<id>.auth.command` or `mcp_servers.<id>.http_headers_helper`.
+    why: The command runs automatically. Codex ignores some of these keys in project configuration, but their presence shows what the file is trying to do, and a header helper runs in the path of credentials.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key from the shared configuration.
+
+  - id: AG-CFG-034
+    description: An MCP server entry sets `default_tools_approval_mode` to an automatic mode.
+    why: Every tool of that server, including tools that write, send or delete, runs without approval.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the key so tool calls are approved, or approve individual read-only tools.
+
+  - id: AG-CFG-035
+    description: A Codex hook (`.codex/hooks.json`, inline `[hooks]`, or a plugin's hooks file) runs a risky command or returns an allow decision.
+    why: Codex hooks run with the user's permissions; a PreToolUse hook can approve a call and rewrite its input.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook, or reduce it to a reviewed check that only denies.
+
+  - id: AG-CFG-036
+    description: A repository Codex configuration sets `model_instructions_file` or `developer_instructions`.
+    why: These keys replace or extend the agent's base instructions for every session that loads the file, outside the instruction files a reviewer would read.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Put project guidance in `AGENTS.md`, where it is visible, and remove the key.
+
+  - id: AG-CFG-037
+    description: A Codex configuration holds a literal OAuth client secret, bearer token or credential header.
+    why: The secret is readable by anyone with the file and by every process the agent starts.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: replace-with-env-reference
+    remediation: Use `bearer_token_env_var` or an environment reference instead of the literal value, and rotate the exposed secret.
+
+  - id: AG-CFG-038
+    description: 'A shipped Codex configuration contains a `projects.<path>.trust_level = "trusted"` entry.'
+    why: Trust is a decision a user makes about a directory on their machine. A shipped entry makes it for them.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the `projects` entry from the shared file.
+
+  - id: AG-CFG-039
+    description: A skill's `agents/openai.yaml` sidecar pulls in an MCP server by URL, or enables implicit invocation of a skill that can run commands, use the network or touch credentials.
+    why: The sidecar is read with the skill and is easy to overlook. It can connect the agent to a server nobody reviewed, or let the model start a sensitive skill unprompted.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the MCP dependency or vet the server; set `allow_implicit_invocation` to false for skills with side effects.
+
+  # ---- Gemini CLI -------------------------------------------------------------------------------------
+  - id: AG-CFG-045
+    description: "An MCP server entry in Gemini CLI settings has `trust: true`."
+    why: The key bypasses every confirmation dialog for that server's tools.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: "Remove `trust: true`."
+
+  - id: AG-CFG-046
+    description: A project `.env` or `.gemini/.env` file sets a variable that changes where the agent sends traffic or what code runs - an API base URL, a proxy, `NODE_OPTIONS`, a system-prompt or sandbox override.
+    why: The file is loaded automatically from the project directory, so the override applies without any setting being visible in the agent's own configuration.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-line
+    remediation: Remove the variable from the committed file.
+
+  - id: AG-CFG-047
+    description: Gemini CLI approval is weakened - an automatic default approval mode, `autoAccept`, or folder trust turned off.
+    why: Each setting removes a confirmation the user would otherwise see before a tool runs or a folder's configuration loads.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the setting from the shared file.
+
+  - id: AG-CFG-048
+    description: A Gemini CLI hook runs a risky command, rewrites tool arguments, replaces the model request or supplies a synthetic response.
+    why: A `BeforeModel` hook can change what the model is asked or answer in its place; a `BeforeTool` hook can change what a tool does. A hook whose output fails to parse defaults to allow.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook, or reduce it to a reviewed check that only blocks.
+
+  - id: AG-CFG-049
+    description: "A Gemini CLI policy rule with `decision = \"allow\"` covers every tool, a shell or write tool with no command or argument limit, or yolo mode."
+    why: The rule approves whole classes of tool calls with no confirmation.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Narrow the rule with `commandPrefix` or `argsPattern`, or change the decision to `ask_user`.
+
+  - id: AG-CFG-050
+    description: "`context.fileName` makes Gemini CLI load a different file as its context file."
+    why: A reviewer reading `GEMINI.md` does not see the instructions the agent actually receives.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the override, or review the named file as an instruction file.
+
+  - id: AG-CFG-051
+    description: Gemini CLI settings disable the sandbox or enable network access from it.
+    why: The sandbox limits what a command the agent runs can reach.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the setting.
+
+  - id: AG-CFG-052
+    description: Telemetry is sent to a host that is neither local nor a known vendor, with prompt logging on.
+    why: Every prompt, which often contains code and secrets, leaves the machine for that host.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: "Remove the endpoint, or set `logPrompts: false`."
+
+  # ---- Cursor -------------------------------------------------------------------------------------------
+  - id: AG-CFG-055
+    description: "Cursor CLI permissions allow a whole class of actions: any shell command, any MCP tool, or writes anywhere."
+    why: The agent then runs those actions without asking.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Allow specific commands, tools and paths instead.
+
+  - id: AG-CFG-056
+    description: 'The Cursor CLI configuration sets `approvalMode` to `unrestricted` or turns the sandbox off.'
+    why: Every command the agent proposes runs without approval or confinement.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Use the allowlist approval mode and leave the sandbox on.
+
+  - id: AG-CFG-057
+    description: 'A Cursor hook runs a risky command or returns `permission: "allow"`.'
+    why: Cursor hooks run with the user's permissions, and workspace trust is disabled by default, so a repository's hooks file takes effect when the folder is opened.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook, or reduce it to a reviewed check that only denies.
+
+  - id: AG-CFG-058
+    description: A Cursor hook that acts as a policy check does not set `failClosed`.
+    why: "`failClosed` defaults to false: if the hook crashes or times out, the action goes through."
+    match: {type: analyzer, analyzer: settings}
+    fix_action: "set-sibling:failClosed=true"
+    remediation: 'Add `"failClosed": true` to the hook.'
+
+  - id: AG-CFG-059
+    description: A Cursor MCP server entry loads an `envFile` that holds secrets, or carries a literal OAuth `CLIENT_SECRET`.
+    why: Everything in the env file is handed to the server process, and a literal client secret is readable by anyone with the file.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: replace-with-env-reference
+    remediation: Pass only the variables the server needs with `${env:NAME}` references.
+
+  - id: AG-CFG-060
+    description: "A Cursor rule with `alwaysApply: true` carries a directive another rule already reported as risky."
+    why: The rule is added to every request, so its directive reaches the agent in every task, not only the ones it claims to cover.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the directive, or scope the rule with `globs` and a description instead of `alwaysApply`.
+
+  # ---- GitHub Copilot and VS Code ---------------------------------------------------------------------
+  - id: AG-CFG-065
+    description: A Copilot hook in `.github/hooks/` runs a risky command, returns an allow decision or returns `modifiedArgs`.
+    why: Copilot hooks run with the agent's permissions; `preToolUse` can approve a call and change its arguments, and HTTP hooks and timeouts fail open.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook, or reduce it to a reviewed check that only denies.
+
+  - id: AG-CFG-066
+    description: A custom agent in `.github/agents/` has every tool and defines its own MCP server.
+    why: The Copilot cloud agent uses configured MCP tools autonomously, without asking for approval, and its firewall does not apply to MCP server processes.
+    match: {type: analyzer, analyzer: settings}
+    remediation: List the tools the agent needs, and vet or remove the MCP server.
+
+  - id: AG-CFG-067
+    description: "A `.vscode/mcp.json` server has `sandboxEnabled: false`, or an input ships a secret as its default value."
+    why: An unsandboxed server runs with the user's full access; a default value in a committed file is a published secret.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove `sandboxEnabled`, and leave secret inputs without a default.
+
+  # ---- OpenClaw ----------------------------------------------------------------------------------------
+  - id: AG-CFG-070
+    description: 'The OpenClaw gateway is bound to a network interface with `auth.mode: "none"`.'
+    why: Anyone who can reach the port can send the agent messages and use every tool it has.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: "set-value:loopback"
+    remediation: Bind the gateway to loopback, or enable token or password authentication.
+
+  - id: AG-CFG-071
+    description: '`tools.profile` is `full` while the agent sandbox is off.'
+    why: Messages from any connected channel, including untrusted ones, reach every tool directly on the host.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Turn the sandbox on for non-main sessions, or use a narrower tool profile.
+
+  - id: AG-CFG-072
+    description: Elevated execution is enabled and `allowFrom` does not restrict who may request it.
+    why: Any sender can ask the agent to run commands outside the sandbox.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Disable elevated execution, or list the specific senders allowed to use it.
+
+  - id: AG-CFG-073
+    description: Webhooks are enabled with a short, guessable or shared token, or with request-chosen session keys.
+    why: A weak token lets outsiders inject messages; request-chosen session keys let a caller write into another conversation.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Use a long random token that is not the gateway token, and leave `allowRequestSessionKey` off.
+
+  - id: AG-CFG-074
+    description: A workspace hook (`HOOK.md` with a handler) runs commands or makes network requests.
+    why: Hook handlers and transforms run as trusted code inside the gateway process, with everything it can reach.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the hook unless you have reviewed its handler line by line.
+
+  - id: AG-CFG-075
+    description: A plugin is allowed to modify prompts or read conversations, and no `plugins.allow` list restricts which plugins load.
+    why: Any plugin that gets installed inherits the ability to rewrite what the model is asked or read what users say.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Add a `plugins.allow` list and grant these hook permissions only to plugins on it.
+
+  - id: AG-CFG-076
+    description: A skill's `install[]` step downloads a file with no `sha256`, or over plain HTTP.
+    why: What gets installed cannot be verified and can be replaced in transit or at the source after review.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: https-url
+    remediation: Use an HTTPS URL and add the `sha256` of the reviewed file.
+
+  - id: AG-CFG-077
+    description: "`skills.entries.<key>.apiKey` holds a literal API key."
+    why: The key is readable by anyone with the file and is injected into the skill's environment.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: replace-with-env-reference
+    remediation: Reference an environment variable or a secret store instead, and rotate the exposed key.
+
+  - id: AG-CFG-078
+    description: "`skills.load.extraDirs` names a directory outside the workspace."
+    why: Anything placed in that directory becomes a skill the agent can load, outside what the workspace's owner reviews.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Load skills only from directories you control and review.
+
+  # ---- Any agent -----------------------------------------------------------------------------------------
+  - id: AG-CFG-090
+    description: A user-level state or configuration file of an agent (`.claude.json`, `claude_desktop_config.json`, `.codex/auth.json`, Gemini OAuth files, and similar) is inside a repository.
+    why: These files belong in a home directory. In a repository they leak tokens, trust records and project lists, and may be read by tools that look for them.
+    match: {type: analyzer, analyzer: settings}
+    remediation: Remove the file from the repository and rotate any credential it contains.
+
+  - id: AG-CFG-091
+    lane: hunt
+    description: A settings file contains a top-level key the agent does not document.
+    why: Unknown keys are ignored without error, so a typo silently disables a protection, and an invented key is a place to keep text for another reader.
+    confidence: low
+    match: {type: analyzer, analyzer: settings}
+    remediation: Check the key against the agent's settings reference; remove it if it is not one.
+
+  - id: AG-CFG-092
+    description: A command, URL or path value in a configuration file contains an invisible character, a control character or a look-alike space.
+    why: The value a reviewer reads is not the value that is run or contacted. A zero-width character in a host name or a control character in a command changes its meaning without changing how it looks.
+    match: {type: analyzer, analyzer: settings}
+    fix_action: strip-codepoints
+    remediation: Remove the hidden characters, then check where the cleaned value points.

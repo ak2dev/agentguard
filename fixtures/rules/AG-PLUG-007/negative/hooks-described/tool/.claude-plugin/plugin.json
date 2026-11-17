@@ -1,0 +1,5 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files with a hook that runs after each edit."
+}

@@ -1,0 +1,11 @@
+{
+  "extraKnownMarketplaces": {
+    "team-tools": {
+      "source": {
+        "source": "github",
+        "repo": "example-org/claude-plugins"
+      },
+      "autoUpdate": true
+    }
+  }
+}

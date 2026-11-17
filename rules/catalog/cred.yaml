@@ -1,0 +1,28 @@
+family: CRED
+name: Credentials and secrets
+defaults: {category: malice, lane: evidence, confidence: medium, engine: code}
+mappings:
+  owasp-ast-1.0: [AST03]
+  owasp-mcp-2025-beta: ["MCP01:2025"]
+  owasp-asi-2026: [ASI03]
+  owasp-llm-2026: ["LLM02:2026"]
+  nsa-csi-mcp-2026-05: [concerns/token-session-security]
+  cwe: [CWE-522]
+  skilltrustbench: [T05, T09]
+  malskillbench: [B2]
+rules:
+  - [AG-CRED-001, H, P, "Hard-coded secret (API key, token, private key)", {category: vulnerability, lane: block, confidence: high, mappings: {cwe: [CWE-798]}}]
+  - [AG-CRED-002, H, X, "Reads developer credential files (`~/.ssh`, `~/.aws`, gcloud, kube, `.npmrc`, `.netrc`, Docker config)"]
+  - [AG-CRED-003, C, X, "Reads an agent's own credential store (`~/.claude.json`, Codex auth, MCP OAuth tokens)", {lane: block, confidence: high}]
+  - [AG-CRED-004, C, X, "Reads cryptocurrency wallet files or seed phrases", {lane: block, confidence: high}]
+  - [AG-CRED-005, H, X, "Reads the OS keychain or credential manager"]
+  - [AG-CRED-006, H, P, "Asks the user to paste a secret into chat, or the agent to print one verbatim", {engine: instruction}]
+  - [AG-CRED-007, M, P, "Secret passed on a command line or in a URL query", {category: vulnerability, mappings: {cwe: [CWE-598]}}]
+  - [AG-CRED-008, M, P, "Secret written to a log, a world-readable file or an instruction file", {category: vulnerability}]
+  - [AG-CRED-009, H, A, "Literal secret in MCP `env` or `headers` instead of a variable reference", {category: vulnerability, lane: block, confidence: high, engine: config, mappings: {cwe: [CWE-798]}}]
+  - [AG-CRED-010, M, P, "OAuth client secret stored in a config file", {category: vulnerability, confidence: high, engine: config, mappings: {cwe: [CWE-798]}}]
+  - [AG-CRED-011, H, X, "Credential-harvesting prompt (fake login, \"re-enter your key\")", {lane: block, engine: instruction}]
+  - [AG-CRED-012, C, X, "Lookalike endpoint for a trusted API that collects keys", {lane: block}]
+  - [AG-CRED-013, H, A, "Model or API base URL overridden to a non-vendor host", {category: vulnerability, lane: block, confidence: high, engine: config}]
+  - [AG-CRED-014, H, A, "`.env` file with live-looking secrets shipped in the package", {category: vulnerability, lane: block, confidence: high, engine: config, mappings: {cwe: [CWE-798]}}]
+  - [AG-CRED-015, L, P, "Full environment inherited by a server or hook that does not need it", {category: vulnerability, confidence: low, engine: config}]

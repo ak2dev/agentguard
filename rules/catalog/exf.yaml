@@ -1,0 +1,29 @@
+family: EXF
+name: Data exfiltration
+defaults: {category: malice, lane: evidence, confidence: medium, engine: code}
+mappings:
+  owasp-ast-1.0: [AST01]
+  owasp-mcp-2025-beta: ["MCP10:2025"]
+  owasp-asi-2026: [ASI02]
+  owasp-llm-2026: ["LLM02:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  skilltrustbench: [T04]
+  malskillbench: [B1]
+rules:
+  - [AG-EXF-001, C, X, "Secret or credential source flows to a network sink", {lane: block, confidence: high}]
+  - [AG-EXF-002, C, X, "Environment dump sent to an external host", {lane: block, confidence: high}]
+  - [AG-EXF-003, C, X, "Home or workspace tree archived and uploaded", {lane: block, confidence: high}]
+  - [AG-EXF-004, H, X, "Data sent through DNS queries", {lane: block}]
+  - [AG-EXF-005, H, X, "Data sent to a chat webhook (Discord, Telegram, Slack)"]
+  - [AG-EXF-006, H, X, "Upload to a paste or file-sharing service"]
+  - [AG-EXF-007, H, P, "Data embedded in the URL of a rendered image or link", {engine: instruction}]
+  - [AG-EXF-008, C, X, "Hidden BCC, CC or forward added to outgoing messages", {lane: block, confidence: high}]
+  - [AG-EXF-009, H, X, "Push to a foreign git remote or creation of a gist with local data"]
+  - [AG-EXF-010, H, P, "Prose instructs sending data through an allowed tool (web fetch, browser, MCP)", {engine: instruction}]
+  - [AG-EXF-011, H, X, "Conversation transcript or session file read and sent", {lane: block}]
+  - [AG-EXF-012, H, X, "Clipboard, screenshot or keystroke capture"]
+  - [AG-EXF-013, C, X, "Browser cookie or login stores accessed", {lane: block, confidence: high}]
+  - [AG-EXF-014, H, X, "Cloud metadata endpoint accessed", {mappings: {cwe: [CWE-918]}}]
+  - [AG-EXF-015, M, G, "Telemetry beacon not disclosed in the description", {lane: hunt, category: vulnerability}]
+  - [AG-EXF-016, M, P, "Instruction to reveal the system prompt or loaded instructions", {engine: instruction, mappings: {malskillbench: [B13], owasp-llm-2026: ["LLM08:2026"]}}]

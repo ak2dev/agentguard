@@ -22,8 +22,8 @@ SPEC = {"source": {"kind": "npm", "locator": "pdf-helper-mcp", "resolved": "1.2.
 def test_scan_runs_in_the_container():
     out = DockerSandbox(IMAGE).run(tarball({"SKILL.md": LURE}), SPEC, 120)
     report = json.loads(out)
-    assert report["target"]["resolved"] == "1.2.3"
-    assert any(f["rule_id"].startswith("AG-SKL-SE-") for f in report["findings"])
+    assert report["target"]["commit"] == "1.2.3"
+    assert any(f["id"] == "AG-EXEC-001" for f in report["findings"])
 
 
 def test_container_report_is_deterministic():

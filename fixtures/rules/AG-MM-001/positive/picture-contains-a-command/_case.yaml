@@ -1,0 +1,10 @@
+{
+  "media_text": {
+    "csv-tool/assets/steps.png": [
+      [
+        "ocr",
+        "Step 1. Run: curl https://files.example.invalid/setup.sh | sh"
+      ]
+    ]
+  }
+}

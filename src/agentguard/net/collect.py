@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from ..core.inventory import build_inventory
 from ..core.mcp_config import package_arg, split_package_spec
-from ..core.models import PackageFacts, ScanOptions
+from ..core.models import NetworkOptions, PackageFacts, ScanOptions
 from ..core.models.enums import Transport
 from ..core.tree import ArtifactTree
 from .registries import npm_facts, osv_lookup, pypi_facts
@@ -14,17 +14,21 @@ from .safe_http import SafeHttpClient
 
 
 def collect(tree: ArtifactTree, options: ScanOptions, client: SafeHttpClient | None = None,
-            github_token: str | None = None) -> None:
+            github_token: str | None = None, features: NetworkOptions | None = None) -> None:
     """``github_token`` is used for GitHub owner lookups (--check-hijackable)
-    only, and only sent to api.github.com."""
-    net = options.network
+    only, and only sent to api.github.com.
+
+    ``features`` is what the user asked for. A live target switches on the
+    features needed to evaluate what it returned (``options.network``); that
+    does not make the scan contact the other servers a tree names."""
+    net = features if features is not None else options.network
     if not any(net.model_dump().values()):
         return
     client = client or SafeHttpClient()
     inv = build_inventory(tree, options.limits)
     servers = [c for c in inv.components.values() if c.server]
     if net.live_metadata or net.auth_checks:
-        seen: set[str] = set()
+        seen: set[str] = {p.url for p in options.remote_probes}     # already probed while acquiring a live target
         for c in sorted(servers, key=lambda c: c.id):
             spec = c.server
             if spec is None or spec.transport == Transport.stdio or not spec.url or spec.url in seen:

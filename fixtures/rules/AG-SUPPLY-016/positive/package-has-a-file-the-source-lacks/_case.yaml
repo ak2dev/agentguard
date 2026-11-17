@@ -1,0 +1,15 @@
+{
+  "facts": {
+    "packages": {
+      "npm/csv-tool": {
+        "source_diff": {
+          "ref": "v1.0.0",
+          "only_in_package": [
+            "scripts/run.py"
+          ],
+          "changed": []
+        }
+      }
+    }
+  }
+}

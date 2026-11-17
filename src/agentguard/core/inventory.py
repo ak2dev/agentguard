@@ -23,10 +23,12 @@ from .artifacts import (
     language_for,
     prepare,
 )
+from .discover import Surface, generic_role, shape_surface, surface_for
 from .mcp_config import ClientConfig, looks_like_config, parse_config
 from .models import (
     Artifact,
     Component,
+    LimitEvent,
     LoadLimits,
     PromptDef,
     ResourceDef,
@@ -75,10 +77,26 @@ class Inventory:
     server_components: dict[tuple[str, str, str], str] = field(default_factory=dict)  # (config, project, name) -> id
     manifests: dict[str, Any] = field(default_factory=dict)           # path -> parsed manifest value
     deep_manifests: list[str] = field(default_factory=list)           # tool manifests nested past the JSON depth limit
-    malformed_fields: list[tuple[Span, str, str]] = field(default_factory=list)  # (where, message, snippet) for AG-SYS-001
+    malformed_fields: list[tuple[Span, str, str]] = field(default_factory=list)  # (where, message, snippet) for AG-EVADE-001
     package_roots: dict[str, str] = field(default_factory=dict)       # root dir -> component id
     notes: list[str] = field(default_factory=list)
     tree: ArtifactTree | None = None
+    surfaces: dict[str, Surface] = field(default_factory=dict)        # path -> what an agent loads it as
+    docs: dict[str, Any] = field(default_factory=dict)                # path -> inventory_surfaces.Doc (parsed)
+    agentic_ci: set[str] = field(default_factory=set)                 # workflows that run a coding agent
+    parse_failures: list[tuple[str, str, str]] = field(default_factory=list)   # (path, error, surface id)
+    # (source path, line, reference as written, resolved tree path or "", "import" | "names")
+    references: list[tuple[str, int, str, str, str]] = field(default_factory=list)
+    unpacked: dict[str, int] = field(default_factory=dict)            # archive path -> members unpacked
+
+    def of_surface(self, *ids: str) -> list[Any]:
+        """Parsed documents of the given surface ids (or id prefixes ending in "."), by path."""
+        out = []
+        for path in sorted(self.docs):
+            doc = self.docs[path]
+            if any(doc.surface.id == i or (i.endswith(".") and doc.surface.id.startswith(i)) for i in ids):
+                out.append(doc)
+        return out
 
     def component_for(self, path: str) -> Component | None:
         art = self.artifacts.get(path)
@@ -110,7 +128,7 @@ def _checked(inv: Inventory, span: Span, owner: str, entry: dict[str, Any], key:
 
     A manifest is untrusted input: a value of another type would raise in the models and
     end the scan, and dropping it quietly would pass it unread, so it is noted for
-    AG-SYS-001. Empty values hold nothing to read (`null` is how SDKs dump an unset field,
+    AG-EVADE-001. Empty values hold nothing to read (`null` is how SDKs dump an unset field,
     `[]` how PHP dumps an empty object).
     """
     value = entry.get(key)
@@ -135,21 +153,26 @@ def _under(path: str, root: str) -> bool:
 
 def _skill_role(rel: str, data: bytes) -> ArtifactRole:
     kind = binary_kind(data)
-    if kind in ARCHIVE_KINDS:
-        return ArtifactRole.archive
-    if kind:
-        return ArtifactRole.binary
     top = rel.split("/", 1)[0] if "/" in rel else ""
-    if language_for(rel, data):
+    role = generic_role(rel, data, kind, language_for(rel, data), top == "references" or is_markdown(rel))
+    if role in (ArtifactRole.image, ArtifactRole.document, ArtifactRole.media, ArtifactRole.notebook, ArtifactRole.html,
+                ArtifactRole.archive, ArtifactRole.binary):
+        return role
+    if role == ArtifactRole.repo_code:
         return ArtifactRole.script
-    if top == "references" or is_markdown(rel):
+    if role == ArtifactRole.repo_doc:
         return ArtifactRole.reference
+    # `setup.py` is a packaging manifest by name and a program by content. Inside a skill the agent can be
+    # told to run it like any other script, so it is analysed as one (a payload must not hide behind the name).
+    if role == ArtifactRole.package_manifest and rel.lower().endswith(".py"):
+        return ArtifactRole.script
     return ArtifactRole.asset
 
 
 def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inventory:
     limits = limits or LoadLimits()
     inv = Inventory(tree=tree)
+    inv.unpacked = expand_archives(tree, limits)
     paths = tree.paths()
 
     def add_artifact(path: str, comp: Component, role: ArtifactRole) -> Artifact:
@@ -159,13 +182,13 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             component_id=comp.id,
             path=path,
             role=role,
-            language=language_for(path, blob.data) if role in (ArtifactRole.script, ArtifactRole.source_code) else None,
+            language=language_for(path, blob.data) if role in _CODE_ROLES else None,
             sha256=blob.sha256,
             size=blob.size,
         )
         inv.artifacts[path] = art
         comp.artifact_ids.append(art.id)
-        if role not in (ArtifactRole.binary, ArtifactRole.archive):
+        if role not in (ArtifactRole.binary, ArtifactRole.archive, ArtifactRole.media) and binary_kind(blob.data) is None:
             at = prepare(art, blob.data, max_decode_depth=limits.max_decode_depth, max_decoded=limits.max_decoded_bytes)
             if at is not None:
                 inv.texts[path] = at
@@ -256,16 +279,18 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
             continue
         if _match(_AGENT_PATH, p) or _match(_COMMAND_PATH, p):
             kind = ComponentKind.subagent if _match(_AGENT_PATH, p) else ComponentKind.command
-            comp = new_component(kind, posixpath.splitext(posixpath.basename(p))[0], p)
+            comp = new_component(kind, posixpath.splitext(posixpath.basename(p))[0], p, metadata=_surface_meta(p, data))
             add_artifact(p, comp, ArtifactRole.instruction_md)
             continue
         if base_lower in _INSTRUCTION_NAMES or any(_match(rx, p) for rx in _INSTRUCTION_PATHS):
-            comp = new_component(ComponentKind.instruction_file, posixpath.basename(p), p)
+            comp = new_component(ComponentKind.instruction_file, posixpath.basename(p), p, metadata=_surface_meta(p, data))
             add_artifact(p, comp, ArtifactRole.instruction_md)
             continue
         if base_lower == "server.json":
             _add_server_json(inv, tree, p, new_component, add_artifact)
             continue
+        if base_lower == "manifest.json" and (shape := shape_surface(p, data[:8192])) is not None and shape.id == "bundle.mcpb":
+            continue        # an MCP bundle owns its directory; `add_surfaces` reads its manifest, tools and prompts
         if looks_like_config(p):
             text = data.decode("utf-8", "replace")
             cfg = parse_config(p, text)
@@ -278,7 +303,7 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
                 continue
             if p.lower().endswith(".json") and _names_a_manifest(text) and parse_json(text).error == "JSON nesting exceeds depth limit":
                 if _has_key(text, "inputSchema", "outputSchema") and _has_key(text, "tools"):
-                    inv.deep_manifests.append(p)  # reported by AG-MCP-META-023; its tools cannot be read
+                    inv.deep_manifests.append(p)  # reported by AG-MCP-032/schema-bomb; its tools cannot be read
                 else:
                     inv.malformed_fields.append((
                         Span(path=p), f"{p} nests more than 64 levels deep and has the keys of an MCP manifest; it was not analyzed.", p,
@@ -299,6 +324,11 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
                 role = ArtifactRole.other
             add_artifact(p, comp, role)
 
+    # 4. Plugins, bundles, every other agent surface, and the catch-all repository component.
+    from .inventory_surfaces import add_surfaces
+
+    add_surfaces(inv, tree, limits, add_artifact, new_component, owning_skill)
+
     # Name skills from frontmatter where available; compute content hashes.
     for comp in inv.components.values():
         if comp.kind == ComponentKind.skill:
@@ -313,13 +343,76 @@ def build_inventory(tree: ArtifactTree, limits: LoadLimits | None = None) -> Inv
                     comp.publisher = meta["author"][:128]
         arts = sorted((a for a in inv.artifacts.values() if a.component_id == comp.id), key=lambda a: a.path)
         if arts:
-            root = comp.root if comp.kind in (ComponentKind.skill, ComponentKind.mcp_server) else ""
+            root = comp.root if comp.kind in (ComponentKind.skill, ComponentKind.mcp_server, ComponentKind.plugin,
+                                              ComponentKind.bundle) else ""
             comp.content_hash = sha256_hex(
                 "\n".join(f"{a.path[len(root) + 1:] if root and a.path.startswith(root + '/') else a.path}\0{a.sha256}" for a in arts)
             )
         elif comp.server is not None:
             comp.content_hash = sha256_hex(repr(comp.server.model_dump(exclude={"config_path", "config_span"})))
     return inv
+
+
+def _surface_meta(path: str, data: bytes) -> dict[str, str]:
+    """Which agent loads the file, as discovery classifies it."""
+    surface = surface_for(path, data[:8192])
+    return {"agent": surface.agent, "surface": surface.id} if surface is not None else {}
+
+
+_CODE_ROLES = (ArtifactRole.script, ArtifactRole.source_code, ArtifactRole.repo_code)
+# Archives whose members are read as files of the tree. Office documents and ebooks are zip
+# files too; the media engine reads those, and unpacking them here would only add noise.
+_UNPACK_EXT = (".zip", ".tar", ".tgz", ".tar.gz", ".mcpb", ".dxt", ".whl", ".skill", ".vsix", ".crate", ".nupkg", ".plugin")
+_NOT_UNPACKED_EXT = (".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xlsb", ".xltx", ".xltm", ".pptx", ".pptm", ".potx",
+                     ".potm", ".ppsx", ".ppsm", ".odt", ".ods", ".odp", ".odg", ".epub", ".jar", ".war", ".apk", ".ipa", ".aar")
+NESTED = "!/"
+
+
+def expand_archives(tree: ArtifactTree, limits: LoadLimits) -> dict[str, int]:
+    """Unpack archives found in the tree, in memory, to ``max_archive_depth``
+    levels. Members appear as ``outer.zip!/inner/path`` so a finding inside an
+    archive names both the container and the inner path. The same limits as for
+    a top-level archive apply (ratio, size, count); traversal and links are
+    refused and reported. Idempotent: an archive already unpacked is skipped."""
+    from .archive import ArchiveError, from_archive, sniff_format
+
+    unpacked: dict[str, int] = {}
+    done = {p.split(NESTED, 1)[0] for p in tree.files if NESTED in p}
+    for p in tree.files:
+        if NESTED in p:
+            outer = p.rsplit(NESTED, 1)[0]
+            unpacked[outer] = unpacked.get(outer, 0) + 1
+    queue = [(p, p.count(NESTED)) for p in sorted(tree.files) if p not in done and p not in unpacked]
+    while queue:
+        path, depth = queue.pop(0)
+        blob = tree.files.get(path)
+        if blob is None or path in unpacked:
+            continue
+        lower = path.lower()
+        if lower.endswith(_NOT_UNPACKED_EXT):
+            continue
+        fmt = sniff_format(blob.data)
+        if fmt is None or not (lower.endswith(_UNPACK_EXT) or fmt in ("zip", "tar", "tgz")):
+            continue
+        if depth >= limits.max_archive_depth:
+            tree.limit_events.append(LimitEvent(kind="archive_bomb", path=path, bytes=blob.size,
+                                                detail=f"nested more than {limits.max_archive_depth} archives deep; not unpacked"))
+            continue
+        try:
+            inner = from_archive(blob.data, fmt, limits)
+        except (ArchiveError, ValueError, OSError, EOFError) as exc:
+            tree.limit_events.append(LimitEvent(kind="archive_error", path=path, bytes=blob.size, detail=str(exc)[:160]))
+            continue
+        count = 0
+        for ipath, iblob in sorted(inner.files.items()):
+            vpath = f"{path}{NESTED}{ipath}"
+            if tree.add(vpath, iblob.data, limits):
+                count += 1
+                queue.append((vpath, depth + 1))
+        for ev in inner.limit_events:
+            tree.limit_events.append(LimitEvent(kind=ev.kind, path=f"{path}{NESTED}{ev.path}", detail=ev.detail, bytes=ev.bytes))
+        unpacked[path] = count
+    return unpacked
 
 
 def _publisher_from_pkg(pkg: dict[str, Any]) -> str | None:
@@ -443,7 +536,7 @@ def _tool_manifest(text: str) -> dict[str, Any] | None:
 
 def _readable(inv: Inventory, path: str, text: str, list_key: str, entries: list[Any], id_key: str) -> list[dict[str, Any]]:
     """The entries of a manifest list that have a string `id_key`. The rest cannot be read,
-    so they are noted for AG-SYS-001: one note per list however long it is, and none for
+    so they are noted for AG-EVADE-001: one note per list however long it is, and none for
     empty values, which hold nothing."""
     readable: list[dict[str, Any]] = []
     skipped: list[tuple[int, Any]] = []
@@ -497,16 +590,20 @@ def _add_manifest(inv: Inventory, path: str, text: str, v: dict[str, Any], new_c
     for t in _readable(inv, path, text, "tools", top("tools", list) or [], "name"):
         span = Span(path=path, start_line=locate(text, '"tools"', f'"{t["name"]}"'))
         read = partial(_checked, inv, span, f"Tool '{t['name']}'", t)
+        description = read("description", str)
+        # The description is normally written within a few lines of the name; findings about it point there.
+        where = locate(text, '"tools"', f'"{t["name"]}"', '"description"') if description else 0
         comp.tools.append(
             ToolDef(
                 name=t["name"],
                 title=read("title", str),
-                description=read("description", str),
+                description=description,
                 input_schema=read("inputSchema", dict) or read("input_schema", dict) or {},
                 output_schema=read("outputSchema", dict),
                 annotations=read("annotations", dict) or {},
                 origin="manifest",
                 span=span,
+                description_span=Span(path=path, start_line=where) if span.start_line < where <= span.start_line + 3 else None,
             )
         )
     for pr in _readable(inv, path, text, "prompts", top("prompts", list) or [], "name"):

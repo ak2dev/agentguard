@@ -1,0 +1,114 @@
+# Detection entries for the CI family (catalogue: rules/catalog/ci.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+# Every rule here reads workflows that run a coding agent (Claude Code, Codex, Gemini CLI, Copilot and others),
+# the Copilot setup workflow and GitHub agentic-workflow Markdown files.
+rules:
+
+  - id: AG-CI-001
+    version: 1
+    description: "An agent step's prompt, arguments or command line contains the title or body of an issue, pull request, comment or review, a branch name, or a commit message, either as a `${{ github.event… }}` expression or through an environment variable that holds one."
+    why: That text is written by whoever opened the issue or pull request. Placed in the prompt it becomes part of the agent's instructions, with the job's token and secrets behind it (the PromptPwnd pattern).
+    match: {type: analyzer, analyzer: ci}
+    remediation: Do not paste the text into the prompt. Give the agent the issue or pull-request number and let it read the content through a tool as data, restrict who can trigger the workflow, and keep the agent's tools and token read-only.
+    references: ["https://aikido.dev/blog/promptpwnd-github-actions-ai-agents"]
+
+  - id: AG-CI-002
+    version: 1
+    description: "A job runs an agent on `pull_request_target`, `issue_comment` or `workflow_run`, the agent's environment holds secrets, and the job's token can write (explicit write scopes, `write-all`, or no `permissions:` block). Jobs gated on the actor's association with the repository are not reported."
+    why: These events are fired by people outside the repository but run with the base repository's secrets and token. An agent that reads their text can be told to use both.
+    match: {type: analyzer, analyzer: ci}
+    remediation: "Run agents for outside contributions on `pull_request` with a read-only token and no secrets, or gate the job on `author_association` being OWNER, MEMBER or COLLABORATOR. Set `permissions:` explicitly to the minimum."
+
+  - id: AG-CI-003
+    version: 1
+    description: "An agent step is given shell or write tools (`Bash`, `Write`, `Edit`, a write sandbox, auto-edit approval) in a workflow that issues, comments or pull requests from outside can trigger. Scoped grants such as `Bash(gh pr comment:*)` are reported one level lower, and so are workflows that only run on `pull_request`."
+    why: With a shell, an injected instruction is command execution on the runner; with write tools it is a commit.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Give the agent read-only tools on untrusted triggers. If it must comment, allow exactly that command, and gate the job on the actor.
+
+  - id: AG-CI-004
+    version: 1
+    description: "A job that runs an agent has `permissions: write-all` or write access to four or more scopes."
+    why: Everything the token can do, a steered agent can do. Most agent jobs need to read code and write one comment.
+    match: {type: analyzer, analyzer: ci}
+    remediation: "List only the scopes the job needs, read-only where possible (`contents: read`, `pull-requests: write` for a reviewer)."
+
+  - id: AG-CI-005
+    version: 1
+    description: "The action that runs the agent is referenced by a tag or branch (`@v1`, `@main`) instead of a 40-character commit SHA."
+    why: A tag can be moved. The code at that ref receives the model key, the repository token and every other secret of the job.
+    match: {type: analyzer, analyzer: ci}
+    fix_action: pin-commit
+    remediation: Pin the action to a full commit SHA and note the version in a comment.
+
+  - id: AG-CI-006
+    version: 1
+    description: "A later step interpolates the agent step's output (`${{ steps.<agent>.outputs.* }}`, or a job output of the agent's job) into a `run:` script or an `actions/github-script` body."
+    why: The expression is substituted before the shell or script engine parses the text, so whatever the agent wrote is executed. An agent steered by an issue or pull request then runs code on the runner.
+    match: {type: analyzer, analyzer: ci}
+    remediation: "Pass the output through an environment variable (`env: OUT: ${{ steps.agent.outputs.result }}`) and treat it as data, never as code. Have a person review anything that is committed or executed."
+
+  - id: AG-CI-007
+    version: 1
+    description: "The agent is started with a flag that turns off its permission checks or sandbox - `--dangerously-skip-permissions`, `--yolo`, `--dangerously-bypass-approvals-and-sandbox`, `--allow-all-tools`, bypass permission mode, a full-access sandbox."
+    why: Nothing stands between the text the agent reads and the commands it runs, with the job's secrets in its environment.
+    match: {type: analyzer, analyzer: ci}
+    fix_action: remove-match
+    remediation: Remove the flag and list the tools the job needs instead.
+
+  - id: AG-CI-008
+    version: 1
+    description: "A job checks out the pull request's head on a privileged event and runs an agent there, or runs an agent with secrets on pull-request code while loading project configuration (`.mcp.json`, agent settings). The second form is reported at medium."
+    why: Headless agents treat the working folder as trusted, so hooks in a committed settings file run and project MCP servers start without a prompt. A pull request that adds them gets code execution with the job's secrets.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Run the agent from the base branch's checkout, give it the diff as data, and pass an explicit configuration from outside the workspace (or disable project settings and MCP servers).
+    references: ["https://adversa.ai/blog/trustfall-coding-agent-security-flaw-rce-claude-cursor-gemini-cli-copilot/"]
+
+  - id: AG-CI-009
+    version: 1
+    description: "An agent step's environment holds two or more secrets beyond the model credential and the repository token, or every secret (`secrets: inherit`, `toJSON(secrets)`)."
+    why: An agent can print or send anything in its environment when told to by text it reads. Deploy keys and cloud credentials do not belong there.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Pass the agent step only the model credential and a minimal token. Move steps that need other secrets into a separate job that does not run an agent.
+
+  - id: AG-CI-010
+    version: 1
+    description: "A reviewing agent runs in the pull request's own checkout, so its instruction files and skills come from the code under review. Reported at high when the head is checked out on a privileged event, at medium on `pull_request`."
+    why: "The author of the pull request can add a `CLAUDE.md`, an `AGENTS.md` or a skill that tells the reviewer to approve, to stay silent, or to do something else entirely."
+    match: {type: analyzer, analyzer: ci}
+    remediation: Load instructions and skills from the base branch, review the diff as data, and treat changes to agent files in a pull request as needing a human.
+
+  - id: AG-CI-011
+    version: 1
+    description: "The Copilot setup workflow downloads and runs content in a step, or a workflow turns the Copilot agent firewall off or widens its allow-list to any host."
+    why: Setup steps run before the agent's firewall applies, and the firewall is what limits where the agent can send data.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Install tools from pinned versions with checksums, keep the firewall on, and list only the hosts the agent needs.
+
+  - id: AG-CI-012
+    version: 1
+    description: A job runs an agent on a self-hosted runner in a workflow that issues, comments or pull requests from outside can trigger.
+    why: A self-hosted runner keeps its disk, its network position and often its credentials between jobs. A steered agent can leave something behind for the next job or reach the internal network.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Run agents for untrusted triggers on ephemeral hosted runners, or gate the job on the actor.
+
+  - id: AG-CI-013
+    version: 1
+    description: "A GitHub agentic workflow (Markdown with frontmatter) allows every shell command, every GitHub toolset or every network host, or gives the agent job write permissions instead of using `safe-outputs`."
+    why: These files are compiled into workflows that run an agent on repository events. Wide tools and network mean an injected instruction has wide reach.
+    match: {type: analyzer, analyzer: ci}
+    remediation: "List the commands and hosts the workflow needs, keep `permissions` read-only and write through `safe-outputs`."
+
+  - id: AG-CI-014
+    version: 1
+    description: "An agent step has no turn, cost or time limit: no `--max-turns`, no budget, and no `timeout-minutes` on the step or the job."
+    why: A looping or steered agent keeps running, and spending, until the platform's own limit stops it.
+    match: {type: analyzer, analyzer: ci}
+    remediation: "Set `timeout-minutes` on the job and a turn limit on the agent."
+
+  - id: AG-CI-015
+    version: 1
+    description: "A job downloads an artifact from the triggering run on `workflow_run`, or restores a cache keyed on the pull request or branch, and then runs an agent."
+    why: The artifact or cache was produced by a run that may have built untrusted code. Its files reach the agent as context, or as instruction files in the workspace.
+    match: {type: analyzer, analyzer: ci}
+    remediation: Do not feed artifacts or caches from untrusted runs to an agent. If the data is needed, validate it and pass it as plain data outside the workspace.

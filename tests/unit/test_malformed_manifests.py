@@ -54,7 +54,7 @@ def manifest(**tool):
 
 
 def coverage_messages(report):
-    return [f.message for f in report.findings if f.rule_id == "AG-SYS-001"]
+    return [f.message for f in report.findings if f.rule_id == "AG-EVADE-001"]
 
 
 CASES = [(file, path) for file, doc in MANIFESTS.items() for path in field_paths(doc) if path]
@@ -87,7 +87,7 @@ def test_pyproject_with_wrong_types(toml):
 def test_non_object_schema_is_reported_at_the_tool():
     report = run({"server/tools.json": '{"tools": [\n  {"name": "a", "description": "d"},\n'
                                        '  {"name": "x", "description": "d", "outputSchema": "not an object"}\n]}'})
-    found = next(f for f in report.findings if f.rule_id == "AG-SYS-001")
+    found = next(f for f in report.findings if f.rule_id == "AG-EVADE-001")
     assert found.message == "Tool 'x' field 'outputSchema' is a string, not an object; it was not analyzed."
     assert (found.primary.path, found.primary.start_line) == ("server/tools.json", 3)
 
@@ -132,7 +132,7 @@ def test_snake_case_schema_is_used_when_the_camel_case_one_is_malformed():
 def test_the_snippet_is_redacted_and_capped():
     secret = "ghp_" + "a1B2" * 9
     report = run(manifest(outputSchema=f"token {secret} " + "x" * 500))
-    found = next(f for f in report.findings if f.rule_id == "AG-SYS-001")
-    snippet = str(found.evidence[0].snippet)
+    found = next(f for f in report.findings if f.rule_id == "AG-EVADE-001")
+    snippet = str(found.evidence.items[0].snippet)
     assert secret not in snippet
     assert len(snippet) < 300

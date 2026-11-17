@@ -1,4 +1,4 @@
-"""AG-LLM-001/002 from recorded judge verdicts (pure; no model is called here).
+"""AG-META-004/judge and AG-INJ-012/judge from recorded judge verdicts (pure; no model is called here).
 
 Invariants: judge findings are tagged ``source: llm``, carry at most medium
 confidence, and the engine caps them at HIGH. They never change or remove a
@@ -24,7 +24,7 @@ class JudgeAnalyzer:
     id: ClassVar[str] = "judge"
     requires: ClassVar[frozenset[str]] = frozenset({"network"})
     network_feature: ClassVar[str] = "llm_judge"
-    rules: ClassVar[tuple[str, ...]] = ("AG-LLM-001", "AG-LLM-002")
+    rules: ClassVar[tuple[str, ...]] = ("AG-META-004/judge", "AG-INJ-012/judge")
 
     def run(self, ctx: Context) -> None:
         for r in sorted(ctx.options.judge_results, key=lambda r: (r.kind, r.path, r.component_id)):
@@ -35,13 +35,13 @@ class JudgeAnalyzer:
             span = Span(path=r.path)
             if isinstance(r.verdict, MismatchVerdict) and r.verdict.mismatch:
                 what = "; ".join(r.verdict.undisclosed_behaviors[:3]) or "undisclosed behavior"
-                ctx.emit("AG-LLM-001", component_ids=r.component_id, span=span, snippet=quote, match=f"{r.content_hash}:mismatch",
+                ctx.emit("AG-META-004/judge", component_ids=r.component_id, span=span, snippet=quote, match=f"{r.content_hash}:mismatch",
                          kind=EvidenceKind.llm, confidence=_conf(r.verdict.confidence), source=FindingSource.llm,
                          tags=["llm-judge"], detail=r.verdict.explanation[:300],
                          message=f"LLM judge: code behavior not disclosed by the description — {what}.{note}")
             elif isinstance(r.verdict, ManipulationVerdict) and r.verdict.manipulation:
                 techniques = ", ".join(r.verdict.techniques) or "unspecified"
-                ctx.emit("AG-LLM-002", component_ids=r.component_id, span=span, snippet=quote, match=f"{r.content_hash}:manip",
+                ctx.emit("AG-INJ-012/judge", component_ids=r.component_id, span=span, snippet=quote, match=f"{r.content_hash}:manip",
                          kind=EvidenceKind.llm, confidence=_conf(r.verdict.confidence), source=FindingSource.llm,
                          tags=["llm-judge"], detail=r.verdict.explanation[:300],
                          message=f"LLM judge: possible agent manipulation ({techniques}).{note}")

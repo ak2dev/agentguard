@@ -1,0 +1,11 @@
+{
+  "facts": {
+    "images": {
+      "ghcr.io/acme/weather-mcp@sha256:ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12": {
+        "signed": true,
+        "provenance": true,
+        "sbom": true
+      }
+    }
+  }
+}

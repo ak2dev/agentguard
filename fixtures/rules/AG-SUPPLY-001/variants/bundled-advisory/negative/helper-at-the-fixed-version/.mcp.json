@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tracker": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@0.1.16",
+        "https://tracker.example.invalid/mcp"
+      ]
+    }
+  }
+}

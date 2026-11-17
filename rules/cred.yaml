@@ -1,0 +1,293 @@
+# Detection entries for the CRED family (catalogue: rules/catalog/cred.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+  - id: AG-CRED-002
+    aliases: [AG-SKL-CRED-001]
+    version: 3
+    description: Reads SSH keys, cloud CLI credentials, kube/docker configs, package-registry tokens, .env files, keychains, browser profiles or crypto wallets.
+    why: Credential files are the primary target of infostealer skills. Reading them is rarely needed by a skill's stated purpose.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:~|\$HOME|%USERPROFILE%|\$env:USERPROFILE|/home/[^/\s]+|/Users/[^/\s]+|/root)?[/\\]?(?:\.ssh[/\\](?:id_[a-z0-9_]+|authorized_keys|config)|\.aws[/\\](?:credentials|config)|\.config[/\\]gcloud|\.azure[/\\]|\.kube[/\\]config|\.docker[/\\]config\.json|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.gnupg[/\\]|\.password-store|Login\s+Data|Cookies\.sqlite|key4\.db|logins\.json|wallet\.dat|\.electrum|\.ethereum[/\\]keystore|Exodus[/\\]|nkbihfbeogaeaoehlefnkodbefgpgknn|login\.keychain(?:-db)?|\.config[/\\]gh[/\\]hosts\.yml|\.claude[/\\]\.credentials\.json)
+        - |-
+          \bsecurity\s+(?:find-generic-password|find-internet-password|dump-keychain)\b|\bcmdkey\s+/list\b|\bvaultcmd\b
+        # A whole credential directory under the home directory (tar/zip/cp -r ~/.ssh ~/.aws).
+        - |-
+          (?:~|\$HOME|\$\{HOME\}|%USERPROFILE%|\$env:USERPROFILE)[/\\](?:\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.azure|\.password-store|\.config[/\\](?:gcloud|gh))[/\\]?(?=[\s"'`)|;&,]|$)
+        - |-
+          (?:^|[\s"'(/\\])\.env(?:\.(?:local|production|prod|development|dev))?\b(?!\.example|\.sample|\.template)
+      require:
+        - |-
+          \b(?:cat|type|Get-Content|gc|less|more|head|tail|read(?:s|ing)?|open|load|copy|cp|scp|rsync|tar|zip|7z|base64|upload|send|post|exfiltrate|collect|harvest|grab|dump|steal|extract|include|attach|readFile(?:Sync)?|read_text|read_bytes|find-generic-password|find-internet-password|dump-keychain|cmdkey|vaultcmd|glob|walk|find)\b
+      unless:
+        - |-
+          \.env\.(?:example|sample|template|dist)\b
+        # Leaving the file out of an archive or a copy is the opposite of reading it.
+        - |-
+          --exclude(?:=|\s+)["']?[^\s"']*\.(?:env|ssh|aws|npmrc|netrc|gnupg|kube)\b
+      window: 0
+      # The skill says it works with that tool (a "list Kubernetes contexts" skill reading the kube
+      # config, an SSH host manager reading the SSH config): the read is what it declares. It is still
+      # reported, and sending the contents anywhere is a separate finding that this does not soften.
+      downgrade:
+        - {severity: medium, confidence: low, window: 0, patterns: ['\.kube\b'], declared: ['\b(?:kube(?:rnetes|ctl|config)?|k8s|helm)\b']}
+        - {severity: medium, confidence: low, window: 0, patterns: ['\.ssh[/\\]config\b'], declared: ['\bssh\b']}
+        - {severity: medium, confidence: low, window: 0, patterns: ['\.aws[/\\]config\b'], declared: ['\b(?:aws|amazon\s+web\s+services)\b']}
+        - {severity: medium, confidence: low, window: 0, patterns: ['\.docker[/\\]config\.json\b'], declared: ['\bdocker\b']}
+        - {severity: medium, confidence: low, window: 0, patterns: ['\.config[/\\]gcloud\b'], declared: ['\b(?:gcloud|google\s+cloud|gcp)\b']}
+    remediation: Do not read credential stores. Request only the scoped credential the task needs, through the platform's secret handling.
+
+
+  - id: AG-CRED-002
+    variant: server-code
+    aliases: [AG-CODE-020]
+    version: 2
+    title: Server code reads credential stores
+    description: MCP server code references SSH keys, cloud CLI credentials, browser profiles, wallets or similar.
+    why: A server that reads credential stores can exfiltrate them through any of its outputs.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove credential-store access; take the specific credential the server needs from its configuration.
+
+
+  - id: AG-CRED-007
+    variant: mcp-url
+    aliases: [AG-MCP-CFG-019]
+    lane: block
+    version: 1
+    title: Token or API key in URL query string
+    description: A remote server URL carries a secret-named query parameter with a literal value.
+    why: URLs are logged by proxies, servers and clients; secrets in them leak.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Send credentials in an Authorization header sourced from a secret store.
+
+
+  - id: AG-CRED-009
+    aliases: [AG-MCP-CFG-011]
+    version: 1
+    description: A value in env, headers or args matches a known credential format (API keys, tokens, private keys, webhook URLs).
+    why: Config files are copied, synced and committed; literal secrets in them leak.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Rotate the secret, then reference it from the environment or the client's secret store (e.g. `${env:TOKEN}` / input variables).
+
+
+  - id: AG-CRED-011
+    aliases: [AG-SKL-SE-006]
+    version: 1
+    description: Asks the user (via the agent or a fake dialog) for their system password, keychain password, seed phrase or private key.
+    why: Credential-harvesting prompts are a standard infostealer technique delivered through skills.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:ask|prompt|request)\s+(?:the\s+)?user\s+(?:for|to\s+(?:enter|provide|type|paste))\s+(?:their|his|her|the|your)\s+(?:(?:system|admin|administrator|sudo|login|keychain|macos|mac|root|windows|account)\s+)?(?:password|passphrase|seed\s+phrase|recovery\s+phrase|mnemonic|private\s+key)\b
+        - |-
+          \becho\s+["']?\$?\{?\w*(?:pass|PASS|pwd|PWD)\w*\}?["']?\s*\|\s*sudo\s+-S\b
+        - |-
+          \bosascript\b[^\n]*display\s+dialog[^\n]*(?:password|hidden\s+answer)
+        - |-
+          \b(?:enter|paste|type|provide|send|share)\s+(?:your\s+)?(?:wallet\s+)?(?:seed|recovery|mnemonic)\s+(?:phrase|words)\b
+    remediation: Never collect passwords, seed phrases or private keys. Use the platform's credential store or OAuth.
+
+
+  - id: AG-CRED-011
+    variant: mcp-app-form
+    aliases: [AG-MCP-META-017]
+    version: 1
+    title: MCP Apps UI resource with credential-style form
+    description: A ui:// resource contains password, API-key, token or seed-phrase inputs.
+    why: In-chat credential forms are a phishing surface that bypasses the client's own auth flows.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Use the protocol's authorization flow instead of collecting credentials in UI resources.
+
+
+  - id: AG-CRED-015
+    aliases: [AG-MCP-CFG-020]
+    version: 1
+    description: Secret-named environment variables are passed to the server (names only; values are never recorded).
+    why: Inventory signal for blast radius; each secret passed extends what a compromised server can use.
+    confidence: low
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Pass each server only the credentials it needs, scoped as narrowly as possible.
+
+
+  - id: AG-CRED-013
+    version: 1
+    description: A configuration file points a model or API base URL at a host that is neither the vendor's nor local - `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`, a Codex model provider's `base_url`, and similar.
+    why: Every prompt, every file the agent reads and the API key itself are sent to that host. Set from a repository file, the redirect applies to everyone who opens the folder.
+    confidence: high
+    match: {type: analyzer, analyzer: settings}
+    fix_action: remove-key
+    remediation: Remove the override. If a gateway is required, configure it in your own user settings and name a host you operate.
+
+# ---- added: cred_regex ----
+  - id: AG-CRED-003
+    version: 1
+    description: Code or a command reads an agent's own credential store - `~/.claude.json`, `~/.claude/.credentials.json`, `~/.codex/auth.json`, Gemini OAuth files, Cursor or Copilot auth files, OpenClaw credentials, the `gh` host file, or the agent's keychain item.
+    why: These files hold the tokens the agent uses for the model API and for every connected MCP server. Whoever has them can act as the user's agent.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:~|\$\{?HOME\}?|%USERPROFILE%|\$env:USERPROFILE|/home/[\w.-]+|/Users/[\w.-]+)[/\\](?:\.claude\.json|\.claude[/\\]\.credentials\.json|\.codex[/\\]auth\.json|\.gemini[/\\](?:oauth_creds\.json|mcp-oauth-tokens\.json|google_accounts\.json)|\.cursor[/\\]auth\.json|\.config[/\\]github-copilot[/\\](?:hosts|apps)\.json|\.openclaw[/\\](?:credentials\b|auth-profiles\.json)|\.config[/\\]gh[/\\]hosts\.yml)
+        - |-
+          \bsecurity\s+find-generic-password\s+[^\n]*(?:Claude\s+Code-credentials|Claude|anthropic|codex|openai)\b
+      require:
+        - |-
+          \b(?:cat|read\w*|open|copy|cp|upload|send|grep|type|Get-Content|base64|print\w*|load\w*|parse\w*|scp|curl|less|head|tail|jq|security)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|stored\s+in|lives\s+in|is\s+kept\s+in)\b
+      window: 0
+    remediation: Remove it. No skill, plugin or server needs the agent's own tokens.
+
+  - id: AG-CRED-004
+    version: 1
+    description: Code or a command reads cryptocurrency wallet files or browser wallet extension storage, or instructions ask for a seed or recovery phrase.
+    why: A wallet file or seed phrase is the money. Whoever copies it can empty the wallet and the loss cannot be reversed.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          \bwallet\.dat\b|\.electrum[/\\]wallets|[/\\]\.?[Ee]thereum[/\\]keystore|\.bitcoin[/\\]wallets?\b|exodus\.wallet|\.config[/\\]solana[/\\]id\.json|keystore[/\\]UTC--
+        - |-
+          \b(?:nkbihfbeogaeaoehlefnkodbefgpgknn|bfnaelmomeimhlpmgjnjophhpkkoljpa|hnfanknocfeofbddgcijnmhnfnkdnaad|fhbohimaelbohpjbbldcngcnapndodjp)\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,40})\b(?:enter|paste|type|provide|share|send|give|collect|read|upload|ask\s+(?:the\s+user\s+)?for)\s+(?:me\s+|us\s+)?(?:your\s+|the\s+|their\s+|a\s+)?(?:(?:12|24|twelve|twenty[- ]four)[- ]word\s+)?(?:wallet\s+)?(?:seed|recovery|mnemonic|secret\s+recovery)\s+(?:phrase|words)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that reads wallet files or asks for a seed phrase.
+
+  - id: AG-CRED-005
+    version: 1
+    description: Code or a command reads the operating system's credential store - the macOS keychain (`security find-generic-password`, `dump-keychain`), Secret Service or keyring lookups, Windows Credential Manager or vault, LSASS or SAM dumps.
+    why: The system store holds passwords and tokens for every application, far beyond what one extension's task involves.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bsecurity\s+(?:find-(?:generic|internet)-password|dump-keychain|unlock-keychain)\b|\blogin\.keychain(?:-db)?\b|\bSecItemCopyMatching\b
+        - |-
+          \bsecret-tool\s+(?:lookup|search)\b|\bkeyring\s+get\b|\bkeyring\.get_password\(|\bkeytar\.(?:getPassword|findCredentials|findPassword)\(|\bkwallet-query\b
+        - |-
+          \bcmdkey\s+/list\b|\bvaultcmd\s+/list\w*|\bGet-StoredCredential\b|Windows\.Security\.Credentials\.PasswordVault|\bCred(?:Enumerate|Read)[AW]?\(
+        - |-
+          \bsekurlsa::|\blsass(?:\.exe)?\b[^\n]{0,60}\b(?:dump|procdump|comsvcs|MiniDump)\b|\breg\s+save\s+hklm\\(?:sam|security|system)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it, or limit the lookup to one named item the extension itself stored, and say so in the description.
+
+  - id: AG-CRED-006
+    version: 1
+    description: Text tells the agent to have the user paste a password, key, token or one-time code into the conversation, or to print a secret's value in full.
+    why: What is typed into or printed in the conversation is stored in transcripts and sent to the model provider; it also trains the user to hand secrets to whatever asks.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:ask|tell|prompt|request|instruct|have|get)\s+(?:the\s+)?user\s+(?:to\s+)?(?:paste|type|enter|share|send|provide|give|input|reveal)\s+(?:you\s+|me\s+|us\s+)?(?:their|the|your|an?|his|her)\s+(?:[\w-]+\s+){0,2}?(?:api\s*keys?|passwords?|passphrases?|secret(?:\s+key)?s?|access\s+tokens?|tokens?|private\s+keys?|credentials|2fa\s+codes?|otp|recovery\s+codes?)\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:print|echo|display|show|output|repeat|include|log)\s+(?:the\s+|their\s+|its\s+)?(?:full\s+|raw\s+|actual\s+|entire\s+)?(?:value\s+of\s+(?:the\s+)?)?(?:api\s*keys?|passwords?|secret(?:\s+key)?s?|access\s+tokens?|tokens?|private\s+keys?|credentials)\b[^.\n]{0,40}\b(?:verbatim|in\s+(?:full|plain\s*text|the\s+(?:chat|response|reply|output))|unredacted|without\s+(?:masking|redact\w+))\b
+        - |-
+          \b(?:paste|enter|type|share)\s+your\s+(?:[\w-]+\s+){0,2}?(?:api\s*key|password|secret(?:\s+key)?|access\s+token|token|private\s+key|recovery\s+code)\s+(?:here|below|in(?:to)?\s+(?:the\s+)?(?:chat|conversation))\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Have the user put the secret in an environment variable or the agent's secret store, and refer to it by name.
+
+  - id: AG-CRED-008
+    version: 1
+    description: A secret is written where others can read it - a file made world-readable, a file under `/tmp`, a log, or an agent instruction or memory file.
+    why: Secrets copied into logs, shared directories and instruction files outlive the task and are read by other users, other tools and later agent sessions.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bchmod\s+(?:[0-7]?[0-7][0-7][4-7]|[oa]\+r\w*)\s+[^\n]*(?:\.env\b|credentials|secrets?\b|token|\.pem\b|id_(?:rsa|ed25519)\b|\.key\b)
+        - |-
+          \b(?:echo|printf)\s+[^\n]*\$\{?\w*(?:TOKEN|SECRET|API_?KEY|PASSWORD|PASSWD)\w*\}?[^\n]*>>?\s*(?:/tmp/|/var/tmp/|\S*\.log\b|\S*(?:CLAUDE|AGENTS|GEMINI|MEMORY)\.md\b)
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:save|store|write|record|append|put|add|note)\s+(?:the\s+|their\s+|your\s+|this\s+)?(?:api\s*keys?|passwords?|secrets?|access\s+tokens?|tokens?|private\s+keys?|credentials)\s+(?:in(?:to)?|to|inside)\s+(?:the\s+|your\s+|a\s+)?(?:`?CLAUDE\.md`?|`?AGENTS\.md`?|`?GEMINI\.md`?|`?MEMORY\.md`?|memory(?:\s+file)?|notes?\s+file|instruction\s+file|readme|log(?:\s+file)?|/tmp/\S*|(?:public|shared|world-readable)\s+\w+)
+        - |-
+          \bopen\(\s*["']/tmp/[^"']+["']\s*,\s*["'][wa]["']\s*\)[^\n]{0,80}\b(?:token|secret|password|api_?key)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Keep secrets in the environment or a secret store with owner-only permissions; never in logs, temporary directories or instruction files.
+
+  - id: AG-CRED-012
+    version: 1
+    description: A URL imitates a trusted API host - the vendor's name under another domain (`api.openai.com.example.net`, `openai-api.example.net`) or a misspelt vendor domain - next to a key, token or authorization header.
+    why: Requests sent there carry the user's API key to whoever registered the lookalike.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          https?://api\.(?:openai|anthropic|github|stripe|mistral|cohere|groq)\.com\.[\w.-]+
+        - |-
+          https?://(?:[\w-]+\.)*(?:api[.-]openai|openai-api|api[.-]anthropic|anthropic-api|claude-api|api-claude|api[.-]github|github-api|api[.-]stripe|stripe-api)\.(?!com/|com\b)[\w.-]+
+        - |-
+          https?://(?:[\w-]+\.)*(?:0penai|openal|opena1|anthr0pic|anthropc|antropic|githuh|g1thub|gitbub|glthub|strlpe|str1pe)\.[a-z]{2,}\b
+      require:
+        - |-
+          \b(?:key|token|authorization|bearer|secret|password|credentials?|x-api-key)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|typosquat\w*)\b
+      window: 3
+    remediation: Remove it. Use the vendor's real host; do not install something that sends keys to a lookalike.
+
+# ---- added: shipped_cred ----
+  - id: AG-CRED-001
+    version: 1
+    description: "A text file holds a secret as a literal: a provider API key or token in its published format, a private key block, or a high-entropy value assigned to a name like `api_key`, `token` or `password`. Placeholders and references to environment variables are not reported. MCP client configuration and `.env` files have their own rules."
+    why: Anyone who can read the package can use the secret. An agent that loads the file carries the secret into its context, its transcripts and whatever it sends to a model.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Remove the secret from the file and from the repository history, revoke it, and read it from the environment or a secret store at run time.
+    fix_action: replace-with-env-reference
+
+  - id: AG-CRED-010
+    version: 1
+    description: "A configuration file (JSON, YAML, TOML, INI) stores an OAuth client secret as a literal under a key such as `client_secret` or `clientSecret`."
+    why: Everyone who receives the file can act as this OAuth client. A secret shipped in a file cannot be rotated without shipping a new file to every user.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Reference an environment variable or the agent's secret storage instead, and rotate the secret that was shipped. Public clients should use PKCE and no secret at all.
+    fix_action: replace-with-env-reference
+
+  - id: AG-CRED-014
+    version: 1
+    description: "A `.env` file is part of the package and holds values that look live: a provider key format, or a long high-entropy value under a name like `TOKEN`, `SECRET` or `PASSWORD`. `.env.example`, `.env.sample` and `.env.template` files and placeholder values are not reported."
+    why: An environment file belongs on the machine that uses it. Shipped in a package, it hands the secret to everyone who installs it, and agents load such files into their environment.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Delete the file from the package, add it to the ignore list, revoke the secrets in it, and ship a `.env.example` with empty values instead.
+    fix_action: blank-env-values

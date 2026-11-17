@@ -5,7 +5,7 @@ Syntax-aware, intra-procedural taint on top of the pattern-based code analyzer:
 * JavaScript/TypeScript MCP tool handlers. The handler's first parameter
   (including nested destructured fields) is tracked through declarations,
   assignments, destructuring, ``for … of``, member access, templates,
-  concatenation and calls into the sinks of AG-CODE-001..008. A handler passed
+  concatenation and calls into the sinks of AG-VULN-001..008. A handler passed
   by name (``server.tool("x", schema, handler)``) is resolved within the file,
   and sinks are resolved through imports and ``promisify`` aliases of
   ``child_process``, ``fs`` and ``execa``.
@@ -586,8 +586,8 @@ class TreeSitterAnalyzer:
         "tree_sitter", "tree_sitter_javascript", "tree_sitter_typescript", "tree_sitter_bash",
     )
     rules: ClassVar[tuple[str, ...]] = (
-        "AG-CODE-001", "AG-CODE-002", "AG-CODE-003", "AG-CODE-004", "AG-CODE-005", "AG-CODE-006", "AG-CODE-007",
-        "AG-CODE-008",
+        "AG-VULN-001", "AG-VULN-001/process-argument", "AG-VULN-001/eval", "AG-VULN-005", "AG-VULN-002", "AG-VULN-003", "AG-VULN-004",
+        "AG-VULN-007",
     )
 
     def run(self, ctx: Context) -> None:

@@ -22,8 +22,8 @@ def _with_yara_rule(rule_file: str) -> dict[str, bytes]:
     rules_dir, mappings_dir = data_dirs()
     files = {f"rules/{p.relative_to(rules_dir).as_posix()}": p.read_bytes() for p in rules_dir.rglob("*") if p.is_file()}
     files.update({f"mappings/{p.relative_to(mappings_dir).as_posix()}": p.read_bytes() for p in mappings_dir.rglob("*") if p.is_file()})
-    text = files["rules/skill/structure.yaml"].decode()
-    files["rules/skill/structure.yaml"] = text.replace("rules/yara/bundled-stager.yar", rule_file).encode()
+    path = next(p for p, data in files.items() if p.endswith(".yaml") and b"rules/yara/bundled-stager.yar" in data)
+    files[path] = files[path].decode().replace("rules/yara/bundled-stager.yar", rule_file).encode()
     return files
 
 
@@ -38,7 +38,7 @@ def test_every_yara_source_compiles_and_names_its_rule():
 
     assert PACK.yara_sources, "rule pack ships no YARA sources"
     compile_pack(PACK)
-    owners = {r.match.rule_file: r.id for r in PACK.rules.values() if r.match.type == "yara"}
+    owners = {d.match.rule_file: d.rule_id for d in PACK.detectors.values() if d.match.type == "yara"}
     for path, source in PACK.yara_sources.items():
         assert path in owners, f"{path} is not referenced by any rule"
         compiled = list(yara.compile(source=source, includes=False))
@@ -54,7 +54,7 @@ def test_native_analyzers_reported_skipped_when_missing(monkeypatch):
     for aid in ("code.ts", "yara"):
         assert runs[aid].status == "skipped" and "native" in (runs[aid].reason or "")
     # Skipped YARA rules are not counted as evaluated.
-    yara_rules = sum(1 for r in PACK.rules.values() if r.match.type == "yara")
+    yara_rules = len({d.rule_id for d in PACK.detectors.values() if d.match.type == "yara"})
     full = scan(ArtifactTree.from_mapping({"x/SKILL.md": "---\nname: x\ndescription: X.\n---\n"}), ScanOptions())
     if {r.id: r.status for r in full.analyzers}["yara"] == "ran":
         assert full.stats.rules_evaluated == report.stats.rules_evaluated + yara_rules
@@ -82,7 +82,7 @@ def test_treesitter_offsets_survive_non_ascii():
         "  const label = 'naïve 🚀';\n  execSync(`${label} ${cmd}`);\n  return { content: [] };\n});\n",
         "import { execSync } from 'node:child_process';\n",
     )
-    hits = [f for f in _ts_only(tree).findings if f.rule_id == "AG-CODE-001"]
+    hits = [f for f in _ts_only(tree).findings if f.rule_id == "AG-VULN-001"]
     assert len(hits) == 1
     src = tree.files["server/src/index.ts"].data.decode()
     line = src.splitlines()[hits[0].primary.start_line - 1]
@@ -106,7 +106,7 @@ def test_treesitter_unimported_exec_is_not_child_process():
         "server.tool('find', 'Find rows.', { name: z.string() }, async ({ name }) => {\n"
         "  exec(name);\n  return { content: [] };\n});\n",
     )
-    assert not [f for f in _ts_only(tree).findings if f.rule_id == "AG-CODE-001"]
+    assert not [f for f in _ts_only(tree).findings if f.rule_id == "AG-VULN-001"]
 
 
 def test_treesitter_url_needs_control_of_the_start():
@@ -115,5 +115,5 @@ def test_treesitter_url_needs_control_of_the_start():
                        "  const url = `https://api.example.invalid/items/${id}`;\n  await fetch(url);\n  return { content: [] };\n});\n")
     open_ = _ts_server("server.tool('get', 'Fetch a page.', { base: z.string() }, async ({ base }) => {\n"
                        "  const url = `${base}/items`;\n  await fetch(url);\n  return { content: [] };\n});\n")
-    assert not [f for f in _ts_only(fixed).findings if f.rule_id == "AG-CODE-006"]
-    assert [f for f in _ts_only(open_).findings if f.rule_id == "AG-CODE-006"]
+    assert not [f for f in _ts_only(fixed).findings if f.rule_id == "AG-VULN-003"]
+    assert [f for f in _ts_only(open_).findings if f.rule_id == "AG-VULN-003"]

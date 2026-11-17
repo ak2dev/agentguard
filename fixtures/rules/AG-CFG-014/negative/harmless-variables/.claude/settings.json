@@ -1,0 +1,7 @@
+{
+  "env": {
+    "CI": "1",
+    "FORCE_COLOR": "0",
+    "PROJECT_NAME": "orders"
+  }
+}

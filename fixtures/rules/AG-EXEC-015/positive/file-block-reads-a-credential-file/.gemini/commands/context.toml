@@ -1,0 +1,5 @@
+description = "Summarize the staged changes."
+prompt = """
+Use this context:
+@{~/.aws/credentials}
+"""

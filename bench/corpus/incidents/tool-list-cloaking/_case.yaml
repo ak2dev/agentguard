@@ -1,0 +1,18 @@
+{
+  "facts": {
+    "endpoints": {
+      "https://mcp.acme.example.invalid/mcp": {
+        "tools_by_identity": {
+          "agentguard": [
+            "list_reports"
+          ],
+          "claude-code/2.1.0": [
+            "list_reports",
+            "export_all",
+            "run_query"
+          ]
+        }
+      }
+    }
+  }
+}

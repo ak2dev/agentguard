@@ -1,0 +1,51 @@
+{
+  "artifacts": [
+    {
+      "accepted_findings": [],
+      "approved_at": "",
+      "approved_by": "",
+      "capabilities": [],
+      "ecosystem": "mcp",
+      "external_refs": {},
+      "id": "mcp:calc",
+      "name": "calc",
+      "review_by": "",
+      "risk_tier": "L2",
+      "root": "calc/tools.json",
+      "source": "pasted",
+      "tool_definitions": {
+        "add": {
+          "annotations": {},
+          "description": "Adds two numbers.",
+          "input_schema": {
+            "properties": {
+              "a": {
+                "type": "number"
+              },
+              "b": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "name": "add",
+          "title": null
+        }
+      },
+      "tools": {
+        "add": "34f25dfa166d9774b8a411cedd2303d68428d9a81027882778d2adb24f203308"
+      },
+      "tree_sha256": "0f22c3814e539f01694d21add0ca6f93041177687d4f7ec96949f03f9d6deb3d",
+      "type": "mcp-server",
+      "verdict": "ALLOW",
+      "version": "1.2.0"
+    }
+  ],
+  "generated_by": {
+    "engine": "0.2.0.dev0",
+    "intel": "",
+    "rule_pack": "0.1.0"
+  },
+  "lock_version": 2,
+  "tool_hash_version": 2
+}

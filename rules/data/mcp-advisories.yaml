@@ -1,0 +1,26 @@
+# Snapshot of published advisories for MCP servers and helper tools, matched against the name and
+# version a server reports about itself (AG-CONN-010). `fixed` lists the first fixed version of each
+# version line the project publishes (semantic and calendar versions are compared separately).
+# This is a small bundled snapshot; `agentguard update` replaces it, and the host can pass more through
+# options.facts["endpoints"][url]["vulnerabilities"].
+advisories:
+  - id: CVE-2025-6514
+    names: [mcp-remote]
+    fixed: ["0.1.16"]
+    severity: critical
+    summary: OS command injection when connecting to an untrusted server (crafted authorization endpoint).
+  - id: CVE-2025-49596
+    names: ["@modelcontextprotocol/inspector", mcp-inspector, "MCP Inspector"]
+    fixed: ["0.14.1"]
+    severity: critical
+    summary: Unauthenticated requests to the inspector proxy lead to remote code execution.
+  - id: CVE-2025-53967
+    names: [figma-developer-mcp, "Figma MCP Server", "Framelink Figma MCP Server"]
+    fixed: ["0.6.3"]
+    severity: high
+    summary: Command injection through an unsanitised fallback curl command.
+  - id: CVE-2025-53110
+    names: ["@modelcontextprotocol/server-filesystem", secure-filesystem-server]
+    fixed: ["0.6.3", "2025.7.1"]
+    severity: high
+    summary: Directory containment bypass (prefix match and symlink handling) allows file access outside the allowed roots.

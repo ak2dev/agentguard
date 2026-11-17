@@ -1,0 +1,1 @@
+{ tools: { elevated: { enabled: true, allowFrom: { whatsapp: ["+15555550123"] } } } }

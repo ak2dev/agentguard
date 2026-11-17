@@ -1,0 +1,3 @@
+[filter "stamp"]
+	clean = node tools/stamp.js
+	smudge = cat

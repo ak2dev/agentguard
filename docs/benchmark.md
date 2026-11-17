@@ -6,6 +6,45 @@ target miss, on committed results that differ from what the current rules produc
 numbers), and on a pull request that makes any item worse than on the target branch
 (`scripts/check_bench.py`).
 
+
+## Current results (2026-11-17, rule pack 0.1.0 with the 450-rule catalogue, quick profile)
+
+What a user sees is the verdict each item ends in:
+
+| Label | ALLOW | REVIEW | BLOCK |
+|---|---|---|---|
+| benign (210) | 209 | 1 | 0 |
+| malicious (40) | 0 | 2 | 38 |
+| adversarial (36) | 0 | 4 | 32 |
+
+The one benign REVIEW is `real-cloudflare-demo-day`, for a bearer token written into its frontend code (AG-CRED-001),
+which is probably a true finding. In the `standard` profile the verdicts are the same: the triage model raises the
+score of four adversarial items and changes no verdict.
+
+The targets are stated in verdicts, as PLAN §12.2 states them: attacks caught (REVIEW or BLOCK) at least 95% (here
+100%), benign items flagged at most 2%, the plan's 80-in-4,000 budget for the quick profile (here 0.5%), and precision at
+CRITICAL at least 0.95 (here 1.00). `scripts/check_bench.py` also fails on any item whose verdict moves the wrong way.
+Against results from the engine before verdicts, it compares what was caught: against the previous committed results,
+attacks caught went from 75 (flagged at HIGH) to 76 (REVIEW or BLOCK) and benign items flagged from 4 to 1; the one newly
+flagged item is `real-cloudflare-demo-day`, for a real hard-coded bearer token.
+
+Per severity, which counts every finding including evidence-lane ones that do not count towards the verdict alone, and
+is kept for rule tuning rather than as a target: precision 0.90 at HIGH; benign items with a HIGH finding 3.8% over all
+items and 1.3% on the held-out split. 60 of 76 attacks reach their expected severity and 39 of 54 CRITICAL-worthy ones
+reach CRITICAL: the expected severities were set for the earlier rule pack, and the catalogue assigns severity per rule
+as `spec/rules.md` does, so several attacks are now reported at HIGH with a BLOCK verdict rather than at CRITICAL.
+
+Other suites: `bench evasion` rewrote the 36 malicious samples into 187 variants with sixteen operators; all 187 are at
+REVIEW or above and 99.5% keep their original verdict (467 s). `bench incidents` catches 23 of 23 reproductions at the
+expected file and line (3 s). The corpus run takes 144 s; 100 skills and 20 server configs take 6.0 s.
+
+The triage model (`rules/data/triage-model.json`) is trained on the dev split and measured on the held-out split:
+114 components, AUC 1.0, no benign component above its agreement threshold. It agrees with the rules on this corpus;
+its value on harder data is not measured yet.
+
+The sections below record how the corpus was built and each tuning round; they use the rule ids of their time, which
+resolve as aliases.
+
 ## Corpus
 
 | Source | Label | Items | Split |

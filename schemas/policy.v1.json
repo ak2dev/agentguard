@@ -1,5 +1,151 @@
 {
   "$defs": {
+    "PolicyAllow": {
+      "additionalProperties": false,
+      "properties": {
+        "publishers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Publishers",
+          "type": "array"
+        },
+        "registries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Registries",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "servers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Servers"
+        }
+      },
+      "title": "PolicyAllow",
+      "type": "object"
+    },
+    "PolicyDeny": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "servers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Servers",
+          "type": "array"
+        },
+        "publishers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Publishers",
+          "type": "array"
+        }
+      },
+      "title": "PolicyDeny",
+      "type": "object"
+    },
+    "PolicyLanes": {
+      "additionalProperties": false,
+      "properties": {
+        "hunt": {
+          "default": false,
+          "title": "Hunt",
+          "type": "boolean"
+        }
+      },
+      "title": "PolicyLanes",
+      "type": "object"
+    },
+    "PolicyRequire": {
+      "additionalProperties": false,
+      "properties": {
+        "full_coverage": {
+          "default": false,
+          "title": "Full Coverage",
+          "type": "boolean"
+        },
+        "pinned_sources": {
+          "default": false,
+          "title": "Pinned Sources",
+          "type": "boolean"
+        },
+        "signatures": {
+          "default": "off",
+          "enum": [
+            "off",
+            "warn",
+            "require"
+          ],
+          "title": "Signatures",
+          "type": "string"
+        },
+        "max_risk_tier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RiskTier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_analyzability": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Analyzability",
+          "type": "number"
+        }
+      },
+      "title": "PolicyRequire",
+      "type": "object"
+    },
+    "RiskTier": {
+      "description": "Assigned from capabilities, independently of findings.",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "title": "RiskTier",
+      "type": "string"
+    },
     "Severity": {
       "enum": [
         "critical",
@@ -10,9 +156,76 @@
       ],
       "title": "Severity",
       "type": "string"
+    },
+    "Suppression": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "fingerprint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fingerprint"
+        },
+        "path_glob": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path Glob"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "approved_by": {
+          "default": "",
+          "title": "Approved By",
+          "type": "string"
+        },
+        "expires": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expires"
+        }
+      },
+      "title": "Suppression",
+      "type": "object"
     }
   },
   "additionalProperties": false,
+  "description": "Policy as code (spec/interfaces.md §5). It is applied last and can only\ntighten a verdict, except through recorded suppressions.",
   "properties": {
     "version": {
       "const": 1,
@@ -20,45 +233,66 @@
       "title": "Version",
       "type": "integer"
     },
-    "engine": {
-      "const": "builtin",
-      "default": "builtin",
-      "title": "Engine",
+    "name": {
+      "default": "balanced",
+      "title": "Name",
       "type": "string"
     },
-    "deny_servers": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Deny Servers",
-      "type": "array"
-    },
-    "deny_publishers": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Deny Publishers",
-      "type": "array"
-    },
-    "allow_servers": {
+    "extends": {
       "anyOf": [
         {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+          "type": "string"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "title": "Allow Servers"
+      "title": "Extends"
     },
-    "require_pinning": {
-      "default": false,
-      "title": "Require Pinning",
-      "type": "boolean"
+    "engine": {
+      "const": "builtin",
+      "default": "builtin",
+      "title": "Engine",
+      "type": "string"
+    },
+    "fail_on": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fail On"
+    },
+    "require": {
+      "$ref": "#/$defs/PolicyRequire"
+    },
+    "allow": {
+      "$ref": "#/$defs/PolicyAllow"
+    },
+    "deny": {
+      "$ref": "#/$defs/PolicyDeny"
+    },
+    "severity_overrides": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Severity"
+      },
+      "title": "Severity Overrides",
+      "type": "object"
+    },
+    "lanes": {
+      "$ref": "#/$defs/PolicyLanes"
+    },
+    "suppressions": {
+      "items": {
+        "$ref": "#/$defs/Suppression"
+      },
+      "title": "Suppressions",
+      "type": "array"
     },
     "max_severity": {
       "anyOf": [
@@ -70,13 +304,6 @@
         }
       ],
       "default": null
-    },
-    "severity_overrides": {
-      "additionalProperties": {
-        "$ref": "#/$defs/Severity"
-      },
-      "title": "Severity Overrides",
-      "type": "object"
     },
     "trifecta_severity": {
       "$ref": "#/$defs/Severity",

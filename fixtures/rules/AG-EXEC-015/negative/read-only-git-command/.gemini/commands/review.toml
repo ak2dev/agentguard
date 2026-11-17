@@ -1,0 +1,5 @@
+description = "Summarize the staged changes."
+prompt = """
+Review this diff:
+!{git diff --staged}
+"""

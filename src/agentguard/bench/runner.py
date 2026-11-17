@@ -23,6 +23,7 @@ and scan performance.
 from __future__ import annotations
 
 import datetime as dt
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,7 +32,8 @@ from typing import Any
 from ..core.archive import from_archive
 from ..core.engine import ENGINE_VERSION, scan
 from ..core.models import Lockfile, Report, ScanOptions
-from ..core.models.enums import Severity
+from ..core.models.enums import Severity, SourceKind
+from ..core.models.source import SourceRef
 from ..core.parsers.safe_yaml import safe_load
 from ..core.rules.pack import RulePack
 from ..io.fs_loader import load_path
@@ -39,8 +41,16 @@ from ..io.fs_loader import load_path
 THRESHOLDS = (Severity.critical, Severity.high, Severity.medium)
 # Coverage and configuration-posture findings are not verdicts about an item;
 # flows are reported separately (flow_findings) instead of counting as detections.
-_NOT_COMPONENT_RULES = ("AG-SYS-", "AG-FLOW-", "AG-POL-")
-TARGETS = {"precision_critical": 0.95, "precision_high": 0.85, "fpr_high_max": 0.02}
+_NOT_COMPONENT_RULES = ("AG-FLOW-", "AG-POL-")
+# PLAN §12.2 states its targets in verdicts: attacks caught (REVIEW or BLOCK) and benign items flagged, with a
+# false-positive budget of 80 in 4,000 (2%) for the quick profile and 120 in 4,000 (3%) for standard, as the public
+# benchmark runners use (bench/public.py). The internal corpus is held to the recall the plan asks of the standard
+# profile, because its attacks are the ones the rules were written against. Precision at CRITICAL stays a target: a
+# CRITICAL finding with high confidence decides BLOCK. The per-severity tables are kept for rule tuning: they count
+# evidence-lane findings that do not decide a verdict on their own.
+TARGETS = {"malicious_recall": 0.95, "precision_critical": 0.95}
+FALSE_POSITIVE_BUDGET = {"quick": 80 / 4000, "standard": 120 / 4000, "deep": 120 / 4000}
+_REPO = re.compile(r"[A-Za-z0-9][\w.-]*/[\w.-]+")
 
 
 @dataclass
@@ -72,19 +82,29 @@ def load_manifest(root: Path) -> list[Item]:
     return items
 
 
-def _scan_item(item: Item, pack: RulePack) -> Report:
-    opts: dict[str, Any] = {}
+def _scan_item(item: Item, pack: RulePack, profile: str = "quick", on_triage_features: Any = None) -> Report:
+    opts: dict[str, Any] = {"profile": profile, "on_triage_features": on_triage_features}
     lock = item.path / "agentguard.lock"
     if lock.exists():
         opts["lock"] = Lockfile.model_validate_json(lock.read_text(encoding="utf-8"))
     archive = item.path / "_archive.zip"
     tree = from_archive(archive.read_bytes()) if archive.exists() else load_path(item.path)
     tree.files.pop("agentguard.lock", None)
+    if item.source == "real" and _REPO.fullmatch(item.author):
+        # A copy of a published repository is scanned as fetched from it, so rules that depend on
+        # where a component comes from (a vendor's name used by that vendor) see the same thing
+        # as `agentguard scan https://github.com/<owner>/<repo>`.
+        tree.source = SourceRef(kind=SourceKind.github, locator=f"https://github.com/{item.author}")
     return scan(tree, ScanOptions(**opts), pack)
 
 
+def _counts(f) -> bool:  # noqa: ANN001 - Finding
+    """Coverage and policy findings are not verdicts about an item; flows are reported separately."""
+    return not f.id.startswith(_NOT_COMPONENT_RULES) and "coverage" not in f.tags
+
+
 def _flag(report: Report, t: Severity) -> bool:
-    return any(f.severity.at_least(t) for f in report.findings if not f.rule_id.startswith(_NOT_COMPONENT_RULES))
+    return any(f.severity.at_least(t) for f in report.findings if _counts(f))
 
 
 def _ratio(n: int, d: int) -> float | None:
@@ -111,16 +131,21 @@ def _calibrated(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "below_expected": sorted(r["id"] for r in pos if not r["severity_met"])}
 
 
-def run_bench(root: Path, split: str = "all", pack: RulePack | None = None) -> dict[str, Any]:
+def _target(actual: float | None, target: float, *, at_most: bool = False) -> dict[str, Any]:
+    met = actual is not None and (actual <= target if at_most else actual >= target)
+    return {"target": round(target, 4), "actual": actual, "met": met, "at_most": at_most}
+
+
+def run_bench(root: Path, split: str = "all", pack: RulePack | None = None, profile: str = "quick") -> dict[str, Any]:
     pack = pack or RulePack.default()
     items = [i for i in load_manifest(root) if split == "all" or i.split == split]
     rows: list[dict[str, Any]] = []
     started = time.perf_counter()
     for item in items:
         t0 = time.perf_counter()
-        report = _scan_item(item, pack)
-        fired = sorted({f.rule_id for f in report.findings})
-        top = max((f.severity for f in report.findings if not f.rule_id.startswith(_NOT_COMPONENT_RULES)),
+        report = _scan_item(item, pack, profile=profile)
+        fired = sorted({f.key for f in report.findings} | {f.id for f in report.findings})
+        top = max((f.severity for f in report.findings if _counts(f)),
                   key=lambda s: s.rank, default=None)
         rows.append({
             "id": item.id, "label": item.label, "category": item.category, "split": item.split, "source": item.source,
@@ -132,9 +157,11 @@ def run_bench(root: Path, split: str = "all", pack: RulePack | None = None) -> d
                              else top is not None and top.rank >= item.expected_severity.rank),
             "rules": fired,
             "expected_hit": (not item.expected_rules) or bool(set(item.expected_rules) & set(fired)),
-            "benign_hits": [f"{f.rule_id}:{f.severity.value}" for f in report.findings if item.label == "benign"
-                            and f.severity.rank >= Severity.medium.rank and not f.rule_id.startswith(_NOT_COMPONENT_RULES)],
-            "flow_findings": sorted({f"{f.rule_id}:{f.severity.value}" for f in report.findings if f.rule_id.startswith("AG-FLOW-")}),
+            "benign_hits": [f"{f.key}:{f.severity.value}" for f in report.findings if item.label == "benign"
+                            and f.severity.rank >= Severity.medium.rank and _counts(f)],
+            "verdict": report.verdict.value,
+            "score": report.score,
+            "flow_findings": sorted({f"{f.key}:{f.severity.value}" for f in report.findings if f.id.startswith("AG-FLOW-")}),
             "ms": round((time.perf_counter() - t0) * 1000, 1),
         })
     elapsed = time.perf_counter() - started
@@ -158,24 +185,28 @@ def run_bench(root: Path, split: str = "all", pack: RulePack | None = None) -> d
     for r in rows:
         for hit in set(r["benign_hits"]):
             rule_fp[hit] = rule_fp.get(hit, 0) + 1
-    crit, high = overall["critical"], overall["high"]
+    from .metrics import verdict_metrics
+
+    verdicts = verdict_metrics(rows)
+    crit = overall["critical"]
     targets = {
-        "precision_critical": {"target": TARGETS["precision_critical"], "actual": crit["precision"],
-                               "met": crit["precision"] is not None and crit["precision"] >= TARGETS["precision_critical"]},
-        "precision_high": {"target": TARGETS["precision_high"], "actual": high["precision"],
-                           "met": high["precision"] is not None and high["precision"] >= TARGETS["precision_high"]},
-        "fpr_high_max": {"target": TARGETS["fpr_high_max"], "actual": high["fpr"],
-                         "met": high["fpr"] is not None and high["fpr"] <= TARGETS["fpr_high_max"]},
+        "malicious_recall": _target(verdicts["malicious_recall"], TARGETS["malicious_recall"]),
+        "benign_flagged_max": _target(verdicts["benign_flagged"], FALSE_POSITIVE_BUDGET.get(profile, 0.02), at_most=True),
+        "precision_critical": _target(crit["precision"], TARGETS["precision_critical"]),
     }
     counts = {lbl: sum(1 for r in rows if r["label"] == lbl) for lbl in ("benign", "malicious", "adversarial")}
     sources = {s: sum(1 for r in rows if r["source"] == s) for s in sorted({r["source"] for r in rows})}
+
     return {
         "schema": "agentguard-bench/1",
         "engine_version": ENGINE_VERSION,
         "rule_pack": {"version": pack.version, "digest": pack.digest},
         "date": dt.date.today().isoformat(),
         "split": split,
+        "profile": profile,
         "corpus": {"items": len(rows), **counts, "sources": sources},
+        # What a user sees: the verdict each item ended in (the severity tables below are for rule tuning).
+        "verdicts": verdicts,
         "overall": overall,
         "by_split": by_split,
         "calibrated": {"overall": _calibrated(rows),

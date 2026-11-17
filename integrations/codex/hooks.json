@@ -1,0 +1,42 @@
+{
+  "description": "Agent Guard: scan before install, re-scan agent-facing files when they change, verify the baseline at session start",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook pre-install --agent codex",
+            "timeout": 300,
+            "statusMessage": "Agent Guard: checking the command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook file-changed --agent codex",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook session-start --agent codex",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

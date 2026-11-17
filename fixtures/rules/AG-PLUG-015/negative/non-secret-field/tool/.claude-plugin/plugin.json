@@ -1,0 +1,11 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "userConfig": {
+    "lineLength": {
+      "title": "Line length",
+      "type": "number"
+    }
+  }
+}

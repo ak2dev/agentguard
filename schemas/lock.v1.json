@@ -1,31 +1,31 @@
 {
   "$defs": {
-    "CapLabel": {
-      "enum": [
-        "reads_private_data",
-        "ingests_untrusted_content",
-        "external_egress",
-        "destructive",
-        "code_exec",
-        "credential_access",
-        "persistence",
-        "auto_approved"
-      ],
-      "title": "CapLabel",
-      "type": "string"
-    },
     "LockEntry": {
+      "description": "One approved artifact in ``agentguard.lock`` (spec/interfaces.md §6).",
       "properties": {
-        "key": {
-          "title": "Key",
+        "id": {
+          "default": "",
+          "title": "Id",
           "type": "string"
         },
-        "kind": {
-          "title": "Kind",
+        "type": {
+          "default": "",
+          "title": "Type",
+          "type": "string"
+        },
+        "ecosystem": {
+          "default": "",
+          "title": "Ecosystem",
           "type": "string"
         },
         "name": {
+          "default": "",
           "title": "Name",
+          "type": "string"
+        },
+        "root": {
+          "default": "",
+          "title": "Root",
           "type": "string"
         },
         "version": {
@@ -40,11 +40,29 @@
           "default": null,
           "title": "Version"
         },
-        "content_hash": {
-          "title": "Content Hash",
+        "source": {
+          "default": "",
+          "title": "Source",
           "type": "string"
         },
-        "skill_files": {
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "tree_sha256": {
+          "default": "",
+          "title": "Tree Sha256",
+          "type": "string"
+        },
+        "files": {
           "anyOf": [
             {
               "additionalProperties": {
@@ -57,13 +75,70 @@
             }
           ],
           "default": null,
-          "title": "Skill Files"
+          "title": "Files"
+        },
+        "external_refs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "External Refs",
+          "type": "object"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "risk_tier": {
+          "default": "",
+          "title": "Risk Tier",
+          "type": "string"
+        },
+        "verdict": {
+          "default": "",
+          "title": "Verdict",
+          "type": "string"
+        },
+        "accepted_findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Accepted Findings",
+          "type": "array"
+        },
+        "approved_by": {
+          "default": "",
+          "title": "Approved By",
+          "type": "string"
+        },
+        "approved_at": {
+          "default": "",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "review_by": {
+          "default": "",
+          "title": "Review By",
+          "type": "string"
+        },
+        "launch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LockLaunch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "tools": {
           "anyOf": [
             {
               "additionalProperties": {
-                "$ref": "#/$defs/ToolSnapshot"
+                "type": "string"
               },
               "type": "object"
             },
@@ -74,47 +149,89 @@
           "default": null,
           "title": "Tools"
         },
-        "capability_labels": {
-          "items": {
-            "$ref": "#/$defs/CapLabel"
-          },
-          "title": "Capability Labels",
-          "type": "array"
+        "tool_definitions": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Definitions"
+        },
+        "server_instructions_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Server Instructions Sha256"
         }
       },
-      "required": [
-        "key",
-        "kind",
-        "name",
-        "content_hash"
-      ],
       "title": "LockEntry",
       "type": "object"
     },
-    "ToolSnapshot": {
+    "LockLaunch": {
+      "description": "How an MCP server is started or reached. ``sha256`` covers all of it, so a\nchanged command, argument or URL under the same name is caught (AG-MCP-012).",
       "properties": {
-        "hash": {
-          "title": "Hash",
-          "type": "string"
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
         },
-        "definition": {
-          "additionalProperties": true,
-          "title": "Definition",
-          "type": "object"
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Args",
+          "type": "array"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "sha256": {
+          "default": "",
+          "title": "Sha256",
+          "type": "string"
         }
       },
-      "required": [
-        "hash",
-        "definition"
-      ],
-      "title": "ToolSnapshot",
+      "title": "LockLaunch",
       "type": "object"
     }
   },
   "properties": {
     "lock_version": {
-      "const": 1,
-      "default": 1,
+      "default": 2,
+      "enum": [
+        1,
+        2
+      ],
       "title": "Lock Version",
       "type": "integer"
     },
@@ -128,16 +245,18 @@
       "title": "Tool Hash Version",
       "type": "integer"
     },
-    "generator": {
-      "default": "agentguard",
-      "title": "Generator",
-      "type": "string"
+    "generated_by": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Generated By",
+      "type": "object"
     },
-    "entries": {
+    "artifacts": {
       "items": {
         "$ref": "#/$defs/LockEntry"
       },
-      "title": "Entries",
+      "title": "Artifacts",
       "type": "array"
     }
   },

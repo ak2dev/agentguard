@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "weather": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@acme-weather/mcp@1.4.2"
+      ]
+    }
+  }
+}

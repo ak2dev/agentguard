@@ -1,0 +1,27 @@
+family: META
+name: Metadata, identity and triggers
+defaults: {category: hygiene, lane: evidence, confidence: medium, engine: config}
+mappings:
+  owasp-ast-1.0: [AST04, AST10]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: []
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  skilltrustbench: [T07]
+rules:
+  - [AG-META-001, H, X, "Name or branding imitates a known vendor or skill", {category: malice}]
+  - [AG-META-002, H, X, "Typosquat of a popular skill, plugin or server name", {category: malice}]
+  - [AG-META-003, M, P, "Description written to capture every request", {category: vulnerability}]
+  - [AG-META-004, H, P, "Description does not match what the code and instructions do", {category: vulnerability, engine: privilege}]
+  - [AG-META-005, L, A, "Specification violation (name and directory mismatch, bad characters, over-length)", {confidence: high}]
+  - [AG-META-006, I, G, "Frontmatter field unknown to the target agent", {lane: hunt}]
+  - [AG-META-007, L, P, "Keyword stuffing", {lane: hunt}]
+  - [AG-META-008, M, P, "Unsupported trust claim (\"official\", \"verified\", \"audited\")", {category: malice}]
+  - [AG-META-009, M, G, "Author, repository or version metadata inconsistent", {lane: hunt}]
+  - [AG-META-010, M, P, "Security metadata present for one agent and missing for another that loads the same file", {category: vulnerability}]
+  - [AG-META-011, H, X, "Reserved name used", {category: malice, confidence: high}]
+  - [AG-META-012, H, X, "Same name as a built-in or managed skill, placed where it wins precedence", {category: malice, lane: block, confidence: high}]
+  - [AG-META-013, M, G, "Description nearly duplicates an installed trusted skill", {category: vulnerability, engine: flow}]
+  - [AG-META-014, L, G, "Compatibility claims system or network access the purpose does not explain", {lane: hunt}]
+  - [AG-META-015, M, A, "Confusable characters in a display name", {category: malice, confidence: high, engine: text-integrity, mappings: {cwe: [CWE-1007]}}]

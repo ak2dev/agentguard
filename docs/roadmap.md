@@ -3,6 +3,17 @@
 *Written 2026-11-03. Spec versions, standards and incidents below were checked through web searches that day.
 Most of those sources are secondary, and the ones I could not confirm against a primary source are marked (unverified).*
 
+
+> **Status on 2026-11-17.** Since this was written, the scanner was rebuilt to the full project plan, which closes
+> most of the gaps marked 🟡 and ❌ below: plugins, marketplaces, subagents, commands and agent settings are parsed for
+> every tier 1 and 2 agent; connectors beyond MCP (OpenAPI actions, A2A agent cards, registry entries, bundles) and
+> container images are scanned; a sandboxed dynamic tier with canary credentials and a sinkhole exists
+> (`--profile deep`); an evasion suite of sixteen mutation operators and a corpus of 23 incident reproductions run as
+> regressions; the model adjudicator's isolation and bounds are documented in the threat model; and every scan ends in
+> one verdict. Still open from this plan: an independent malicious corpus, runtime enforcement, value-level dataflow
+> across files, Sigstore verification, fleet collection, and agent adapters inside the sandbox. `CHANGELOG.md` lists
+> what was built; the website's Limitations page lists what is not.
+
 ---
 
 ## 1. What changed in 2026

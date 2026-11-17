@@ -54,7 +54,7 @@ READ_VERB = regex.compile(
 # Environment copies handed only to a child process are filtered out by
 # envcopy.env_dumps(); use that instead of matching ENV_DUMP directly on code.
 ENV_DUMP = regex.compile(
-    # same command forms as AG-SKL-CRED-002
+    # same command forms as AG-EXF-002/env-harvest
     r"(?:^[ \t]*(?:\$\s+)?|[;&|]\s*|(?<![\w\].])\(\s*)(?:env|printenv|export\s+-p|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)[ \t]*(?:$|[|>;&)`])"
     r"|`(?:env|printenv|export\s+-p|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)[ \t]*[|>;&]"
     r"|(?:\b(?:run|runs|running|execute|exec|type|call|invoke|print|paste|dump|echo|output\s+of)\s+(?:the\s+)?|=\s*)`(?:env|printenv|export\s+-p)`"

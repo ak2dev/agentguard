@@ -1,0 +1,16 @@
+{
+  "name": "io.github.example/weather",
+  "description": "Weather forecasts.",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://downloads.example.invalid/weather-1.0.0.mcpb",
+      "version": "1.0.0",
+      "fileSha256": "3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855e",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

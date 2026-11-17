@@ -1,0 +1,28 @@
+family: PRIV
+name: Over-privilege and approval bypass
+about: Skills, commands and subagent definitions.
+defaults: {category: vulnerability, lane: evidence, confidence: medium, engine: privilege}
+mappings:
+  owasp-ast-1.0: [AST03]
+  owasp-mcp-2025-beta: ["MCP02:2025"]
+  owasp-asi-2026: [ASI03]
+  owasp-llm-2026: ["LLM03:2026"]
+  nsa-csi-mcp-2026-05: [concerns/approval-workflows]
+  cwe: [CWE-250]
+  skilltrustbench: [T05]
+  malskillbench: [B9]
+rules:
+  - [AG-PRIV-001, H, A, "Wildcard tool grant (`allowed-tools: Bash(*)`, `*`)", {lane: block, confidence: high}]
+  - [AG-PRIV-002, M, P, "Tool grant wider than the stated purpose needs"]
+  - [AG-PRIV-003, H, A, "Subagent with `permissionMode` of `bypassPermissions`, `dontAsk` or `acceptEdits`", {lane: block, confidence: high}]
+  - [AG-PRIV-004, H, A, "Skill or agent frontmatter hook that approves tool calls", {lane: block, confidence: high}]
+  - [AG-PRIV-005, M, P, "Requests secrets or environment variables unrelated to its purpose"]
+  - [AG-PRIV-006, M, A, "Forces always-on loading or implicit invocation for a sensitive skill", {confidence: high}]
+  - [AG-PRIV-007, M, A, "Side-effecting skill left invocable by the model without user action"]
+  - [AG-PRIV-008, H, P, "Declared permissions understate what the code does"]
+  - [AG-PRIV-009, H, G, "Requests host or elevated execution, or the sandbox turned off", {lane: block}]
+  - [AG-PRIV-010, M, P, "File access beyond the workspace"]
+  - [AG-PRIV-011, M, P, "Unrestricted network access where the purpose is local"]
+  - [AG-PRIV-012, M, G, "Dispatches straight to a sensitive tool, bypassing the model", {confidence: high}]
+  - [AG-PRIV-013, M, G, "Reads or writes other skills' or agents' directories"]
+  - [AG-PRIV-014, M, P, "Custom agent with all tools and an unvetted MCP server", {confidence: high}]

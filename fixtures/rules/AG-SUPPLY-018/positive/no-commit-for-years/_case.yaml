@@ -1,0 +1,11 @@
+{
+  "today": "2026-11-12",
+  "facts": {
+    "sources": {
+      "https://github.com/example-org/csv-tool": {
+        "archived": false,
+        "pushed_at": "2023-01-04T10:00:00Z"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "facts": {
+    "media": {
+      "csv-tool/assets/code.png": {
+        "qr": [
+          "https://files.example.invalid/next"
+        ]
+      }
+    }
+  }
+}

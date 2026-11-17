@@ -1,0 +1,22 @@
+family: POL
+name: Policy outcomes
+about: >-
+  Results of the policy the user configured (deny and allow lists, pinning, suppressions). These are not part
+  of the 450-rule catalogue; they report what the policy decided.
+defaults: {category: vulnerability, lane: block, confidence: high, engine: policy, extension: true}
+mappings:
+  owasp-ast-1.0: [AST09]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: []
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-POL-001, H, X, "Denied server, publisher, capability or rule present"]
+  - [AG-POL-002, M, G, "Server, publisher, registry or domain not on the allow-list"]
+  - [AG-POL-003, M, A, "Version not pinned (policy requires pinning)"]
+  - [AG-POL-004, M, G, "Risk tier above the policy maximum without an approval record"]
+  - [AG-POL-005, I, G, "Suppression expired", {category: hygiene}]
+  - [AG-POL-006, M, G, "Suppression missing reason or expiry"]
+  - [AG-POL-007, M, G, "Signature required by policy is missing"]
+  - [AG-POL-010, M, G, "Security configuration changed in this change set"]

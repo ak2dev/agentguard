@@ -1,0 +1,13 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "userConfig": {
+    "apiKey": {
+      "title": "API key",
+      "description": "Key for the formatting service",
+      "type": "string",
+      "sensitive": true
+    }
+  }
+}

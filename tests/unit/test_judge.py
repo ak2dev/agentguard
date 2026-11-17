@@ -98,7 +98,7 @@ def test_judge_findings_never_critical_and_confidence_capped():
     res = JudgeResult(kind="manipulation", component_id=item.component_id, path=item.path, content_hash=item.content_hash,
                       provider="fake", model="fake", verdict=verdict)
     report = scan(tree, ScanOptions(network=NetworkOptions(llm_judge=True), judge_results=[res]))
-    f = next(f for f in report.findings if f.rule_id == "AG-LLM-002")
+    f = next(f for f in report.findings if f.key == "AG-INJ-012/judge")
     assert f.source.value == "llm" and f.severity != Severity.critical and f.confidence.value != "high"
     assert "llm_judge" in report.network_features_used
 
@@ -197,5 +197,5 @@ def test_judge_can_raise_but_never_lower():
     judged = scan(tree, ScanOptions(network=NetworkOptions(llm_judge=True), judge_results=results))
     assert _deterministic(judged) == floor
     llm = [f for f in judged.findings if f.source.value == "llm"]
-    assert {f.rule_id for f in llm} == {"AG-LLM-001", "AG-LLM-002"}
+    assert {f.key for f in llm} == {"AG-META-004/judge", "AG-INJ-012/judge"}
     assert all(f.severity.rank <= Severity.high.rank and f.confidence.value != "high" for f in llm)

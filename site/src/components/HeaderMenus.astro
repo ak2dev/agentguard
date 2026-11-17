@@ -3,26 +3,27 @@
 // data-menu). They sit outside nav.main, so the nav's own links stay the only ones in it.
 import Icon from "./Icon.astro";
 import ruleData from "../data/generated/rules.json";
+import meta from "../data/generated/meta.json";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-const count = (prefix: string) => ruleData.rules.filter((r) => r.id.startsWith(prefix)).length;
+const count = (family: string) => ruleData.rules.filter((r) => r.family === family).length;
 const docs = [
-  ["Get started", [["Install", "install", "uvx, pipx, and what Agent Guard needs"], ["Quickstart", "quickstart", "Scan your machine, a skill, a repo or a config"], ["How it works", "how-it-works", "Why it exists, the pipeline and architecture"]]],
-  ["Configure", [["Configuration", "config", "The .agentguard.yaml file"], ["Policy", "policy", "Allow and deny servers, pinning, maximum severity"], ["Suppressions", "suppressions", "Accepting findings with a reason and an expiry"]]],
-  ["Integrate", [["CI integration", "ci", "GitHub Action with SARIF alerts, pre-commit"], ["Web scanner", "web-scanner", "Pasted text, files and GitHub links in the browser"], ["Library API", "library-api", "Use the engine from Python, workers or Pyodide"]]],
-  ["Reference", [["CLI reference", "cli", "Every command and option"], ["Output formats", "output", "JSON, SARIF, Markdown, HTML, CycloneDX"], ["MCP spec support", "mcp-spec-support", "Which MCP versions each rule area covers"], ["Limitations", "limitations", "What it does not do yet, and what's next"]]],
+  ["Get started", [["Install", "install", "uvx, pipx, and what Agent Guard needs"], ["Quickstart", "quickstart", "Scan a skill, a repo, a package or your machine"], ["How it works", "how-it-works", "Why it exists, the pipeline and architecture"]]],
+  ["Configure", [["Configuration", "config", "The .agentguard.yaml file"], ["Policy", "policy", "Presets, allow and deny lists, least privilege"], ["Suppressions", "suppressions", "Accepting findings with a reason and an expiry"]]],
+  ["Integrate", [["CI integration", "ci", "GitHub Action, pre-commit and agent hooks"], ["Web scanner", "web-scanner", "Pasted text, files and GitHub links in the browser"], ["Library API", "library-api", "Use the engine from Python, workers or Pyodide"]]],
+  ["Reference", [["CLI reference", "cli", "Every command and option"], ["Output formats", "output", "JSON, SARIF, Markdown, HTML, JUnit, CycloneDX"], ["MCP spec support", "mcp-spec-support", "Which MCP versions each rule area covers"], ["Limitations", "limitations", "What it does not do yet, and what's next"]]],
 ] as const;
-// One entry per section of the rule catalog (src/pages/rules/index.astro), linked by its anchor.
+// Ten of the catalogue's families, each linked to its section of the rule catalog (src/pages/rules/index.astro).
 const areas = [
-  ["Skills", "AG-SKL-", "file", "Instruction files, bundles and hidden text"],
-  ["MCP configs", "AG-MCP-CFG-", "plug", "How each server is started"],
-  ["MCP metadata", "AG-MCP-META-", "layers", "Tool, prompt and resource descriptions"],
-  ["MCP spec", "AG-MCP-SPEC-", "check", "Tasks, deprecations and client OAuth"],
-  ["Server code", "AG-CODE-", "code", "Where tool parameters end up"],
-  ["Toxic flows", "AG-FLOW-", "alert", "Untrusted input, private data and egress"],
-  ["Supply chain", "AG-SC-", "lock", "Lockfile drift, provenance and IOCs"],
-  ["Remote auth", "AG-AUTH-", "key", "OAuth and TLS conformance"],
-  ["Policy", "AG-POL-", "shield", "Allowlists, pinning and suppressions"],
-  ["Coverage", "AG-SYS-", "scan", "What a scan could not read"],
+  ["Injection", "INJ", "alert", "Hijacks, overrides and lures in instructions"],
+  ["Hidden content", "OBF", "file", "Invisible Unicode, encodings and hidden text"],
+  ["Exfiltration", "EXF", "send", "Where data leaves the machine"],
+  ["Execution", "EXEC", "terminal", "Pipe-to-shell, loaders and run-time installs"],
+  ["Agent settings", "CFG", "lock", "Permissions, hooks and pre-approved servers"],
+  ["Plugins", "PLUG", "box", "Manifests, marketplaces and shipped hooks"],
+  ["MCP servers", "MCP", "plug", "Configs, tool definitions, code and drift"],
+  ["Supply chain", "SUPPLY", "layers", "Pinning, provenance and known-bad packages"],
+  ["Toxic flows", "FLOW", "code", "Untrusted input, private data and egress together"],
+  ["Evasion", "EVADE", "scan", "Packing, padding and what a scan could not read"],
 ] as const;
 ---
 <div class="menu wide" data-menu-panel="docs" id="menu-docs">
@@ -45,12 +46,12 @@ const areas = [
 </div>
 <div class="menu" data-menu-panel="rules" id="menu-rules">
   <ul class="menu-grid">
-    {areas.map(([title, prefix, icon, text]) => (
-      <li><a class="menu-item with-icon" href={`${base}/rules/#${prefix.toLowerCase().replace(/-$/, "")}`}><Icon name={icon} class="icon" /><span><b>{title} <em>{count(prefix)}</em></b><span>{text}</span></span></a></li>
+    {areas.map(([title, family, icon, text]) => (
+      <li><a class="menu-item with-icon" href={`${base}/rules/#${family.toLowerCase()}`}><Icon name={icon} class="icon" /><span><b>{title} <em>{count(family)}</em></b><span>{text}</span></span></a></li>
     ))}
   </ul>
   <div class="menu-foot">
-    <a class="menu-all" href={`${base}/rules/`}>All {ruleData.rules.length} rules →</a>
+    <a class="menu-all" href={`${base}/rules/`}>All {meta.rule_count} rules in {meta.families} families →</a>
     <ul><li><a href={`${base}/coverage/`}>Coverage</a></li><li><a href={`${base}/benchmarks/`}>Benchmarks</a></li></ul>
   </div>
 </div>

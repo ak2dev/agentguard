@@ -1,0 +1,26 @@
+# Packages published as malware, or taken over and republished with a payload, as documented in public
+# advisories. One per line: <ecosystem>:<name>[@<version>]. No version means every version.
+# This list is a small offline floor; `--osv` adds the full OSV malicious-package records.
+npm:flatmap-stream
+npm:event-stream@3.3.6
+npm:eslint-scope@3.7.2
+npm:crossenv
+npm:ua-parser-js@0.7.29
+npm:ua-parser-js@0.8.0
+npm:ua-parser-js@1.0.0
+npm:coa@2.0.3
+npm:coa@2.0.4
+npm:coa@2.1.1
+npm:coa@2.1.3
+npm:coa@3.0.1
+npm:coa@3.1.3
+npm:rc@1.2.9
+npm:rc@1.3.9
+npm:rc@2.3.9
+npm:node-ipc@10.1.1
+npm:node-ipc@10.1.2
+pypi:ctx@0.2.2
+pypi:ctx@0.2.6
+pypi:colourama
+pypi:python3-dateutil
+pypi:jeilyfish

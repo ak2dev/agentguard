@@ -1,12 +1,13 @@
 {
   "schema": "agentguard-bench/1",
-  "engine_version": "0.1.0.dev0",
+  "engine_version": "0.2.0.dev0",
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "d5a18af846b493f68bd632bdb5b1c34884c6f37028b7e453050efa21d7620426"
+    "digest": "21fa9863d38e85b84a3386570972594b428a2fbfcb98836fdf3af6830c74dc87"
   },
-  "date": "2026-11-06",
+  "date": "2026-11-17",
   "split": "all",
+  "profile": "quick",
   "corpus": {
     "items": 286,
     "benign": 210,
@@ -17,142 +18,223 @@
       "synthetic": 123
     }
   },
+  "verdicts": {
+    "matrix": {
+      "adversarial": {
+        "ALLOW": 0,
+        "REVIEW": 4,
+        "BLOCK": 32
+      },
+      "benign": {
+        "ALLOW": 209,
+        "REVIEW": 1,
+        "BLOCK": 0
+      },
+      "malicious": {
+        "ALLOW": 0,
+        "REVIEW": 2,
+        "BLOCK": 38
+      }
+    },
+    "malicious_recall": 1.0,
+    "malicious_blocked": 0.9211,
+    "benign_flagged": 0.0048,
+    "false_positives": 1,
+    "macro_f1": 0.6522,
+    "per_class": {
+      "ALLOW": {
+        "precision": 1.0,
+        "recall": 0.9952,
+        "f1": 0.9976,
+        "tp": 209,
+        "fp": 0,
+        "fn": 1
+      },
+      "REVIEW": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 7,
+        "fn": 0
+      },
+      "BLOCK": {
+        "precision": 1.0,
+        "recall": 0.9211,
+        "f1": 0.9589,
+        "tp": 70,
+        "fp": 0,
+        "fn": 6
+      }
+    }
+  },
   "overall": {
     "critical": {
-      "tp": 54,
+      "tp": 40,
       "fp": 0,
-      "fn": 22,
+      "fn": 36,
       "tn": 210,
       "precision": 1.0,
-      "recall": 0.7105,
-      "f1": 0.8308,
+      "recall": 0.5263,
+      "f1": 0.6896,
       "fpr": 0.0
     },
     "high": {
       "tp": 75,
-      "fp": 4,
+      "fp": 8,
       "fn": 1,
-      "tn": 206,
-      "precision": 0.9494,
+      "tn": 202,
+      "precision": 0.9036,
       "recall": 0.9868,
-      "f1": 0.9677,
-      "fpr": 0.019
+      "f1": 0.9434,
+      "fpr": 0.0381
     },
     "medium": {
       "tp": 76,
-      "fp": 32,
+      "fp": 52,
       "fn": 0,
-      "tn": 178,
-      "precision": 0.7037,
+      "tn": 158,
+      "precision": 0.5938,
       "recall": 1.0,
-      "f1": 0.8261,
-      "fpr": 0.1524
+      "f1": 0.7451,
+      "fpr": 0.2476
     }
   },
   "by_split": {
     "dev": {
       "critical": {
-        "tp": 33,
+        "tp": 23,
         "fp": 0,
-        "fn": 11,
+        "fn": 21,
         "tn": 131,
         "precision": 1.0,
-        "recall": 0.75,
-        "f1": 0.8571,
+        "recall": 0.5227,
+        "f1": 0.6865,
         "fpr": 0.0
       },
       "high": {
         "tp": 43,
-        "fp": 2,
+        "fp": 7,
         "fn": 1,
-        "tn": 129,
-        "precision": 0.9556,
+        "tn": 124,
+        "precision": 0.86,
         "recall": 0.9773,
-        "f1": 0.9663,
-        "fpr": 0.0153
+        "f1": 0.9149,
+        "fpr": 0.0534
       },
       "medium": {
         "tp": 44,
-        "fp": 30,
+        "fp": 46,
         "fn": 0,
-        "tn": 101,
-        "precision": 0.5946,
+        "tn": 85,
+        "precision": 0.4889,
         "recall": 1.0,
-        "f1": 0.7458,
-        "fpr": 0.229
+        "f1": 0.6567,
+        "fpr": 0.3511
       }
     },
     "heldout": {
       "critical": {
-        "tp": 21,
+        "tp": 17,
         "fp": 0,
-        "fn": 11,
+        "fn": 15,
         "tn": 79,
         "precision": 1.0,
-        "recall": 0.6562,
-        "f1": 0.7924,
+        "recall": 0.5312,
+        "f1": 0.6938,
         "fpr": 0.0
       },
       "high": {
         "tp": 32,
-        "fp": 2,
+        "fp": 1,
         "fn": 0,
-        "tn": 77,
-        "precision": 0.9412,
+        "tn": 78,
+        "precision": 0.9697,
         "recall": 1.0,
-        "f1": 0.9697,
-        "fpr": 0.0253
+        "f1": 0.9846,
+        "fpr": 0.0127
       },
       "medium": {
         "tp": 32,
-        "fp": 2,
+        "fp": 6,
         "fn": 0,
-        "tn": 77,
-        "precision": 0.9412,
+        "tn": 73,
+        "precision": 0.8421,
         "recall": 1.0,
-        "f1": 0.9697,
-        "fpr": 0.0253
+        "f1": 0.9143,
+        "fpr": 0.0759
       }
     }
   },
   "calibrated": {
     "overall": {
       "items": 76,
-      "severity_met": 75,
-      "severity_met_rate": 0.9868,
+      "severity_met": 60,
+      "severity_met_rate": 0.7895,
       "critical_expected": {
         "items": 54,
-        "tp": 54,
-        "recall": 1.0
+        "tp": 39,
+        "recall": 0.7222
       },
       "below_expected": [
-        "rugpull-new-tool"
+        "a3-lolbin-bitsadmin",
+        "a3-split-wget",
+        "adv-split-files",
+        "h2-lolbin-certutil",
+        "h2-split-md-sh",
+        "h2-split-py-sh",
+        "h3-comp-mcp-helper",
+        "h3-comp-mcp-module",
+        "h3-comp-mcp-relative",
+        "h3-comp-mcp-ts-import",
+        "lure-zip-password",
+        "rugpull-new-tool",
+        "stdio-chain",
+        "stdio-cmd-enc",
+        "stdio-curl-sh",
+        "stdio-docker-sock"
       ]
     },
     "by_split": {
       "dev": {
         "items": 44,
-        "severity_met": 43,
-        "severity_met_rate": 0.9773,
+        "severity_met": 32,
+        "severity_met_rate": 0.7273,
         "critical_expected": {
           "items": 33,
-          "tp": 33,
-          "recall": 1.0
+          "tp": 22,
+          "recall": 0.6667
         },
         "below_expected": [
-          "rugpull-new-tool"
+          "a3-lolbin-bitsadmin",
+          "a3-split-wget",
+          "adv-split-files",
+          "h3-comp-mcp-helper",
+          "h3-comp-mcp-module",
+          "h3-comp-mcp-relative",
+          "h3-comp-mcp-ts-import",
+          "lure-zip-password",
+          "rugpull-new-tool",
+          "stdio-cmd-enc",
+          "stdio-curl-sh",
+          "stdio-docker-sock"
         ]
       },
       "heldout": {
         "items": 32,
-        "severity_met": 32,
-        "severity_met_rate": 1.0,
+        "severity_met": 28,
+        "severity_met_rate": 0.875,
         "critical_expected": {
           "items": 21,
-          "tp": 21,
-          "recall": 1.0
+          "tp": 17,
+          "recall": 0.8095
         },
-        "below_expected": []
+        "below_expected": [
+          "h2-lolbin-certutil",
+          "h2-split-md-sh",
+          "h2-split-py-sh",
+          "stdio-chain"
+        ]
       }
     }
   },
@@ -172,17 +254,17 @@
       "recall_critical": 0.0,
       "recall_high": 1.0,
       "recall_medium": 1.0,
-      "expected_rule_hit_rate": 0.1429,
+      "expected_rule_hit_rate": 0.5,
       "severity_met_rate": 1.0
     },
     "adv-split": {
       "label": "adversarial",
       "items": 7,
-      "recall_critical": 0.8571,
+      "recall_critical": 0.2857,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 0.4286,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.4286
     },
     "adv-unicode": {
       "label": "adversarial",
@@ -197,22 +279,22 @@
       "label": "benign",
       "items": 8,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
-      "fpr_medium": 0.5
+      "fpr_high": 0.125,
+      "fpr_medium": 0.25
     },
     "benign-config": {
       "label": "benign",
       "items": 7,
       "fpr_critical": 0.0,
       "fpr_high": 0.0,
-      "fpr_medium": 0.0
+      "fpr_medium": 0.4286
     },
     "benign-instructions": {
       "label": "benign",
       "items": 4,
       "fpr_critical": 0.0,
-      "fpr_high": 0.25,
-      "fpr_medium": 0.25
+      "fpr_high": 0.0,
+      "fpr_medium": 0.0
     },
     "benign-locked": {
       "label": "benign",
@@ -225,21 +307,21 @@
       "label": "benign",
       "items": 29,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
-      "fpr_medium": 0.4138
+      "fpr_high": 0.1034,
+      "fpr_medium": 0.3793
     },
     "benign-real-skill": {
       "label": "benign",
       "items": 134,
       "fpr_critical": 0.0,
       "fpr_high": 0.0224,
-      "fpr_medium": 0.097
+      "fpr_medium": 0.2537
     },
     "benign-server": {
       "label": "benign",
       "items": 3,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
+      "fpr_high": 0.3333,
       "fpr_medium": 0.3333
     },
     "benign-skill": {
@@ -252,11 +334,11 @@
     "composition": {
       "label": "adversarial",
       "items": 8,
-      "recall_critical": 1.0,
+      "recall_critical": 0.5,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.5
     },
     "cred-exfil": {
       "label": "malicious",
@@ -279,11 +361,11 @@
     "prereq-lure": {
       "label": "malicious",
       "items": 11,
-      "recall_critical": 0.9091,
+      "recall_critical": 0.6364,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 0.8182,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.7273
     },
     "reverse-shell": {
       "label": "malicious",
@@ -306,16 +388,16 @@
     "stdio-injection": {
       "label": "malicious",
       "items": 7,
-      "recall_critical": 1.0,
+      "recall_critical": 0.4286,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.4286
     },
     "tool-poisoning": {
       "label": "malicious",
       "items": 5,
-      "recall_critical": 0.6,
+      "recall_critical": 0.8,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
@@ -332,56 +414,77 @@
     }
   },
   "benign_hits_by_rule": {
-    "AG-MCP-META-020:medium": 6,
-    "AG-CODE-024:medium": 5,
-    "AG-MCP-META-009:medium": 5,
-    "AG-CODE-020:medium": 3,
-    "AG-SKL-CRED-001:medium": 3,
-    "AG-SKL-INJ-002:medium": 3,
-    "AG-CODE-027:medium": 2,
-    "AG-CODE-040:medium": 2,
-    "AG-SKL-INJ-004:high": 2,
-    "AG-SKL-INJ-004:medium": 2,
-    "AG-SKL-INJ-007:medium": 2,
-    "AG-SKL-MIS-001:medium": 2,
-    "AG-CODE-002:medium": 1,
-    "AG-CODE-025:high": 1,
-    "AG-SKL-BND-002:medium": 1,
-    "AG-SKL-CRED-002:medium": 1,
-    "AG-SKL-EXEC-002:medium": 1,
-    "AG-SKL-HID-004:medium": 1,
-    "AG-SKL-INJ-001:high": 1,
-    "AG-SKL-INJ-001:medium": 1,
-    "AG-SKL-INJ-009:medium": 1,
-    "AG-SKL-SE-007:medium": 1
+    "AG-SUPPLY-005:medium": 10,
+    "AG-EXEC-008:medium": 6,
+    "AG-SUPPLY-010:medium": 6,
+    "AG-INJ-008:medium": 4,
+    "AG-CFG-090:medium": 3,
+    "AG-CRED-002/server-code:medium": 3,
+    "AG-INJ-003/forged-delimiters:medium": 3,
+    "AG-CONN-015:medium": 2,
+    "AG-CRED-002:medium": 2,
+    "AG-EVADE-009:high": 2,
+    "AG-IMPACT-004:medium": 2,
+    "AG-INJ-005:medium": 2,
+    "AG-INJ-009:high": 2,
+    "AG-PERSIST-002/prose:medium": 2,
+    "AG-PRIV-005:medium": 2,
+    "AG-VULN-010:medium": 2,
+    "AG-CRED-001:high": 1,
+    "AG-CRED-001:medium": 1,
+    "AG-EVADE-012:high": 1,
+    "AG-EXEC-006/install-hook:medium": 1,
+    "AG-EXEC-014:medium": 1,
+    "AG-EXF-002/env-harvest:medium": 1,
+    "AG-IMPACT-006:high": 1,
+    "AG-IMPACT-010:medium": 1,
+    "AG-INJ-001:medium": 1,
+    "AG-INJ-003/impersonation:medium": 1,
+    "AG-INJ-009:medium": 1,
+    "AG-INJ-011:medium": 1,
+    "AG-INJ-015:medium": 1,
+    "AG-INJ-021:medium": 1,
+    "AG-INJ-028:medium": 1,
+    "AG-META-004:high": 1,
+    "AG-OBF-005:medium": 1,
+    "AG-OBF-018/bundled-archive:medium": 1,
+    "AG-PRIV-004/registers-hooks:medium": 1,
+    "AG-PRIV-008:high": 1,
+    "AG-PRIV-013:medium": 1,
+    "AG-VULN-017:medium": 1,
+    "AG-VULN-019:medium": 1,
+    "AG-WS-003:medium": 1
   },
   "targets": {
+    "malicious_recall": {
+      "target": 0.95,
+      "actual": 1.0,
+      "met": true,
+      "at_most": false
+    },
+    "benign_flagged_max": {
+      "target": 0.02,
+      "actual": 0.0048,
+      "met": true,
+      "at_most": true
+    },
     "precision_critical": {
       "target": 0.95,
       "actual": 1.0,
-      "met": true
-    },
-    "precision_high": {
-      "target": 0.85,
-      "actual": 0.9494,
-      "met": true
-    },
-    "fpr_high_max": {
-      "target": 0.02,
-      "actual": 0.019,
-      "met": true
+      "met": true,
+      "at_most": false
     }
   },
   "performance": {
-    "total_seconds": 101.874,
-    "mean_ms_per_item": 356.2,
+    "total_seconds": 136.848,
+    "mean_ms_per_item": 478.5,
     "perf_check": {
       "skills": 100,
       "configs": 20,
-      "seconds": 4.09,
+      "seconds": 6.002,
       "target_seconds": 10,
       "met": true,
-      "findings": 547
+      "findings": 647
     }
   },
   "items": [
@@ -393,20 +496,23 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-SE-003"
+        "AG-HYG-002",
+        "AG-OBF-025"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 70,
       "flow_findings": [],
-      "ms": 65.0
+      "ms": 224.1
     },
     {
       "id": "lure-curl-bash",
@@ -424,12 +530,15 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 6.0
+      "ms": 12.2
     },
     {
       "id": "lure-b64-paste",
@@ -447,16 +556,22 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002",
-        "AG-SKL-SE-004",
-        "AG-SKL-SE-005"
+        "AG-EXEC-001",
+        "AG-EXEC-002",
+        "AG-EXEC-002/encoded-command",
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/clickfix",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.9
+      "ms": 11.5
     },
     {
       "id": "lure-quarantine",
@@ -474,13 +589,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-001",
-        "AG-SKL-SE-007"
+        "AG-EXEC-003",
+        "AG-EXEC-003/download-run-command",
+        "AG-EXEC-014",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.2
+      "ms": 11.1
     },
     {
       "id": "lure-msi",
@@ -498,12 +617,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-001"
+        "AG-EXEC-003",
+        "AG-EXEC-003/download-run-command",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 8.7
     },
     {
       "id": "lure-iex",
@@ -521,12 +644,15 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.8
+      "ms": 9.0
     },
     {
       "id": "lure-winr",
@@ -544,13 +670,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-002",
-        "AG-SKL-SE-004"
+        "AG-EXEC-001",
+        "AG-EXEC-011",
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/clickfix"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.5
+      "ms": 8.5
     },
     {
       "id": "envdump-python",
@@ -568,18 +699,21 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-FLOW-005",
-        "AG-SKL-CRED-002",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001",
-        "AG-SKL-MIS-001"
+        "AG-EXF-001",
+        "AG-EXF-001/private-data-to-sink",
+        "AG-EXF-002",
+        "AG-EXF-002/env-harvest",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-005:critical"
-      ],
-      "ms": 6.2
+      "verdict": "BLOCK",
+      "score": 100,
+      "flow_findings": [],
+      "ms": 33.2
     },
     {
       "id": "envdump-shell",
@@ -597,14 +731,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-002",
-        "AG-SKL-CRED-010",
-        "AG-SKL-MIS-001"
+        "AG-EXF-001",
+        "AG-EXF-002",
+        "AG-EXF-002/env-harvest",
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.5
+      "ms": 14.8
     },
     {
       "id": "envdump-node",
@@ -622,14 +760,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-002",
-        "AG-SKL-CRED-010",
-        "AG-SKL-MIS-001"
+        "AG-EXF-001",
+        "AG-EXF-002",
+        "AG-EXF-002/env-harvest",
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.9
+      "ms": 11.8
     },
     {
       "id": "poison-manifest",
@@ -647,13 +789,15 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-002",
-        "AG-MCP-META-003"
+        "AG-MCP-020",
+        "AG-MCP-024"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 12.2
+      "ms": 14.2
     },
     {
       "id": "poison-python-source",
@@ -671,14 +815,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-CODE-020",
-        "AG-MCP-META-002",
-        "AG-MCP-META-003"
+        "AG-CRED-002",
+        "AG-CRED-002/server-code",
+        "AG-MCP-020",
+        "AG-MCP-024"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 20.9
+      "ms": 25.9
     },
     {
       "id": "poison-ts-hidden",
@@ -688,21 +835,24 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": false,
+        "critical": true,
         "high": true,
         "medium": true
       },
-      "max_severity": "high",
+      "max_severity": "critical",
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-001",
-        "AG-SKL-HID-001"
+        "AG-MCP-020",
+        "AG-MCP-020/hidden-unicode",
+        "AG-OBF-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 6.0
+      "ms": 15.2
     },
     {
       "id": "poison-sidechannel",
@@ -720,13 +870,15 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-002",
-        "AG-MCP-META-004"
+        "AG-MCP-020",
+        "AG-MCP-025"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 74,
       "flow_findings": [],
-      "ms": 3.0
+      "ms": 7.6
     },
     {
       "id": "shadow-bcc",
@@ -744,12 +896,14 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-006"
+        "AG-MCP-022"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 4.3
+      "ms": 6.5
     },
     {
       "id": "shadow-replace",
@@ -767,13 +921,14 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-006",
-        "AG-MCP-META-009"
+        "AG-MCP-022"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 4.2
+      "ms": 6.6
     },
     {
       "id": "stdio-curl-sh",
@@ -783,21 +938,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-MCP-CFG-001",
-        "AG-MCP-CFG-006"
+        "AG-CFG-090",
+        "AG-MCP-002",
+        "AG-MCP-002/shell-string",
+        "AG-MCP-003"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 83,
       "flow_findings": [],
-      "ms": 7.2
+      "ms": 9.1
     },
     {
       "id": "stdio-docker-sock",
@@ -807,21 +966,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-MCP-CFG-008",
-        "AG-MCP-CFG-010"
+        "AG-CFG-090",
+        "AG-IMG-001",
+        "AG-MCP-009",
+        "AG-MCP-009/docker-socket"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 56,
       "flow_findings": [],
-      "ms": 3.3
+      "ms": 5.6
     },
     {
       "id": "stdio-inline-python",
@@ -839,13 +1002,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-CFG-002",
-        "AG-MCP-CFG-025"
+        "AG-CFG-090",
+        "AG-EXEC-004",
+        "AG-EXEC-004/mcp-command",
+        "AG-MCP-002",
+        "AG-MCP-002/inline-code"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 13.2
+      "ms": 4.6
     },
     {
       "id": "stdio-cmd-enc",
@@ -855,23 +1023,28 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-MCP-CFG-001",
-        "AG-MCP-CFG-024",
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009"
+        "AG-CFG-090",
+        "AG-MCP-002",
+        "AG-MCP-002/encoded-command",
+        "AG-MCP-002/shell-string",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 92,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 6.8
     },
     {
       "id": "stdio-chain",
@@ -881,22 +1054,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-MCP-CFG-001",
-        "AG-MCP-CFG-006",
-        "AG-MCP-CFG-022"
+        "AG-MCP-002",
+        "AG-MCP-002/shell-string",
+        "AG-MCP-003",
+        "AG-MCP-071"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 87,
       "flow_findings": [],
-      "ms": 2.7
+      "ms": 4.8
     },
     {
       "id": "exfil-ssh-transfer",
@@ -914,14 +1090,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.5
+      "ms": 12.2
     },
     {
       "id": "exfil-aws-script",
@@ -939,13 +1119,16 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.0
+      "ms": 11.3
     },
     {
       "id": "exfil-browser-discord",
@@ -963,17 +1146,22 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-FLOW-005",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001",
-        "AG-SKL-MIS-001"
+        "AG-EXF-001",
+        "AG-EXF-001/private-data-to-sink",
+        "AG-EXF-005",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-EXF-013",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-005:critical"
-      ],
-      "ms": 8.7
+      "verdict": "BLOCK",
+      "score": 100,
+      "flow_findings": [],
+      "ms": 25.6
     },
     {
       "id": "adv-zero-width",
@@ -991,13 +1179,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-003",
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-OBF-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.0
+      "ms": 16.8
     },
     {
       "id": "adv-homoglyph-curl",
@@ -1015,13 +1207,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-004",
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-OBF-005"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.1
+      "ms": 14.1
     },
     {
       "id": "adv-tag-smuggle",
@@ -1039,15 +1235,20 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001",
-        "AG-SKL-HID-001"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-OBF-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.4
+      "ms": 13.1
     },
     {
       "id": "adv-b64-comment",
@@ -1065,14 +1266,19 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 15.0
     },
     {
       "id": "adv-hex-b64",
@@ -1090,14 +1296,20 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-OBF-010",
+        "AG-OBF-011",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 26.1
+      "ms": 11.8
     },
     {
       "id": "adv-paraphrase-lure",
@@ -1115,12 +1327,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 11.9
     },
     {
       "id": "adv-paraphrase-override",
@@ -1138,12 +1355,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
-      "expected_hit": false,
+      "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 5.3
+      "ms": 13.1
     },
     {
       "id": "adv-split-files",
@@ -1153,21 +1375,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-MIS-001",
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-META-004"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 75,
       "flow_findings": [],
-      "ms": 5.0
+      "ms": 12.3
     },
     {
       "id": "adv-split-param",
@@ -1185,12 +1411,14 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-002"
+        "AG-MCP-020"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.2
+      "ms": 5.9
     },
     {
       "id": "rugpull-description",
@@ -1208,14 +1436,16 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-003",
-        "AG-SC-001",
-        "AG-SC-005"
+        "AG-MCP-024",
+        "AG-MCP-027",
+        "AG-MCP-027/new-capabilities"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 8.0
+      "ms": 8.2
     },
     {
       "id": "rugpull-new-tool",
@@ -1233,13 +1463,14 @@
       "expected_severity": "high",
       "severity_met": false,
       "rules": [
-        "AG-MCP-META-009",
-        "AG-SC-003"
+        "AG-MCP-028"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 24,
       "flow_findings": [],
-      "ms": 4.3
+      "ms": 5.7
     },
     {
       "id": "rugpull-skill-egress",
@@ -1257,15 +1488,21 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SC-002",
-        "AG-SC-005",
-        "AG-SKL-CRED-010",
-        "AG-SKL-MIS-001"
+        "AG-EXF-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-MCP-027",
+        "AG-MCP-027/new-capabilities",
+        "AG-META-004",
+        "AG-PLUG-017",
+        "AG-PLUG-017/content-changed"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.8
+      "ms": 12.3
     },
     {
       "id": "locked-unchanged",
@@ -1285,8 +1522,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.2
+      "ms": 4.4
     },
     {
       "id": "pdf-report",
@@ -1300,14 +1539,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.4
+      "ms": 11.3
     },
     {
       "id": "git-changelog",
@@ -1325,12 +1568,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-EXEC-001"
+        "AG-EXEC-005",
+        "AG-EXEC-005/any-command",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.2
+      "ms": 10.7
     },
     {
       "id": "github-sync",
@@ -1344,14 +1591,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.9
+      "ms": 12.8
     },
     {
       "id": "uv-setup",
@@ -1369,12 +1620,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-SE-008"
+        "AG-EXEC-001",
+        "AG-EXEC-001/vendor-installer",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 8.6
     },
     {
       "id": "security-reviewer",
@@ -1388,14 +1643,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.8
+      "ms": 10.4
     },
     {
       "id": "docx-builder",
@@ -1409,14 +1668,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.0
+      "ms": 13.0
     },
     {
       "id": "sql-helper",
@@ -1430,14 +1693,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.0
+      "ms": 8.7
     },
     {
       "id": "k8s-deploy",
@@ -1451,14 +1718,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.8
+      "ms": 10.4
     },
     {
       "id": "slack-notifier",
@@ -1472,14 +1743,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.3
+      "ms": 11.7
     },
     {
       "id": "csv-analyzer",
@@ -1493,14 +1768,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.7
+      "ms": 6.6
     },
     {
       "id": "web-research",
@@ -1514,14 +1793,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.2
+      "ms": 11.0
     },
     {
       "id": "commit-lint",
@@ -1539,14 +1822,18 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-EXEC-002"
+        "AG-HYG-002",
+        "AG-PRIV-004",
+        "AG-PRIV-004/registers-hooks"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-EXEC-002:medium"
+        "AG-PRIV-004/registers-hooks:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.9
+      "ms": 9.6
     },
     {
       "id": "cfg-pinned",
@@ -1558,23 +1845,30 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": "low",
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
+        "AG-CFG-090",
+        "AG-CRED-015",
         "AG-FLOW-001",
         "AG-FLOW-002",
-        "AG-MCP-CFG-020"
+        "AG-FLOW-004"
       ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-CFG-090:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [
         "AG-FLOW-001:high",
-        "AG-FLOW-002:high"
+        "AG-FLOW-002:high",
+        "AG-FLOW-004:medium"
       ],
-      "ms": 13.9
+      "ms": 8.1
     },
     {
       "id": "cfg-vscode-inputs",
@@ -1594,8 +1888,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.3
+      "ms": 4.8
     },
     {
       "id": "cfg-cursor-remote",
@@ -1613,14 +1909,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-FLOW-002"
+        "AG-FLOW-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [
-        "AG-FLOW-002:high"
+        "AG-FLOW-001:high"
       ],
-      "ms": 2.8
+      "ms": 4.8
     },
     {
       "id": "cfg-codex-docker",
@@ -1640,8 +1938,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.3
+      "ms": 5.4
     },
     {
       "id": "cfg-windows-cmd",
@@ -1653,16 +1953,22 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-090"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-CFG-090:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.2
+      "ms": 4.8
     },
     {
       "id": "cfg-gemini",
@@ -1682,8 +1988,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.1
+      "ms": 4.3
     },
     {
       "id": "srv-weather-ts",
@@ -1694,21 +2002,23 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": false,
+        "high": true,
         "medium": true
       },
-      "max_severity": "medium",
+      "max_severity": "high",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-040"
+        "AG-PRIV-008"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-040:medium"
+        "AG-PRIV-008:high"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 6.8
+      "ms": 13.5
     },
     {
       "id": "srv-notes-py",
@@ -1728,8 +2038,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.9
+      "ms": 12.0
     },
     {
       "id": "srv-issues-manifest",
@@ -1749,8 +2061,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 5.7
     },
     {
       "id": "agents-md",
@@ -1770,8 +2084,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.4
+      "ms": 5.4
     },
     {
       "id": "claude-md",
@@ -1791,8 +2107,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.4
+      "ms": 5.1
     },
     {
       "id": "cursor-rules",
@@ -1812,8 +2130,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.6
+      "ms": 5.1
     },
     {
       "id": "h2-para-fetch-exec",
@@ -1831,12 +2151,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.7
+      "ms": 9.2
     },
     {
       "id": "h2-para-pull-mark",
@@ -1854,12 +2178,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 11.3
+      "ms": 9.1
     },
     {
       "id": "h2-para-console",
@@ -1877,12 +2205,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 8.5
     },
     {
       "id": "h2-para-installer-warnings",
@@ -1900,12 +2232,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 8.9
     },
     {
       "id": "h2-para-override-disregard",
@@ -1923,12 +2259,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
-      "expected_hit": false,
+      "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.5
+      "ms": 8.7
     },
     {
       "id": "h2-para-override-superseded",
@@ -1946,12 +2286,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
-      "expected_hit": false,
+      "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 8.8
     },
     {
       "id": "h2-para-override-authority",
@@ -1969,12 +2313,16 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
-      "expected_hit": false,
+      "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 8.9
     },
     {
       "id": "h2-para-override-comment",
@@ -1992,13 +2340,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-003",
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase",
+        "AG-INJ-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 74,
       "flow_findings": [],
-      "ms": 4.1
+      "ms": 10.9
     },
     {
       "id": "h2-split-py-sh",
@@ -2008,20 +2360,23 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-HYG-002"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 70,
       "flow_findings": [],
-      "ms": 5.7
+      "ms": 13.1
     },
     {
       "id": "h2-split-md-sh",
@@ -2031,20 +2386,24 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-HYG-002",
+        "AG-HYG-006"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 70,
       "flow_findings": [],
-      "ms": 4.2
+      "ms": 9.8
     },
     {
       "id": "h2-split-cred-paste",
@@ -2062,18 +2421,22 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-FLOW-005",
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001",
-        "AG-SKL-MIS-001"
+        "AG-CRED-002",
+        "AG-CRED-003",
+        "AG-EXF-001",
+        "AG-EXF-001/private-data-to-sink",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002",
+        "AG-META-004",
+        "AG-PRIV-010"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-005:critical"
-      ],
-      "ms": 6.9
+      "verdict": "BLOCK",
+      "score": 100,
+      "flow_findings": [],
+      "ms": 17.7
     },
     {
       "id": "h2-split-b64-ref",
@@ -2091,15 +2454,20 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002",
-        "AG-SKL-SE-005"
+        "AG-EXEC-001",
+        "AG-EXEC-002",
+        "AG-EXEC-002/encoded-command",
+        "AG-HYG-002",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.9
+      "ms": 14.4
     },
     {
       "id": "h2-lolbin-regsvr32",
@@ -2117,12 +2485,16 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-EXEC-011",
+        "AG-HYG-002"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.5
+      "ms": 8.4
     },
     {
       "id": "h2-lolbin-certutil",
@@ -2132,20 +2504,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-EXEC-011",
+        "AG-HYG-002",
+        "AG-HYG-006"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 91,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 9.2
     },
     {
       "id": "h2-macos-cmdsubst",
@@ -2163,12 +2540,15 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-002"
+        "AG-EXEC-001",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 14.9
+      "ms": 9.7
     },
     {
       "id": "h2-revshell-cfg",
@@ -2186,14 +2566,18 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-CFG-001",
-        "AG-MCP-CFG-022",
-        "AG-MCP-CFG-025"
+        "AG-EXEC-004",
+        "AG-EXEC-004/mcp-command",
+        "AG-MCP-002",
+        "AG-MCP-002/shell-string",
+        "AG-MCP-071"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 2.6
+      "ms": 5.5
     },
     {
       "id": "h2-revshell-py",
@@ -2211,13 +2595,16 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-MIS-001",
-        "AG-SKL-SE-011"
+        "AG-EXEC-004",
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 6.9
+      "ms": 12.2
     },
     {
       "id": "h2-cred-dirs-zip",
@@ -2235,17 +2622,19 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-FLOW-005",
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-EXF-001/private-data-to-sink",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-005:critical"
-      ],
-      "ms": 4.9
+      "verdict": "BLOCK",
+      "score": 100,
+      "flow_findings": [],
+      "ms": 10.6
     },
     {
       "id": "h2-cred-node-kube",
@@ -2263,14 +2652,19 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-MIS-001"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-META-004",
+        "AG-PRIV-010"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 6.4
+      "ms": 15.6
     },
     {
       "id": "h2-ps-enc-skill",
@@ -2288,15 +2682,21 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002",
-        "AG-SKL-SE-005"
+        "AG-EXEC-001",
+        "AG-EXEC-002",
+        "AG-EXEC-002/encoded-command",
+        "AG-EXEC-010",
+        "AG-HYG-002",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.5
+      "ms": 14.2
     },
     {
       "id": "h2-ps-enc-config",
@@ -2314,16 +2714,21 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-CFG-001",
-        "AG-MCP-CFG-006",
-        "AG-MCP-CFG-024",
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009"
+        "AG-CFG-090",
+        "AG-MCP-002",
+        "AG-MCP-002/encoded-command",
+        "AG-MCP-002/shell-string",
+        "AG-MCP-003",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.6
+      "ms": 6.5
     },
     {
       "id": "h2-poison-comment",
@@ -2341,12 +2746,14 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-003"
+        "AG-MCP-024"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.2
+      "ms": 5.4
     },
     {
       "id": "h2-shadow-redirect",
@@ -2364,12 +2771,14 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-006"
+        "AG-MCP-022"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 4.0
+      "ms": 5.9
     },
     {
       "id": "h2-rugpull-exec",
@@ -2387,14 +2796,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-MCP-META-021",
-        "AG-SC-001",
-        "AG-SC-005"
+        "AG-MCP-020",
+        "AG-MCP-020/remote-script",
+        "AG-MCP-027",
+        "AG-MCP-027/new-capabilities"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 4.3
+      "ms": 6.4
     },
     {
       "id": "h2-ok-pkg-install",
@@ -2408,14 +2820,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.1
+      "ms": 8.8
     },
     {
       "id": "h2-ok-ignore-cache",
@@ -2429,14 +2845,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.1
+      "ms": 7.6
     },
     {
       "id": "h2-ok-refuse-override",
@@ -2447,21 +2867,19 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": true,
-        "medium": true
+        "high": false,
+        "medium": false
       },
-      "max_severity": "high",
+      "max_severity": null,
       "expected_severity": null,
       "severity_met": null,
-      "rules": [
-        "AG-SKL-INJ-001"
-      ],
+      "rules": [],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-SKL-INJ-001:high"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 7.3
     },
     {
       "id": "h2-ok-build-run",
@@ -2475,14 +2893,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.5
+      "ms": 10.3
     },
     {
       "id": "h2-ok-fetch-data",
@@ -2496,14 +2918,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 11.4
     },
     {
       "id": "h2-ok-ssh-keygen",
@@ -2517,14 +2943,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 24.0
+      "ms": 8.1
     },
     {
       "id": "h2-ok-s3-backup",
@@ -2538,14 +2968,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.4
+      "ms": 7.1
     },
     {
       "id": "h2-ok-detect-revshell",
@@ -2559,14 +2993,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 21.4
+      "ms": 9.1
     },
     {
       "id": "h2-ok-vendor-installer",
@@ -2580,14 +3018,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.1
+      "ms": 8.0
     },
     {
       "id": "h2-ok-python-module",
@@ -2599,16 +3041,22 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-090"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-CFG-090:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.0
+      "ms": 3.7
     },
     {
       "id": "a3-para-run-with-bash",
@@ -2626,12 +3074,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.0
+      "ms": 7.1
     },
     {
       "id": "a3-para-make-exec",
@@ -2649,12 +3102,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-009"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-006",
+        "AG-INJ-006/plain-words"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 3.0
+      "ms": 7.2
     },
     {
       "id": "a3-para-forget",
@@ -2672,14 +3130,18 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-INJ-001",
-        "AG-SKL-INJ-010"
+        "AG-CRED-002",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 74,
       "flow_findings": [],
-      "ms": 13.8
+      "ms": 9.9
     },
     {
       "id": "a3-para-void",
@@ -2697,12 +3159,17 @@
       "expected_severity": "high",
       "severity_met": true,
       "rules": [
-        "AG-SKL-INJ-010"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-INJ-001",
+        "AG-INJ-001/paraphrase"
       ],
-      "expected_hit": false,
+      "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 49,
       "flow_findings": [],
-      "ms": 2.8
+      "ms": 7.3
     },
     {
       "id": "a3-split-wget",
@@ -2712,21 +3179,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-MIS-001",
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-META-004"
       ],
       "expected_hit": false,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 75,
       "flow_findings": [],
-      "ms": 4.6
+      "ms": 10.4
     },
     {
       "id": "a3-lolbin-bitsadmin",
@@ -2736,21 +3207,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-SKL-SE-001",
-        "AG-SKL-SE-010"
+        "AG-EXEC-003",
+        "AG-EXEC-003/download-run-command",
+        "AG-EXEC-011",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 97,
       "flow_findings": [],
-      "ms": 26.6
+      "ms": 8.6
     },
     {
       "id": "a3-revshell-fifo",
@@ -2768,12 +3243,15 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-SE-011"
+        "AG-EXEC-004",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 3.1
+      "ms": 8.6
     },
     {
       "id": "a3-ps-enc-iex",
@@ -2791,15 +3269,21 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-HID-008",
-        "AG-SKL-HID-009",
-        "AG-SKL-SE-002",
-        "AG-SKL-SE-005"
+        "AG-EXEC-001",
+        "AG-EXEC-002",
+        "AG-EXEC-002/encoded-command",
+        "AG-EXEC-010",
+        "AG-HYG-002",
+        "AG-OBF-010",
+        "AG-OBF-012",
+        "AG-OBF-012/decoded-blob"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 14.4
+      "ms": 12.7
     },
     {
       "id": "a3-ok-install-vendor",
@@ -2813,14 +3297,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.7
+      "ms": 9.0
     },
     {
       "id": "a3-ok-ignore-baseline",
@@ -2834,14 +3322,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2.7
+      "ms": 9.5
     },
     {
       "id": "a3-ok-two-scripts",
@@ -2855,14 +3347,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-006"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.2
+      "ms": 12.9
     },
     {
       "id": "a3-ok-make-run",
@@ -2876,14 +3373,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-006"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3.3
+      "ms": 11.4
     },
     {
       "id": "h3-comp-tmp-relay",
@@ -2901,14 +3403,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-MIS-001"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 7.0
+      "ms": 20.3
     },
     {
       "id": "h3-comp-runs-script",
@@ -2926,19 +3431,25 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-FLOW-005",
-        "AG-SKL-BND-003",
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010",
-        "AG-SKL-EXF-001",
-        "AG-SKL-MIS-001"
+        "AG-CRED-002",
+        "AG-CRED-003",
+        "AG-EXF-001",
+        "AG-EXF-001/private-data-to-sink",
+        "AG-EXF-006",
+        "AG-EXF-006/known-sink",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-META-004",
+        "AG-PRIV-010"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-005:critical"
-      ],
-      "ms": 7.0
+      "verdict": "BLOCK",
+      "score": 100,
+      "flow_findings": [],
+      "ms": 19.9
     },
     {
       "id": "h3-comp-py-sibling",
@@ -2956,14 +3467,19 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-BND-003",
-        "AG-SKL-CRED-001",
-        "AG-SKL-CRED-010"
+        "AG-CRED-002",
+        "AG-EXF-001",
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-HYG-008",
+        "AG-HYG-008/script"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.8
+      "ms": 17.2
     },
     {
       "id": "h3-comp-md-chain",
@@ -2981,13 +3497,17 @@
       "expected_severity": "critical",
       "severity_met": true,
       "rules": [
-        "AG-SKL-CRED-002",
-        "AG-SKL-CRED-010"
+        "AG-EXF-001",
+        "AG-EXF-002",
+        "AG-EXF-002/env-harvest",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "BLOCK",
+      "score": 100,
       "flow_findings": [],
-      "ms": 5.8
+      "ms": 17.3
     },
     {
       "id": "h3-comp-mcp-helper",
@@ -2997,22 +3517,23 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-CODE-001",
-        "AG-CODE-040",
-        "AG-MCP-META-009"
+        "AG-PRIV-008",
+        "AG-VULN-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 42,
       "flow_findings": [],
-      "ms": 5.1
+      "ms": 15.5
     },
     {
       "id": "h3-comp-mcp-relative",
@@ -3022,21 +3543,23 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-CODE-001",
-        "AG-CODE-040"
+        "AG-PRIV-008",
+        "AG-VULN-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 42,
       "flow_findings": [],
-      "ms": 5.0
+      "ms": 14.7
     },
     {
       "id": "h3-comp-mcp-module",
@@ -3046,21 +3569,25 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-CODE-003",
-        "AG-MCP-META-009"
+        "AG-MCP-048",
+        "AG-MCP-048/unconstrained-parameter",
+        "AG-VULN-001",
+        "AG-VULN-001/eval"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 52,
       "flow_findings": [],
-      "ms": 5.1
+      "ms": 15.5
     },
     {
       "id": "h3-comp-mcp-ts-import",
@@ -3070,21 +3597,23 @@
       "source": "synthetic",
       "positive": true,
       "flags": {
-        "critical": true,
+        "critical": false,
         "high": true,
         "medium": true
       },
-      "max_severity": "critical",
+      "max_severity": "high",
       "expected_severity": "critical",
-      "severity_met": true,
+      "severity_met": false,
       "rules": [
-        "AG-CODE-001",
-        "AG-CODE-040"
+        "AG-PRIV-008",
+        "AG-VULN-001"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "REVIEW",
+      "score": 42,
       "flow_findings": [],
-      "ms": 7.4
+      "ms": 18.6
     },
     {
       "id": "h3-ok-tmp-no-secret",
@@ -3098,14 +3627,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-VULN-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.9
+      "ms": 15.4
     },
     {
       "id": "h3-ok-cred-local",
@@ -3123,16 +3657,18 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-CRED-001",
-        "AG-SKL-MIS-001"
+        "AG-CRED-002",
+        "AG-HYG-002",
+        "AG-VULN-009"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-CRED-001:medium",
-        "AG-SKL-MIS-001:medium"
+        "AG-CRED-002:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.3
+      "ms": 16.8
     },
     {
       "id": "h3-ok-unlinked",
@@ -3143,21 +3679,24 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": false,
+        "high": true,
         "medium": true
       },
-      "max_severity": "medium",
+      "max_severity": "high",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-MIS-001"
+        "AG-HYG-002",
+        "AG-META-004"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-MIS-001:medium"
+        "AG-META-004:high"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 6.3
+      "ms": 15.5
     },
     {
       "id": "h3-ok-runs-config",
@@ -3171,16 +3710,21 @@
         "high": false,
         "medium": false
       },
-      "max_severity": "low",
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-002",
+        "AG-HYG-006",
+        "AG-HYG-008",
+        "AG-HYG-008/script"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.1
+      "ms": 13.5
     },
     {
       "id": "h3-ok-mcp-argv-helper",
@@ -3192,24 +3736,18 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": true
+        "medium": false
       },
-      "max_severity": "medium",
+      "max_severity": null,
       "expected_severity": null,
       "severity_met": null,
-      "rules": [
-        "AG-CODE-002",
-        "AG-CODE-040",
-        "AG-MCP-META-009"
-      ],
+      "rules": [],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-CODE-002:medium",
-        "AG-CODE-040:medium",
-        "AG-MCP-META-009:medium"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 4.9
+      "ms": 11.0
     },
     {
       "id": "h3-ok-mcp-const-helper",
@@ -3229,8 +3767,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.3
+      "ms": 11.0
     },
     {
       "id": "h3-ok-mcp-allowlist",
@@ -3242,20 +3782,18 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": true
+        "medium": false
       },
-      "max_severity": "medium",
+      "max_severity": null,
       "expected_severity": null,
       "severity_met": null,
-      "rules": [
-        "AG-MCP-META-009"
-      ],
+      "rules": [],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-MCP-META-009:medium"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.6
+      "ms": 12.6
     },
     {
       "id": "h3-ok-mcp-ts-const",
@@ -3275,8 +3813,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 5.3
+      "ms": 13.4
     },
     {
       "id": "real-anthropic-academy-guide",
@@ -3290,14 +3830,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-003"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 63.2
+      "ms": 284.6
     },
     {
       "id": "real-anthropic-algorithmic-art",
@@ -3311,14 +3855,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-MM-012"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 156.1
+      "ms": 595.1
     },
     {
       "id": "real-anthropic-brand-guidelines",
@@ -3338,8 +3886,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 75.8
+      "ms": 195.3
     },
     {
       "id": "real-anthropic-claude-api",
@@ -3357,30 +3907,43 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
+        "AG-EXEC-014",
         "AG-FLOW-003",
-        "AG-SKL-BND-003",
-        "AG-SKL-CRED-001",
-        "AG-SKL-INJ-001",
-        "AG-SKL-INJ-002",
-        "AG-SKL-INJ-009",
-        "AG-SKL-SE-007",
-        "AG-SKL-SPEC-004"
+        "AG-FLOW-003/code-exec",
+        "AG-HYG-003",
+        "AG-HYG-004",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-IMPACT-004",
+        "AG-INJ-001",
+        "AG-INJ-003",
+        "AG-INJ-003/forged-delimiters",
+        "AG-INJ-003/impersonation",
+        "AG-INJ-005",
+        "AG-INJ-015",
+        "AG-META-005",
+        "AG-META-005/over-length"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-CRED-001:medium",
-        "AG-SKL-INJ-001:medium",
-        "AG-SKL-INJ-002:medium",
-        "AG-SKL-INJ-002:medium",
-        "AG-SKL-INJ-002:medium",
-        "AG-SKL-INJ-009:medium",
-        "AG-SKL-INJ-009:medium",
-        "AG-SKL-SE-007:medium"
+        "AG-EXEC-014:medium",
+        "AG-IMPACT-004:medium",
+        "AG-INJ-001:medium",
+        "AG-INJ-003/forged-delimiters:medium",
+        "AG-INJ-003/forged-delimiters:medium",
+        "AG-INJ-003/forged-delimiters:medium",
+        "AG-INJ-003/impersonation:medium",
+        "AG-INJ-003/impersonation:medium",
+        "AG-INJ-005:medium",
+        "AG-INJ-005:medium",
+        "AG-INJ-015:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [
-        "AG-FLOW-003:high"
+        "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 18655.8
+      "ms": 28525.4
     },
     {
       "id": "real-anthropic-discernment-nudge",
@@ -3400,8 +3963,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 210.3
+      "ms": 331.5
     },
     {
       "id": "real-anthropic-frontend-design",
@@ -3421,8 +3986,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 189.5
+      "ms": 323.7
     },
     {
       "id": "real-anthropic-internal-comms",
@@ -3442,8 +4009,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 243.6
+      "ms": 338.4
     },
     {
       "id": "real-anthropic-mcp-builder",
@@ -3455,18 +4024,28 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": "low",
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-SUPPLY-005",
+        "AG-SUPPLY-010"
       ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-005:medium",
+        "AG-SUPPLY-010:medium",
+        "AG-SUPPLY-010:medium",
+        "AG-SUPPLY-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1208.0
+      "ms": 1614.0
     },
     {
       "id": "real-anthropic-skill-creator",
@@ -3484,15 +4063,17 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-FLOW-003",
-        "AG-SKL-BND-003"
+        "AG-HYG-004",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-MM-012"
       ],
       "expected_hit": true,
       "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-003:high"
-      ],
-      "ms": 1942.9
+      "verdict": "ALLOW",
+      "score": 0,
+      "flow_findings": [],
+      "ms": 2169.8
     },
     {
       "id": "real-anthropic-slack-gif-creator",
@@ -3504,18 +4085,25 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": "low",
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-HYG-009",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-005:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 408.2
+      "ms": 471.2
     },
     {
       "id": "real-anthropic-theme-factory",
@@ -3535,8 +4123,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 195.7
+      "ms": 370.9
     },
     {
       "id": "real-anthropic-web-artifacts-builder",
@@ -3554,14 +4144,19 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-002"
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-OBF-018",
+        "AG-OBF-018/bundled-archive"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-BND-002:medium"
+        "AG-OBF-018/bundled-archive:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 294.9
+      "ms": 1318.9
     },
     {
       "id": "real-anthropic-webapp-testing",
@@ -3581,8 +4176,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 215.3
+      "ms": 294.2
     },
     {
       "id": "real-openai-aspnet-core",
@@ -3602,8 +4199,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 511.9
+      "ms": 749.9
     },
     {
       "id": "real-openai-chatgpt-apps",
@@ -3615,16 +4214,24 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039",
+        "AG-CONN-015"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-CONN-015:medium",
+        "AG-CONN-015:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 767.0
+      "ms": 1092.7
     },
     {
       "id": "real-openai-cli-creator",
@@ -3644,8 +4251,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 286.8
+      "ms": 421.7
     },
     {
       "id": "real-openai-define-goal",
@@ -3665,8 +4274,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 163.3
+      "ms": 257.5
     },
     {
       "id": "real-openai-gh-address-comments",
@@ -3684,14 +4295,17 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-FLOW-003"
+        "AG-FLOW-003",
+        "AG-FLOW-003/code-exec"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [
-        "AG-FLOW-003:high"
+        "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 216.0
+      "ms": 253.0
     },
     {
       "id": "real-openai-gh-fix-ci",
@@ -3711,8 +4325,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 265.1
+      "ms": 343.0
     },
     {
       "id": "real-openai-hatch-pet",
@@ -3726,14 +4342,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-004"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1281.3
+      "ms": 1573.2
     },
     {
       "id": "real-openai-jupyter-notebook",
@@ -3747,14 +4367,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 238.5
+      "ms": 341.0
     },
     {
       "id": "real-openai-linear",
@@ -3768,14 +4392,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 158.9
+      "ms": 259.8
     },
     {
       "id": "real-openai-migrate-to-codex",
@@ -3793,17 +4421,21 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003",
-        "AG-SKL-INJ-004",
-        "AG-SKL-INJ-007"
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-INJ-008",
+        "AG-PERSIST-002",
+        "AG-PERSIST-002/prose"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-004:medium",
-        "AG-SKL-INJ-007:medium"
+        "AG-INJ-008:medium",
+        "AG-PERSIST-002/prose:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1237.1
+      "ms": 1315.4
     },
     {
       "id": "real-openai-netlify-deploy",
@@ -3821,14 +4453,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-INJ-004"
+        "AG-INJ-008"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-004:medium"
+        "AG-INJ-008:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 315.4
+      "ms": 435.0
     },
     {
       "id": "real-openai-notion-knowledge-capture",
@@ -3840,16 +4474,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039",
+        "AG-IMPACT-010"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-IMPACT-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 502.6
+      "ms": 776.8
     },
     {
       "id": "real-openai-notion-meeting-intelligence",
@@ -3863,14 +4504,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 477.9
+      "ms": 675.3
     },
     {
       "id": "real-openai-notion-research-documentation",
@@ -3884,14 +4529,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 553.2
+      "ms": 815.3
     },
     {
       "id": "real-openai-notion-spec-to-implementation",
@@ -3903,16 +4552,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039",
+        "AG-INJ-005"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-INJ-005:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 9,
       "flow_findings": [],
-      "ms": 649.0
+      "ms": 906.5
     },
     {
       "id": "real-openai-openai-docs",
@@ -3924,16 +4580,24 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039",
+        "AG-HYG-003",
+        "AG-SUPPLY-010"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 778.6
+      "ms": 1118.9
     },
     {
       "id": "real-openai-pdf",
@@ -3947,14 +4611,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 3,
       "flow_findings": [],
-      "ms": 163.2
+      "ms": 210.3
     },
     {
       "id": "real-openai-playwright",
@@ -3968,14 +4636,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 226.5
+      "ms": 295.7
     },
     {
       "id": "real-openai-playwright-interactive",
@@ -3986,17 +4658,25 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": false,
-        "medium": false
+        "high": true,
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "high",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-004",
+        "AG-HYG-009",
+        "AG-INJ-009"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-INJ-009:high"
+      ],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 419.5
+      "ms": 683.7
     },
     {
       "id": "real-openai-render-deploy",
@@ -4014,15 +4694,22 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-INJ-007",
-        "AG-SKL-SE-008"
+        "AG-CFG-039",
+        "AG-EXEC-001",
+        "AG-EXEC-001/vendor-installer",
+        "AG-PERSIST-002",
+        "AG-PERSIST-002/prose",
+        "AG-VULN-010"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-007:medium"
+        "AG-PERSIST-002/prose:medium",
+        "AG-VULN-010:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 31,
       "flow_findings": [],
-      "ms": 934.3
+      "ms": 1244.1
     },
     {
       "id": "real-openai-screenshot",
@@ -4036,14 +4723,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-EXEC-010",
+        "AG-EXF-012"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 17,
       "flow_findings": [],
-      "ms": 465.9
+      "ms": 526.4
     },
     {
       "id": "real-openai-security-best-practices",
@@ -4061,14 +4753,21 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-CRED-002"
+        "AG-EXF-002",
+        "AG-EXF-002/env-harvest",
+        "AG-IMPACT-004",
+        "AG-VULN-010"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-CRED-002:medium"
+        "AG-EXF-002/env-harvest:medium",
+        "AG-IMPACT-004:medium",
+        "AG-VULN-010:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 24,
       "flow_findings": [],
-      "ms": 4482.9
+      "ms": 6494.8
     },
     {
       "id": "real-openai-security-ownership-map",
@@ -4086,12 +4785,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-HYG-009"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 835.2
+      "ms": 911.9
     },
     {
       "id": "real-openai-security-threat-model",
@@ -4111,8 +4814,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 320.0
+      "ms": 486.7
     },
     {
       "id": "real-openai-sentry",
@@ -4130,12 +4835,15 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-SE-008"
+        "AG-EXEC-001",
+        "AG-EXEC-001/vendor-installer"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 163.8
+      "ms": 232.6
     },
     {
       "id": "real-openai-speech",
@@ -4153,14 +4861,19 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-INJ-004"
+        "AG-HYG-009",
+        "AG-INJ-008",
+        "AG-INJ-009"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-004:high"
+        "AG-INJ-009:high",
+        "AG-INJ-008:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 446.2
+      "ms": 613.2
     },
     {
       "id": "real-openai-transcribe",
@@ -4174,14 +4887,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 235.0
+      "ms": 303.0
     },
     {
       "id": "real-openai-vercel-deploy",
@@ -4201,8 +4918,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 186.5
+      "ms": 169.9
     },
     {
       "id": "real-openai-winui-app",
@@ -4214,16 +4933,22 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-INJ-011"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-INJ-011:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 699.6
+      "ms": 1157.9
     },
     {
       "id": "real-openai-yeet",
@@ -4243,8 +4968,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 214.2
+      "ms": 287.5
     },
     {
       "id": "real-openai-system-imagegen",
@@ -4256,16 +4983,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009",
+        "AG-INJ-009"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-INJ-009:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 814.8
+      "ms": 1196.6
     },
     {
       "id": "real-openai-system-openai-docs",
@@ -4277,16 +5011,24 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CFG-039",
+        "AG-HYG-003",
+        "AG-SUPPLY-010"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 710.8
+      "ms": 1140.2
     },
     {
       "id": "real-openai-system-plugin-creator",
@@ -4298,16 +5040,22 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-PRIV-013"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-PRIV-013:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 347.0
+      "ms": 449.4
     },
     {
       "id": "real-openai-system-skill-creator",
@@ -4327,8 +5075,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 504.4
+      "ms": 725.9
     },
     {
       "id": "real-openai-system-skill-installer",
@@ -4342,16 +5092,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": "low",
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-008",
+        "AG-HYG-008/script"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 249.1
+      "ms": 347.3
     },
     {
       "id": "real-mcp-everything",
@@ -4369,26 +5122,19 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-024",
-        "AG-MCP-META-020",
-        "AG-MCP-SPEC-002",
-        "AG-SKL-HID-008"
+        "AG-HYG-005",
+        "AG-HYG-005/mcp-deprecated-features",
+        "AG-IMG-005",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-024:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium"
+        "AG-SUPPLY-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1934.3
+      "ms": 2627.0
     },
     {
       "id": "real-mcp-fetch",
@@ -4406,12 +5152,14 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-HID-008"
+        "AG-IMG-005"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 779.6
+      "ms": 697.3
     },
     {
       "id": "real-mcp-filesystem",
@@ -4429,30 +5177,23 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-020",
-        "AG-CODE-024",
-        "AG-MCP-META-009",
-        "AG-MCP-SPEC-002",
-        "AG-SKL-HID-008"
+        "AG-CRED-002",
+        "AG-CRED-002/server-code",
+        "AG-HYG-005",
+        "AG-HYG-005/mcp-deprecated-features",
+        "AG-IMG-005",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-020:medium",
-        "AG-CODE-020:medium",
-        "AG-CODE-024:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-009:medium"
+        "AG-CRED-002/server-code:medium",
+        "AG-CRED-002/server-code:medium",
+        "AG-SUPPLY-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 2741.5
+      "ms": 2263.4
     },
     {
       "id": "real-mcp-git",
@@ -4470,13 +5211,16 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-MCP-SPEC-002",
-        "AG-SKL-HID-008"
+        "AG-HYG-005",
+        "AG-HYG-005/mcp-deprecated-features",
+        "AG-IMG-005"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 840.1
+      "ms": 803.9
     },
     {
       "id": "real-mcp-memory",
@@ -4494,15 +5238,18 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-024",
-        "AG-SKL-HID-008"
+        "AG-IMG-005",
+        "AG-MCP-051",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-024:medium"
+        "AG-SUPPLY-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 751.4
+      "ms": 879.3
     },
     {
       "id": "real-mcp-sequentialthinking",
@@ -4520,42 +5267,24 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-024",
-        "AG-MCP-META-019",
-        "AG-SKL-HID-008"
+        "AG-EXEC-008",
+        "AG-IMG-005",
+        "AG-MCP-032",
+        "AG-MCP-032/description-stuffing",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-024:medium"
+        "AG-EXEC-008:medium",
+        "AG-SUPPLY-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 280.1
+      "ms": 352.2
     },
     {
       "id": "real-mcp-time",
-      "label": "benign",
-      "category": "benign-real-server",
-      "split": "dev",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": false
-      },
-      "max_severity": "low",
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [
-        "AG-SKL-HID-008"
-      ],
-      "expected_hit": true,
-      "benign_hits": [],
-      "flow_findings": [],
-      "ms": 609.8
-    },
-    {
-      "id": "real-playwright-mcp",
       "label": "benign",
       "category": "benign-real-server",
       "split": "dev",
@@ -4570,26 +5299,61 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-020",
-        "AG-CODE-027",
-        "AG-FLOW-001",
-        "AG-FLOW-002",
-        "AG-FLOW-003",
-        "AG-MCP-SPEC-002",
-        "AG-SKL-HID-008"
+        "AG-EXEC-008",
+        "AG-IMG-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-020:medium",
-        "AG-CODE-020:medium",
-        "AG-CODE-027:medium"
+        "AG-EXEC-008:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
+      "flow_findings": [],
+      "ms": 554.4
+    },
+    {
+      "id": "real-playwright-mcp",
+      "label": "benign",
+      "category": "benign-real-server",
+      "split": "dev",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": true,
+        "medium": true
+      },
+      "max_severity": "high",
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [
+        "AG-CRED-001",
+        "AG-CRED-002",
+        "AG-CRED-002/server-code",
+        "AG-EVADE-009",
+        "AG-FLOW-001",
+        "AG-FLOW-002",
+        "AG-FLOW-003",
+        "AG-FLOW-003/code-exec",
+        "AG-HYG-005",
+        "AG-HYG-005/mcp-deprecated-features",
+        "AG-WS-003"
+      ],
+      "expected_hit": true,
+      "benign_hits": [
+        "AG-EVADE-009:high",
+        "AG-CRED-001:medium",
+        "AG-CRED-002/server-code:medium",
+        "AG-WS-003:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 37,
       "flow_findings": [
         "AG-FLOW-001:high",
         "AG-FLOW-002:high",
-        "AG-FLOW-003:high"
+        "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 1542.4
+      "ms": 2002.8
     },
     {
       "id": "real-hf-hf-cli",
@@ -4607,12 +5371,17 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-SE-008"
+        "AG-EXEC-001",
+        "AG-EXEC-001/vendor-installer",
+        "AG-HYG-002",
+        "AG-HYG-004"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 369.5
+      "ms": 540.3
     },
     {
       "id": "real-hf-hf-cloud-aws-context-discovery",
@@ -4630,14 +5399,17 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-CRED-001"
+        "AG-CRED-002",
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-CRED-001:medium"
+        "AG-CRED-002:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 51.0
+      "ms": 75.1
     },
     {
       "id": "real-hf-hf-cloud-python-env-setup",
@@ -4649,16 +5421,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-SUPPLY-005"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-005:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 142.9
+      "ms": 173.1
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-deployment-planner",
@@ -4672,14 +5451,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 97.3
+      "ms": 157.5
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-iam-preflight",
@@ -4693,14 +5476,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 207.6
+      "ms": 239.6
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-production-defaults",
@@ -4718,15 +5505,21 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003",
-        "AG-SKL-INJ-002"
+        "AG-HYG-002",
+        "AG-HYG-004",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-INJ-003",
+        "AG-INJ-003/forged-delimiters"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-002:medium"
+        "AG-INJ-003/forged-delimiters:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1083.8
+      "ms": 1232.7
     },
     {
       "id": "real-hf-hf-cloud-serving-image-selection",
@@ -4740,14 +5533,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 367.3
+      "ms": 557.4
     },
     {
       "id": "real-hf-hf-mem",
@@ -4759,16 +5557,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-EXEC-008",
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-EXEC-008:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 55.7
+      "ms": 57.1
     },
     {
       "id": "real-hf-huggingface-best",
@@ -4782,14 +5587,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 71.1
+      "ms": 106.9
     },
     {
       "id": "real-hf-huggingface-community-evals",
@@ -4803,14 +5612,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 262.7
+      "ms": 321.9
     },
     {
       "id": "real-hf-huggingface-datasets",
@@ -4822,16 +5635,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-EXEC-008",
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-EXEC-008:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 53.8
+      "ms": 81.6
     },
     {
       "id": "real-hf-huggingface-gradio",
@@ -4845,14 +5665,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-004"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 386.7
+      "ms": 531.3
     },
     {
       "id": "real-hf-huggingface-llm-trainer",
@@ -4863,21 +5688,25 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": true,
+        "high": false,
         "medium": true
       },
-      "max_severity": "high",
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-025"
+        "AG-EXEC-008",
+        "AG-HYG-004"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-025:high"
+        "AG-EXEC-008:medium",
+        "AG-EXEC-008:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1754.5
+      "ms": 2189.9
     },
     {
       "id": "real-hf-huggingface-local-models",
@@ -4891,14 +5720,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 173.5
+      "ms": 228.2
     },
     {
       "id": "real-hf-huggingface-lora-space-builder",
@@ -4912,14 +5746,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-004"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1204.5
+      "ms": 1972.3
     },
     {
       "id": "real-hf-huggingface-paper-publisher",
@@ -4937,14 +5776,18 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-HID-004"
+        "AG-HYG-002",
+        "AG-HYG-004",
+        "AG-OBF-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-HID-004:medium"
+        "AG-OBF-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 714.3
+      "ms": 1007.7
     },
     {
       "id": "real-hf-huggingface-papers",
@@ -4958,14 +5801,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 93.6
+      "ms": 164.5
     },
     {
       "id": "real-hf-huggingface-spaces",
@@ -4977,20 +5824,28 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-FLOW-003"
+        "AG-EXEC-008",
+        "AG-HYG-002",
+        "AG-INJ-028",
+        "AG-SUPPLY-010"
       ],
       "expected_hit": true,
-      "benign_hits": [],
-      "flow_findings": [
-        "AG-FLOW-003:high"
+      "benign_hits": [
+        "AG-EXEC-008:medium",
+        "AG-INJ-028:medium",
+        "AG-INJ-028:medium",
+        "AG-SUPPLY-010:medium"
       ],
-      "ms": 1526.0
+      "verdict": "ALLOW",
+      "score": 17,
+      "flow_findings": [],
+      "ms": 2466.4
     },
     {
       "id": "real-hf-huggingface-tool-builder",
@@ -5002,16 +5857,23 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-SUPPLY-010"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-SUPPLY-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 371.0
+      "ms": 311.2
     },
     {
       "id": "real-hf-huggingface-trackio",
@@ -5025,14 +5887,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-003"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 277.2
+      "ms": 351.1
     },
     {
       "id": "real-hf-huggingface-vision-trainer",
@@ -5046,14 +5913,20 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-003",
+        "AG-HYG-004"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1818.7
+      "ms": 2238.9
     },
     {
       "id": "real-hf-huggingface-zerogpu",
@@ -5067,17 +5940,54 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 369.9
+      "ms": 584.4
     },
     {
       "id": "real-hf-train-sentence-transformers",
+      "label": "benign",
+      "category": "benign-real-skill",
+      "split": "dev",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": false,
+        "medium": true
+      },
+      "max_severity": "medium",
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [
+        "AG-EXEC-001",
+        "AG-EXEC-001/vendor-installer",
+        "AG-HYG-002",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-HYG-009",
+        "AG-VULN-017"
+      ],
+      "expected_hit": true,
+      "benign_hits": [
+        "AG-VULN-017:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 18,
+      "flow_findings": [],
+      "ms": 3301.1
+    },
+    {
+      "id": "real-hf-transformers-js",
       "label": "benign",
       "category": "benign-real-skill",
       "split": "dev",
@@ -5092,34 +6002,15 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003",
-        "AG-SKL-SE-008"
+        "AG-HYG-004",
+        "AG-HYG-009"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 2481.5
-    },
-    {
-      "id": "real-hf-transformers-js",
-      "label": "benign",
-      "category": "benign-real-skill",
-      "split": "dev",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": false
-      },
-      "max_severity": null,
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [],
-      "expected_hit": true,
-      "benign_hits": [],
-      "flow_findings": [],
-      "ms": 935.7
+      "ms": 1237.8
     },
     {
       "id": "real-hf-trl-training",
@@ -5137,100 +6028,23 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-INJ-002"
+        "AG-INJ-003",
+        "AG-INJ-003/forged-delimiters"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-002:medium"
+        "AG-INJ-003/forged-delimiters:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 86.4
+      "ms": 159.4
     },
     {
       "id": "real-supabase-mcp-server-supabase",
       "label": "benign",
       "category": "benign-real-server",
       "split": "dev",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": true
-      },
-      "max_severity": "medium",
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [
-        "AG-CODE-020",
-        "AG-CODE-022",
-        "AG-CODE-027",
-        "AG-MCP-META-020"
-      ],
-      "expected_hit": true,
-      "benign_hits": [
-        "AG-CODE-020:medium",
-        "AG-CODE-020:medium",
-        "AG-CODE-027:medium",
-        "AG-MCP-META-020:medium",
-        "AG-MCP-META-020:medium"
-      ],
-      "flow_findings": [],
-      "ms": 9552.2
-    },
-    {
-      "id": "real-supabase-mcp-server-postgrest",
-      "label": "benign",
-      "category": "benign-real-server",
-      "split": "dev",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": false
-      },
-      "max_severity": "low",
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [
-        "AG-CODE-022"
-      ],
-      "expected_hit": true,
-      "benign_hits": [],
-      "flow_findings": [],
-      "ms": 214.6
-    },
-    {
-      "id": "real-supabase-mcp-utils",
-      "label": "benign",
-      "category": "benign-real-server",
-      "split": "dev",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": true
-      },
-      "max_severity": "medium",
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [
-        "AG-MCP-META-020"
-      ],
-      "expected_hit": true,
-      "benign_hits": [
-        "AG-MCP-META-020:medium"
-      ],
-      "flow_findings": [],
-      "ms": 313.8
-    },
-    {
-      "id": "real-ms-agent-framework-azure-ai-py",
-      "label": "benign",
-      "category": "benign-real-skill",
-      "split": "heldout",
       "source": "real",
       "positive": false,
       "flags": {
@@ -5242,14 +6056,120 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-INJ-004"
+        "AG-CRED-002",
+        "AG-CRED-002/server-code",
+        "AG-EVADE-009",
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host",
+        "AG-IMPACT-006",
+        "AG-MCP-034",
+        "AG-SUPPLY-005"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-SKL-INJ-004:high"
+        "AG-EVADE-009:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-IMPACT-006:high",
+        "AG-CRED-002/server-code:medium",
+        "AG-CRED-002/server-code:medium",
+        "AG-SUPPLY-005:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 489.6
+      "ms": 11287.1
+    },
+    {
+      "id": "real-supabase-mcp-server-postgrest",
+      "label": "benign",
+      "category": "benign-real-server",
+      "split": "dev",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": false,
+        "medium": true
+      },
+      "max_severity": "medium",
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host",
+        "AG-SUPPLY-005",
+        "AG-VULN-019"
+      ],
+      "expected_hit": true,
+      "benign_hits": [
+        "AG-SUPPLY-005:medium",
+        "AG-VULN-019:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
+      "flow_findings": [],
+      "ms": 282.9
+    },
+    {
+      "id": "real-supabase-mcp-utils",
+      "label": "benign",
+      "category": "benign-real-server",
+      "split": "dev",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": false,
+        "medium": false
+      },
+      "max_severity": null,
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [],
+      "expected_hit": true,
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
+      "flow_findings": [],
+      "ms": 387.7
+    },
+    {
+      "id": "real-ms-agent-framework-azure-ai-py",
+      "label": "benign",
+      "category": "benign-real-skill",
+      "split": "heldout",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": false,
+        "medium": true
+      },
+      "max_severity": "medium",
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [
+        "AG-HYG-009",
+        "AG-INJ-008",
+        "AG-INJ-021"
+      ],
+      "expected_hit": true,
+      "benign_hits": [
+        "AG-INJ-008:medium",
+        "AG-INJ-021:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 2,
+      "flow_findings": [],
+      "ms": 627.3
     },
     {
       "id": "real-ms-applicationinsights-web-ts",
@@ -5263,14 +6183,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-004"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 463.6
+      "ms": 616.1
     },
     {
       "id": "real-ms-azure-ai-contentsafety-py",
@@ -5284,14 +6208,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 123.5
+      "ms": 165.0
     },
     {
       "id": "real-ms-azure-ai-contentunderstanding-py",
@@ -5305,14 +6233,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 213.0
+      "ms": 236.9
     },
     {
       "id": "real-ms-azure-ai-language-conversations-py",
@@ -5332,8 +6264,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 128.5
+      "ms": 162.8
     },
     {
       "id": "real-ms-azure-ai-ml-py",
@@ -5347,14 +6281,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 165.0
+      "ms": 188.1
     },
     {
       "id": "real-ms-azure-ai-projects-py",
@@ -5368,14 +6306,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 1153.6
+      "ms": 1406.1
     },
     {
       "id": "real-ms-azure-ai-textanalytics-py",
@@ -5389,14 +6331,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 151.8
+      "ms": 202.6
     },
     {
       "id": "real-ms-azure-ai-transcription-py",
@@ -5410,14 +6356,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 98.1
+      "ms": 123.6
     },
     {
       "id": "real-ms-azure-ai-translation-document-py",
@@ -5431,14 +6381,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 167.3
+      "ms": 218.1
     },
     {
       "id": "real-ms-azure-ai-translation-text-py",
@@ -5452,14 +6406,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 177.9
+      "ms": 236.2
     },
     {
       "id": "real-ms-azure-ai-vision-imageanalysis-py",
@@ -5473,14 +6431,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 166.2
+      "ms": 207.0
     },
     {
       "id": "real-ms-azure-ai-voicelive-py",
@@ -5494,14 +6456,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 547.1
+      "ms": 649.1
     },
     {
       "id": "real-ms-azure-appconfiguration-py",
@@ -5515,14 +6481,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 122.8
+      "ms": 150.2
     },
     {
       "id": "real-ms-azure-containerregistry-py",
@@ -5536,14 +6506,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 172.8
+      "ms": 179.5
     },
     {
       "id": "real-ms-azure-cosmos-db-py",
@@ -5557,14 +6531,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 776.8
+      "ms": 914.6
     },
     {
       "id": "real-ms-azure-cosmos-py",
@@ -5578,14 +6556,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-003",
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 313.2
+      "ms": 403.2
     },
     {
       "id": "real-ms-azure-cosmos-rust",
@@ -5605,8 +6588,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 112.1
+      "ms": 101.9
     },
     {
       "id": "real-ms-azure-data-tables-py",
@@ -5620,14 +6605,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 129.8
+      "ms": 160.0
     },
     {
       "id": "real-ms-azure-eventgrid-py",
@@ -5641,14 +6630,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 115.1
+      "ms": 146.8
     },
     {
       "id": "real-ms-azure-eventhub-py",
@@ -5662,14 +6655,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 410.2
+      "ms": 495.8
     },
     {
       "id": "real-ms-azure-eventhub-rust",
@@ -5689,8 +6686,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 82.0
+      "ms": 98.7
     },
     {
       "id": "real-ms-azure-identity-py",
@@ -5702,16 +6701,24 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-004",
+        "AG-HYG-009",
+        "AG-PRIV-005"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-PRIV-005:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 269.2
+      "ms": 347.4
     },
     {
       "id": "real-ms-azure-identity-rust",
@@ -5731,8 +6738,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 75.5
+      "ms": 99.9
     },
     {
       "id": "real-ms-azure-keyvault-certificates-rust",
@@ -5752,8 +6761,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 88.3
+      "ms": 113.9
     },
     {
       "id": "real-ms-azure-keyvault-keys-rust",
@@ -5773,8 +6784,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 83.6
+      "ms": 108.2
     },
     {
       "id": "real-ms-azure-keyvault-py",
@@ -5788,14 +6801,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 3,
       "flow_findings": [],
-      "ms": 135.0
+      "ms": 174.0
     },
     {
       "id": "real-ms-azure-keyvault-secrets-rust",
@@ -5815,8 +6832,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 67.9
+      "ms": 92.4
     },
     {
       "id": "real-ms-azure-messaging-webpubsubservice-py",
@@ -5830,14 +6849,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 127.7
+      "ms": 180.8
     },
     {
       "id": "real-ms-azure-mgmt-apicenter-py",
@@ -5851,14 +6874,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 155.7
+      "ms": 208.4
     },
     {
       "id": "real-ms-azure-mgmt-apimanagement-py",
@@ -5872,14 +6899,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 147.3
+      "ms": 196.5
     },
     {
       "id": "real-ms-azure-mgmt-botservice-py",
@@ -5893,14 +6924,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 173.2
+      "ms": 226.7
     },
     {
       "id": "real-ms-azure-mgmt-fabric-py",
@@ -5914,14 +6949,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 135.9
+      "ms": 201.1
     },
     {
       "id": "real-ms-azure-monitor-ingestion-py",
@@ -5935,14 +6974,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 116.3
+      "ms": 170.2
     },
     {
       "id": "real-ms-azure-monitor-opentelemetry-exporter-py",
@@ -5956,14 +6999,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 141.0
+      "ms": 198.8
     },
     {
       "id": "real-ms-azure-monitor-opentelemetry-py",
@@ -5977,14 +7024,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 146.5
+      "ms": 190.6
     },
     {
       "id": "real-ms-azure-monitor-query-py",
@@ -5998,14 +7049,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 111.7
+      "ms": 146.1
     },
     {
       "id": "real-ms-azure-search-documents-py",
@@ -6023,12 +7078,17 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-004",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-HYG-009"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 2,
       "flow_findings": [],
-      "ms": 497.5
+      "ms": 600.7
     },
     {
       "id": "real-ms-azure-servicebus-py",
@@ -6042,14 +7102,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 475.1
+      "ms": 570.9
     },
     {
       "id": "real-ms-azure-speech-to-text-rest-py",
@@ -6063,14 +7127,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 207.2
+      "ms": 252.9
     },
     {
       "id": "real-ms-azure-storage-blob-py",
@@ -6084,14 +7152,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 156.8
+      "ms": 170.8
     },
     {
       "id": "real-ms-azure-storage-blob-rust",
@@ -6111,8 +7183,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 141.2
+      "ms": 158.1
     },
     {
       "id": "real-ms-azure-storage-file-datalake-py",
@@ -6126,14 +7200,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 165.4
+      "ms": 169.3
     },
     {
       "id": "real-ms-azure-storage-file-share-py",
@@ -6147,14 +7225,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 147.0
+      "ms": 142.3
     },
     {
       "id": "real-ms-azure-storage-queue-py",
@@ -6168,14 +7250,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 131.9
+      "ms": 172.4
     },
     {
       "id": "real-ms-azure-storage-queue-rust",
@@ -6195,8 +7281,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 88.0
+      "ms": 118.2
     },
     {
       "id": "real-ms-cloud-solution-architect",
@@ -6210,14 +7298,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 1210.1
+      "ms": 2005.4
     },
     {
       "id": "real-ms-continual-learning",
@@ -6231,14 +7323,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 33.0
+      "ms": 42.5
     },
     {
       "id": "real-ms-copilot-sdk",
@@ -6250,16 +7346,26 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": false
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "medium",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-004",
+        "AG-HYG-009",
+        "AG-PRIV-005"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-PRIV-005:medium",
+        "AG-PRIV-005:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 309.2
+      "ms": 417.1
     },
     {
       "id": "real-ms-debugview",
@@ -6273,14 +7379,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 343.1
+      "ms": 429.4
     },
     {
       "id": "real-ms-entra-agent-id",
@@ -6294,14 +7404,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 386.0
+      "ms": 459.2
     },
     {
       "id": "real-ms-fastapi-router-py",
@@ -6321,8 +7436,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 100.6
+      "ms": 89.0
     },
     {
       "id": "real-ms-frontend-design-review",
@@ -6340,12 +7457,14 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-SPEC-005"
+        "AG-HYG-002"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 133.7
+      "ms": 199.3
     },
     {
       "id": "real-ms-github-issue-creator",
@@ -6359,14 +7478,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 43.7
+      "ms": 58.8
     },
     {
       "id": "real-ms-kql",
@@ -6380,38 +7503,21 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 634.6
+      "ms": 936.7
     },
     {
       "id": "real-ms-m365-agents-py",
-      "label": "benign",
-      "category": "benign-real-skill",
-      "split": "heldout",
-      "source": "real",
-      "positive": false,
-      "flags": {
-        "critical": false,
-        "high": false,
-        "medium": false
-      },
-      "max_severity": null,
-      "expected_severity": null,
-      "severity_met": null,
-      "rules": [],
-      "expected_hit": true,
-      "benign_hits": [],
-      "flow_findings": [],
-      "ms": 186.8
-    },
-    {
-      "id": "real-ms-mcp-builder",
       "label": "benign",
       "category": "benign-real-skill",
       "split": "heldout",
@@ -6426,12 +7532,48 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-HYG-009"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 3,
       "flow_findings": [],
-      "ms": 1319.6
+      "ms": 236.6
+    },
+    {
+      "id": "real-ms-mcp-builder",
+      "label": "benign",
+      "category": "benign-real-skill",
+      "split": "heldout",
+      "source": "real",
+      "positive": false,
+      "flags": {
+        "critical": false,
+        "high": false,
+        "medium": true
+      },
+      "max_severity": "medium",
+      "expected_severity": null,
+      "severity_met": null,
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-SUPPLY-005",
+        "AG-SUPPLY-010"
+      ],
+      "expected_hit": true,
+      "benign_hits": [
+        "AG-SUPPLY-005:medium",
+        "AG-SUPPLY-010:medium",
+        "AG-SUPPLY-010:medium",
+        "AG-SUPPLY-010:medium"
+      ],
+      "verdict": "ALLOW",
+      "score": 0,
+      "flow_findings": [],
+      "ms": 1867.2
     },
     {
       "id": "real-ms-microsoft-docs",
@@ -6445,14 +7587,19 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002",
+        "AG-HYG-009"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 52.3
+      "ms": 51.7
     },
     {
       "id": "real-ms-podcast-generation",
@@ -6466,14 +7613,18 @@
         "high": false,
         "medium": false
       },
-      "max_severity": null,
+      "max_severity": "info",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-HYG-002"
+      ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 152.7
+      "ms": 184.4
     },
     {
       "id": "real-ms-pydantic-models-py",
@@ -6493,8 +7644,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 58.9
+      "ms": 62.1
     },
     {
       "id": "real-ms-skill-creator",
@@ -6505,19 +7658,30 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": false,
-        "medium": false
+        "high": true,
+        "medium": true
       },
-      "max_severity": "low",
+      "max_severity": "high",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-SKL-BND-003"
+        "AG-EVADE-012",
+        "AG-HYG-002",
+        "AG-HYG-004",
+        "AG-HYG-008",
+        "AG-HYG-008/script",
+        "AG-HYG-009"
       ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-EVADE-012:high",
+        "AG-EVADE-012:high",
+        "AG-EVADE-012:high"
+      ],
+      "verdict": "ALLOW",
+      "score": 1,
       "flow_findings": [],
-      "ms": 1294.9
+      "ms": 1816.0
     },
     {
       "id": "real-cloudflare-ai-gateway",
@@ -6529,21 +7693,21 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": true
+        "medium": false
       },
-      "max_severity": "medium",
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022",
-        "AG-MCP-META-020"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-MCP-META-020:medium"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 268.0
+      "ms": 316.9
     },
     {
       "id": "real-cloudflare-auditlogs",
@@ -6563,8 +7727,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 21.2
+      "ms": 46.8
     },
     {
       "id": "real-cloudflare-autorag",
@@ -6582,12 +7748,15 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 214.3
+      "ms": 288.6
     },
     {
       "id": "real-cloudflare-browser-rendering",
@@ -6599,21 +7768,21 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": true
+        "medium": false
       },
-      "max_severity": "medium",
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022",
-        "AG-MCP-META-020"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-MCP-META-020:medium"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 323.5
+      "ms": 422.5
     },
     {
       "id": "real-cloudflare-cloudflare-blog",
@@ -6633,8 +7802,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 20.9
+      "ms": 27.7
     },
     {
       "id": "real-cloudflare-cloudflare-one-casb",
@@ -6652,12 +7823,15 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 301.8
+      "ms": 332.9
     },
     {
       "id": "real-cloudflare-demo-day",
@@ -6668,17 +7842,23 @@
       "positive": false,
       "flags": {
         "critical": false,
-        "high": false,
-        "medium": false
+        "high": true,
+        "medium": true
       },
-      "max_severity": null,
+      "max_severity": "high",
       "expected_severity": null,
       "severity_met": null,
-      "rules": [],
+      "rules": [
+        "AG-CRED-001"
+      ],
       "expected_hit": true,
-      "benign_hits": [],
+      "benign_hits": [
+        "AG-CRED-001:high"
+      ],
+      "verdict": "REVIEW",
+      "score": 42,
       "flow_findings": [],
-      "ms": 46.2
+      "ms": 313.7
     },
     {
       "id": "real-cloudflare-dex-analysis",
@@ -6698,8 +7878,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 20.8
+      "ms": 62.7
     },
     {
       "id": "real-cloudflare-dns-analytics",
@@ -6719,8 +7901,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 20.0
+      "ms": 36.3
     },
     {
       "id": "real-cloudflare-docs-ai-search",
@@ -6740,8 +7924,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 14.6
+      "ms": 26.7
     },
     {
       "id": "real-cloudflare-graphql",
@@ -6753,23 +7939,21 @@
       "flags": {
         "critical": false,
         "high": false,
-        "medium": true
+        "medium": false
       },
-      "max_severity": "medium",
+      "max_severity": "low",
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022",
-        "AG-MCP-META-009",
-        "AG-MCP-META-020"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
-      "benign_hits": [
-        "AG-MCP-META-009:medium",
-        "AG-MCP-META-020:medium"
-      ],
+      "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 478.9
+      "ms": 647.8
     },
     {
       "id": "real-cloudflare-logpush",
@@ -6789,8 +7973,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 21.3
+      "ms": 32.4
     },
     {
       "id": "real-cloudflare-radar",
@@ -6808,12 +7994,15 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022"
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 3008.7
+      "ms": 2140.0
     },
     {
       "id": "real-cloudflare-sandbox-container",
@@ -6831,15 +8020,21 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022",
-        "AG-CODE-024"
+        "AG-EXEC-006",
+        "AG-EXEC-006/install-hook",
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host",
+        "AG-IMG-005",
+        "AG-MCP-051"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-CODE-024:medium"
+        "AG-EXEC-006/install-hook:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 9,
       "flow_findings": [],
-      "ms": 443.7
+      "ms": 563.6
     },
     {
       "id": "real-cloudflare-stack-mcp",
@@ -6857,15 +8052,18 @@
       "expected_severity": null,
       "severity_met": null,
       "rules": [
-        "AG-CODE-022",
-        "AG-MCP-META-009"
+        "AG-CONN-015",
+        "AG-EXF-015",
+        "AG-EXF-015/hardcoded-host"
       ],
       "expected_hit": true,
       "benign_hits": [
-        "AG-MCP-META-009:medium"
+        "AG-CONN-015:medium"
       ],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 205.0
+      "ms": 221.4
     },
     {
       "id": "real-cloudflare-workers-bindings",
@@ -6885,8 +8083,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 77.4
+      "ms": 96.0
     },
     {
       "id": "real-cloudflare-workers-builds",
@@ -6906,8 +8106,10 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 23.7
+      "ms": 47.5
     },
     {
       "id": "real-cloudflare-workers-observability",
@@ -6927,8 +8129,12 @@
       "rules": [],
       "expected_hit": true,
       "benign_hits": [],
+      "verdict": "ALLOW",
+      "score": 0,
       "flow_findings": [],
-      "ms": 26.8
+      "ms": 67.0
     }
-  ]
+  ],
+  "suite": "corpus",
+  "ok": true
 }

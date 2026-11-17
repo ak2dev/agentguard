@@ -29,7 +29,7 @@ Every link is first pinned to an immutable reference — a commit SHA, or an exa
 - **Remote MCP servers** are checked the way any MCP client would connect, without credentials: server discovery or `initialize`, `tools/list`, `prompts/list`, `resources/list`, and the server's OAuth metadata documents. A tool is never called. The query string of the URL is dropped. Private, loopback, link-local and cloud-metadata addresses are refused. The recorded metadata is scanned in the same sandbox, and the report shows a fingerprint of it: the same metadata gives the same report, changed tool definitions give a new one with a diff. A recent check is reused for a few minutes.
 - **Rescan with current rules:** a report made with an older rule pack can be rescanned at the same commit or version. "Scan the latest version" scans the project's current state instead.
 - **Maintainer responses:** whoever can push to the project's GitHub repository can attach a public response by committing `.agentguard/response.md` with a line `report: <key>`; the report page explains how. The response is shown as plain text with a link to the commit it was read from.
-- **README badge:** each report offers a badge with its finding counts at that exact version, for example `0 high · a1b2c3d`. It never says "safe".
+- **README badge:** each report offers a badge with its finding counts at that exact version, for example `0 high · a1b2c3d`. It never states a verdict and never says "safe".
 
 ## Privacy
 
@@ -44,7 +44,7 @@ Every link is first pinned to an immutable reference — a commit SHA, or an exa
 - Limits: 5,000 files, 2 MB per file and 64 MB in total; for a GitHub link, at most 1,500 files are fetched. Files no rule reads (images, lockfiles) are not fetched. Everything left out is listed under "What was not scanned".
 - Scanning runs in WebAssembly, several times slower than the CLI. A single skill takes about a second after the engine has loaded; a repository with hundreds of large files can take a minute.
 
-Findings are evidence for review, not verdicts. A report with no findings means no rule matched, not that the content is safe.
+Every report ends in a verdict (ALLOW, REVIEW or BLOCK) with its reasons, a score, a risk tier and the coverage. ALLOW means nothing that counts towards the verdict matched, not that the content is safe. The browser scanner runs the `quick` profile: no model is called.
 
 ## Deploying on Vercel
 

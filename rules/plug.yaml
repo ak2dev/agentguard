@@ -1,0 +1,171 @@
+# Detection entries for the PLUG family (catalogue: rules/catalog/plug.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-PLUG-017
+    variant: content-changed
+    aliases: [AG-SC-002]
+    lane: evidence
+    version: 1
+    title: Skill or component content changed since lock
+    description: Files of a locked skill or component changed.
+    why: Changes after review should be reviewed again before use.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review the changes, then update the lock with `agentguard lock`.
+
+
+  - id: AG-PLUG-017
+    variant: version-changed
+    aliases: [AG-SC-004]
+    lane: evidence
+    version: 2
+    title: Version changed without a lock update
+    description: The component version (or a tool definition with it) changed and agentguard.lock was not updated.
+    why: Updates should be deliberate and reviewed.
+    severity: low
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review the update and re-run `agentguard lock`.
+
+
+  - id: AG-PLUG-001
+    description: A marketplace entry fetches a plugin from a git source (`github`, `url`, `git-subdir`) with no 40-character commit `sha`, so it follows a branch or tag.
+    why: A branch or tag can be moved after the plugin was reviewed. The next install or update then gets different content under the same reference.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: pin-commit
+    remediation: Add the `sha` of the reviewed commit to the source entry. A `sha` wins over `ref`.
+
+  - id: AG-PLUG-002
+    description: A marketplace entry installs an npm package with a version range, a dist-tag, or no version.
+    why: A later publish under the same range or tag replaces the reviewed code.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: pin-version
+    remediation: Set `version` to the exact version that was reviewed.
+
+  - id: AG-PLUG-003
+    description: A marketplace entry downloads a plugin archive with no `sha256`.
+    why: With a hash, Claude Code refuses an archive that does not match. Without one, whatever the URL serves is installed.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: add-sha256
+    remediation: Add the `sha256` of the reviewed archive.
+
+  - id: AG-PLUG-004
+    description: A marketplace entry uses a `command` source.
+    why: The command is not a pinned artefact; it is run on install, on update and once in every session, with the user's permissions.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Replace the `command` source with a pinned git, npm or archive source.
+
+  - id: AG-PLUG-005
+    description: A marketplace entry sets `headersHelper`.
+    why: The helper is an arbitrary shell command run to produce request headers each time the marketplace is contacted.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Remove the helper, or review the command as you would a hook.
+
+  - id: AG-PLUG-006
+    description: Auto-update is turned on for a marketplace that is not Anthropic's.
+    why: Auto-update is on by default only for the official marketplaces. For any other, it means new plugin versions - with their hooks, servers and executables - install with no review.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: remove-key
+    remediation: Turn auto-update off and update plugins after reviewing each change.
+
+  - id: AG-PLUG-007
+    description: A plugin ships hooks and its description does not mention them.
+    why: Hooks run commands automatically and outside the sandbox. A user choosing the plugin from its description does not learn that installing it adds code that runs on every tool call or session start.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Read the plugin's hooks before installing; ask the author to describe them.
+
+  - id: AG-PLUG-008
+    description: A plugin ships MCP servers, LSP servers or monitors and its description does not mention them.
+    why: These components start processes on the user's machine, some from session start. The description is all a user sees before installing.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review each bundled server and monitor, or choose a plugin that declares what it runs.
+
+  - id: AG-PLUG-009
+    description: A plugin ships code that runs on its own - workflow scripts, mods, or executables in `bin/` - and its description does not mention it.
+    why: Workflow code and mods run inside the agent, and `bin/` is added to the Bash tool's `PATH`. None of it is visible from the description.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the bundled code before installing.
+
+  - id: AG-PLUG-010
+    description: A plugin depends on a plugin from a different marketplace.
+    why: Installing it pulls in a second plugin from a source the user did not choose and may not have reviewed.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the dependency and its marketplace as carefully as the plugin itself.
+
+  - id: AG-PLUG-011
+    description: A path in a plugin manifest is absolute, starts in the home directory, or climbs out of the plugin's directory with `..`.
+    why: A plugin should only reference its own files. A path that leaves the root reads or runs files that belong to the user or to another plugin. Claude Code rejects such paths; other loaders may not.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Do not install the plugin. Manifest paths must stay inside the plugin's directory.
+
+  - id: AG-PLUG-012
+    description: "A marketplace entry sets `strict: false`."
+    why: The entry's own component definitions then replace the plugin's manifest, so the plugin's repository no longer shows what gets installed.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the components the marketplace entry defines, not only the plugin's own manifest.
+
+  - id: AG-PLUG-013
+    description: A marketplace or plugin uses a name reserved for Anthropic's marketplaces, or a name built to look official.
+    why: Users trust a name. A marketplace called like the vendor's is a way to get that trust without earning it.
+    confidence: medium
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Do not add the marketplace. Check its real source and owner.
+
+  - id: AG-PLUG-014
+    description: A plugin's `settings.json` sets `subagentStatusLine` (a command) or a default `agent`.
+    why: The status-line command runs repeatedly while subagents work; a default agent changes who answers for the whole session.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the command or the agent the plugin installs as a default.
+
+  - id: AG-PLUG-015
+    description: "A plugin's `userConfig` asks for a key, token, password or other secret and does not mark it `sensitive: true`."
+    why: A value not marked sensitive is stored and displayed as plain text and can end up in logs and exports.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: "set-sibling:sensitive=true"
+    remediation: 'Add `"sensitive": true` to the field.'
+
+  - id: AG-PLUG-016
+    description: A plugin's dependency manifest or lockfile has supply-chain findings.
+    why: The plugin's dependencies are installed and run with it; a vulnerable, unpinned or malicious dependency is part of the plugin.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Fix the dependency findings listed with this one, then re-scan.
+
+  - id: AG-PLUG-018
+    description: A plugin names an MCP bundle (`.mcpb` or `.dxt`) by URL with no hash.
+    why: The bundle is downloaded and run. With no hash, nothing ties what was reviewed to what the URL serves at install time.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: add-sha256
+    remediation: Ship the bundle inside the plugin, or add its `sha256`.
+
+  - id: AG-PLUG-019
+    description: A plugin component that starts with the session (a SessionStart hook or a monitor) uses the network.
+    why: The component contacts a remote host every time a session starts, before the user has asked for anything.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Check which host is contacted and what is sent; prefer components that act only when used.
+
+  - id: AG-PLUG-020
+    description: A marketplace declares `renames` or `forceRemoveDeletedPlugins`.
+    why: Together these let a marketplace replace an installed plugin with a different one on the next update.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review what each rename maps to before updating.
+
+  - id: AG-PLUG-021
+    description: A plugin declares a channel that takes inbound messages and has no sender restriction.
+    why: Every inbound message reaches the agent as input. Without an allow-list, anyone who can reach the channel can instruct it.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Restrict the channel to named senders.
+
+  - id: AG-PLUG-022
+    description: A Cursor, Codex or Gemini extension turns on auto-update, redirects to another source with `migratedTo`, or bundles hooks or servers its description does not mention.
+    why: These are the same risks as in a Claude Code plugin - content that changes after review, and code that runs without the user knowing it was installed.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the bundled components and the redirect target before installing.
+
+  - id: AG-PLUG-023
+    description: A plugin that ships hooks, servers or executable code is enabled by default.
+    why: The risky components start working as soon as the marketplace or plugin is added, with no step where the user turns them on.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: remove-key
+    remediation: Leave plugins with hooks or servers off until the user enables them.

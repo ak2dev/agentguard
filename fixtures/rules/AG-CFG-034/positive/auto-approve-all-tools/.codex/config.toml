@@ -1,0 +1,3 @@
+[mcp_servers.tracker]
+url = "https://mcp.example.invalid/mcp"
+default_tools_approval_mode = "auto"

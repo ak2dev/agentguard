@@ -1,0 +1,14 @@
+name: agent
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx -y @anthropic-ai/claude-code@2.1.0 -p "Fix the lint errors." --max-turns 5 --allowedTools Read

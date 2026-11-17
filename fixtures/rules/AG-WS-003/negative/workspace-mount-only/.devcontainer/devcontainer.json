@@ -1,0 +1,7 @@
+{
+  "name": "dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "mounts": [
+    "source=devcache,target=/home/vscode/.cache,type=volume"
+  ]
+}

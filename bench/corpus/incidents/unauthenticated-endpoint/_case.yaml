@@ -1,0 +1,27 @@
+{
+  "network": {
+    "auth_checks": true,
+    "live_metadata": true
+  },
+  "remote_probes": [
+    {
+      "server_name": "acme",
+      "url": "https://mcp.acme.example.invalid/mcp",
+      "config_path": "claude_desktop_config.json",
+      "status_unauth": 200,
+      "unauthenticated_list": true,
+      "tls_version": "TLSv1.3",
+      "protocol_version": "2026-07-28",
+      "tools": [
+        {
+          "name": "delete_report",
+          "description": "Delete one report.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      ]
+    }
+  ]
+}

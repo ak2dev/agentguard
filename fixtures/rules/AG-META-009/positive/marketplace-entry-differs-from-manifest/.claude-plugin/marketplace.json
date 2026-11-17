@@ -1,0 +1,13 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Team"
+  },
+  "plugins": [
+    {
+      "name": "csv-plugin",
+      "source": "./plugins/csv-plugin",
+      "version": "2.0.0"
+    }
+  ]
+}

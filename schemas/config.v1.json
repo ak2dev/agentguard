@@ -1,7 +1,231 @@
 {
   "$defs": {
+    "CacheConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "default": "~/.cache/agentguard",
+          "title": "Dir",
+          "type": "string"
+        },
+        "ttl_days": {
+          "default": 30,
+          "title": "Ttl Days",
+          "type": "integer"
+        }
+      },
+      "title": "CacheConfig",
+      "type": "object"
+    },
+    "DynamicConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "const": "docker",
+          "default": "docker",
+          "title": "Runtime",
+          "type": "string"
+        },
+        "agent_adapter": {
+          "default": "claude-code",
+          "enum": [
+            "claude-code",
+            "opencode",
+            "none"
+          ],
+          "title": "Agent Adapter",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 900,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "DynamicConfig",
+      "type": "object"
+    },
+    "IntelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "osv": {
+          "default": "off",
+          "enum": [
+            "online",
+            "mirror",
+            "off"
+          ],
+          "title": "Osv",
+          "type": "string"
+        },
+        "virustotal": {
+          "default": "off",
+          "enum": [
+            "on",
+            "off"
+          ],
+          "title": "Virustotal",
+          "type": "string"
+        },
+        "url_reputation": {
+          "default": "bundled",
+          "enum": [
+            "bundled",
+            "online",
+            "off"
+          ],
+          "title": "Url Reputation",
+          "type": "string"
+        },
+        "update_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Update Source"
+        }
+      },
+      "title": "IntelConfig",
+      "type": "object"
+    },
+    "LimitsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_file_bytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max File Bytes"
+        },
+        "max_archive_depth": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Archive Depth"
+        },
+        "max_archive_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Archive Ratio"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "title": "LimitsConfig",
+      "type": "object"
+    },
+    "LlmConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "default": "anthropic",
+          "enum": [
+            "anthropic",
+            "openai-compatible",
+            "openai_compat",
+            "local",
+            "ollama"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "triage_model": {
+          "default": "claude-haiku-5-5",
+          "title": "Triage Model",
+          "type": "string"
+        },
+        "judge_model": {
+          "default": "claude-opus-5-5",
+          "title": "Judge Model",
+          "type": "string"
+        },
+        "endpoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpoint"
+        },
+        "consensus_runs": {
+          "default": 1,
+          "maximum": 9,
+          "minimum": 1,
+          "title": "Consensus Runs",
+          "type": "integer"
+        },
+        "max_cost_usd": {
+          "default": 2.0,
+          "title": "Max Cost Usd",
+          "type": "number"
+        },
+        "max_tokens": {
+          "default": 400000,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "redact_secrets": {
+          "default": true,
+          "title": "Redact Secrets",
+          "type": "boolean"
+        }
+      },
+      "title": "LlmConfig",
+      "type": "object"
+    },
+    "OutputConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "redact_snippets": {
+          "default": false,
+          "title": "Redact Snippets",
+          "type": "boolean"
+        }
+      },
+      "title": "OutputConfig",
+      "type": "object"
+    },
     "Policy": {
       "additionalProperties": false,
+      "description": "Policy as code (spec/interfaces.md §5). It is applied last and can only\ntighten a verdict, except through recorded suppressions.",
       "properties": {
         "version": {
           "const": 1,
@@ -9,45 +233,66 @@
           "title": "Version",
           "type": "integer"
         },
-        "engine": {
-          "const": "builtin",
-          "default": "builtin",
-          "title": "Engine",
+        "name": {
+          "default": "balanced",
+          "title": "Name",
           "type": "string"
         },
-        "deny_servers": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Deny Servers",
-          "type": "array"
-        },
-        "deny_publishers": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Deny Publishers",
-          "type": "array"
-        },
-        "allow_servers": {
+        "extends": {
           "anyOf": [
             {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "title": "Allow Servers"
+          "title": "Extends"
         },
-        "require_pinning": {
-          "default": false,
-          "title": "Require Pinning",
-          "type": "boolean"
+        "engine": {
+          "const": "builtin",
+          "default": "builtin",
+          "title": "Engine",
+          "type": "string"
+        },
+        "fail_on": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fail On"
+        },
+        "require": {
+          "$ref": "#/$defs/PolicyRequire"
+        },
+        "allow": {
+          "$ref": "#/$defs/PolicyAllow"
+        },
+        "deny": {
+          "$ref": "#/$defs/PolicyDeny"
+        },
+        "severity_overrides": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Severity"
+          },
+          "title": "Severity Overrides",
+          "type": "object"
+        },
+        "lanes": {
+          "$ref": "#/$defs/PolicyLanes"
+        },
+        "suppressions": {
+          "items": {
+            "$ref": "#/$defs/Suppression"
+          },
+          "title": "Suppressions",
+          "type": "array"
         },
         "max_severity": {
           "anyOf": [
@@ -60,13 +305,6 @@
           ],
           "default": null
         },
-        "severity_overrides": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Severity"
-          },
-          "title": "Severity Overrides",
-          "type": "object"
-        },
         "trifecta_severity": {
           "$ref": "#/$defs/Severity",
           "default": "high"
@@ -74,6 +312,152 @@
       },
       "title": "Policy",
       "type": "object"
+    },
+    "PolicyAllow": {
+      "additionalProperties": false,
+      "properties": {
+        "publishers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Publishers",
+          "type": "array"
+        },
+        "registries": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Registries",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "servers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Servers"
+        }
+      },
+      "title": "PolicyAllow",
+      "type": "object"
+    },
+    "PolicyDeny": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "servers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Servers",
+          "type": "array"
+        },
+        "publishers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Publishers",
+          "type": "array"
+        }
+      },
+      "title": "PolicyDeny",
+      "type": "object"
+    },
+    "PolicyLanes": {
+      "additionalProperties": false,
+      "properties": {
+        "hunt": {
+          "default": false,
+          "title": "Hunt",
+          "type": "boolean"
+        }
+      },
+      "title": "PolicyLanes",
+      "type": "object"
+    },
+    "PolicyRequire": {
+      "additionalProperties": false,
+      "properties": {
+        "full_coverage": {
+          "default": false,
+          "title": "Full Coverage",
+          "type": "boolean"
+        },
+        "pinned_sources": {
+          "default": false,
+          "title": "Pinned Sources",
+          "type": "boolean"
+        },
+        "signatures": {
+          "default": "off",
+          "enum": [
+            "off",
+            "warn",
+            "require"
+          ],
+          "title": "Signatures",
+          "type": "string"
+        },
+        "max_risk_tier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RiskTier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_analyzability": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Min Analyzability",
+          "type": "number"
+        }
+      },
+      "title": "PolicyRequire",
+      "type": "object"
+    },
+    "RiskTier": {
+      "description": "Assigned from capabilities, independently of findings.",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "title": "RiskTier",
+      "type": "string"
     },
     "Severity": {
       "enum": [
@@ -130,6 +514,11 @@
           "title": "Reason",
           "type": "string"
         },
+        "approved_by": {
+          "default": "",
+          "title": "Approved By",
+          "type": "string"
+        },
         "expires": {
           "anyOf": [
             {
@@ -149,7 +538,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Contents of .agentguard.yaml.",
+  "description": "Contents of .agentguard.yaml (spec/interfaces.md §4).",
   "properties": {
     "version": {
       "const": 1,
@@ -157,16 +546,53 @@
       "title": "Version",
       "type": "integer"
     },
-    "fail_on": {
+    "profile": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Severity"
+          "enum": [
+            "quick",
+            "standard",
+            "deep"
+          ],
+          "type": "string"
         },
         {
           "type": "null"
         }
       ],
-      "default": null
+      "default": null,
+      "title": "Profile"
+    },
+    "fail_on": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fail On"
+    },
+    "context": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Context"
+    },
+    "ecosystems": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Ecosystems",
+      "type": "array"
     },
     "exclude": {
       "items": {
@@ -188,10 +614,14 @@
           "$ref": "#/$defs/Policy"
         },
         {
+          "type": "string"
+        },
+        {
           "type": "null"
         }
       ],
-      "default": null
+      "default": null,
+      "title": "Policy"
     },
     "popular_skills": {
       "items": {
@@ -199,6 +629,24 @@
       },
       "title": "Popular Skills",
       "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/LimitsConfig"
+    },
+    "llm": {
+      "$ref": "#/$defs/LlmConfig"
+    },
+    "dynamic": {
+      "$ref": "#/$defs/DynamicConfig"
+    },
+    "intel": {
+      "$ref": "#/$defs/IntelConfig"
+    },
+    "cache": {
+      "$ref": "#/$defs/CacheConfig"
+    },
+    "output": {
+      "$ref": "#/$defs/OutputConfig"
     }
   },
   "title": "ProjectConfig",

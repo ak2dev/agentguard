@@ -1,0 +1,2 @@
+[profiles.fast]
+approval_policy = "never"

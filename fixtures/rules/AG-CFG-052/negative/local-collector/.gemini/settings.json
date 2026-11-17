@@ -1,0 +1,7 @@
+{
+  "telemetry": {
+    "enabled": true,
+    "otlpEndpoint": "http://localhost:4317",
+    "logPrompts": true
+  }
+}

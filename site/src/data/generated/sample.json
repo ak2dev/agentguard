@@ -1,36 +1,84 @@
 {
+  "verdict": "BLOCK",
+  "score": 100,
+  "risk_tier": "L2",
+  "verdict_reasons": [
+    "block-lane malice finding at critical severity: AG-EXF-001 at env-inspector/scripts/inspect.py:3",
+    "critical finding with high confidence: AG-EXF-001 at env-inspector/scripts/inspect.py:3",
+    "confirmed chain chain-1 ending in network: AG-EXF-002 → AG-META-004 → AG-EXF-006 → AG-EXF-001 → AG-EXF-001"
+  ],
+  "coverage": {
+    "files_total": 2,
+    "files_analysed": 2,
+    "analyzability": 1.0
+  },
   "findings_by_severity": {
     "critical": 2,
-    "high": 1,
-    "medium": 2,
+    "high": 2,
+    "medium": 1,
     "low": 0,
-    "info": 0
+    "info": 1
   },
   "findings": [
     {
-      "rule_id": "AG-FLOW-005",
+      "id": "AG-EXF-001",
+      "key": "AG-EXF-001",
       "severity": "critical",
-      "title": "Private data can reach a known exfiltration sink"
+      "title": "Secret or credential source flows to a network sink",
+      "lane": "block",
+      "category": "malice",
+      "file": "env-inspector/scripts/inspect.py",
+      "line": 3
     },
     {
-      "rule_id": "AG-SKL-CRED-010",
+      "id": "AG-EXF-001",
+      "key": "AG-EXF-001/private-data-to-sink",
       "severity": "critical",
-      "title": "Credential access combined with network egress"
+      "title": "Private data can reach a known exfiltration sink",
+      "lane": "block",
+      "category": "malice",
+      "file": "env-inspector/scripts/inspect.py",
+      "line": 3
     },
     {
-      "rule_id": "AG-SKL-EXF-001",
+      "id": "AG-EXF-006",
+      "key": "AG-EXF-006/known-sink",
       "severity": "high",
-      "title": "Known exfiltration sink"
+      "title": "Known exfiltration sink",
+      "lane": "block",
+      "category": "malice",
+      "file": "env-inspector/scripts/inspect.py",
+      "line": 4
     },
     {
-      "rule_id": "AG-SKL-CRED-002",
-      "severity": "medium",
-      "title": "Harvests token variables or dumps the environment"
+      "id": "AG-META-004",
+      "key": "AG-META-004",
+      "severity": "high",
+      "title": "Description does not match what the code and instructions do",
+      "lane": "evidence",
+      "category": "vulnerability",
+      "file": "env-inspector/scripts/inspect.py",
+      "line": 4
     },
     {
-      "rule_id": "AG-SKL-MIS-001",
+      "id": "AG-EXF-002",
+      "key": "AG-EXF-002/env-harvest",
       "severity": "medium",
-      "title": "Description/behavior mismatch"
+      "title": "Harvests token variables or dumps the environment",
+      "lane": "evidence",
+      "category": "malice",
+      "file": "env-inspector/scripts/inspect.py",
+      "line": 3
+    },
+    {
+      "id": "AG-HYG-002",
+      "key": "AG-HYG-002",
+      "severity": "info",
+      "title": "No licence",
+      "lane": "evidence",
+      "category": "hygiene",
+      "file": "env-inspector/SKILL.md",
+      "line": 1
     }
   ]
 }

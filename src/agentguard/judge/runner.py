@@ -67,10 +67,15 @@ def _cache_path(provider: Provider, item: Item) -> Path:
 
 
 def run_judge(tree: ArtifactTree, provider: Provider, *, budget_calls: int = 20,
-              limits: LoadLimits | None = None, use_cache: bool = True) -> list[JudgeResult]:
+              limits: LoadLimits | None = None, use_cache: bool = True,
+              only_components: set[str] | None = None, on_call=None) -> list[JudgeResult]:
+    """``only_components`` gates what is sent (None: everything). ``on_call(system, user, text)`` is
+    told about each provider call, for token and cost accounting."""
     results: list[JudgeResult] = []
     calls = 0
     for item in select_items(tree, limits):
+        if only_components is not None and item.component_id not in only_components:
+            continue
         base = dict(kind=item.kind, component_id=item.component_id, path=item.path, content_hash=item.content_hash,
                     provider=provider.name, model=provider.model)
         cache = _cache_path(provider, item)
@@ -87,6 +92,8 @@ def run_judge(tree: ArtifactTree, provider: Provider, *, budget_calls: int = 20,
         calls += 1
         try:
             text = provider.complete(system, user, strict_schema(verdict_schema(item.kind)))
+            if on_call is not None:
+                on_call(system, user, text)
             verdict = VERDICT_MODELS[item.kind].model_validate_json(text)
         except JudgeError as exc:
             results.append(JudgeResult(**base, truncated=truncated, error=str(exc)[:200]))

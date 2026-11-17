@@ -1,0 +1,10 @@
+{
+  "policy": {
+    "allow": {
+      "registries": [
+        "ghcr.io/acme",
+        "docker.io/library"
+      ]
+    }
+  }
+}

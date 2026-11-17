@@ -1,0 +1,22 @@
+family: IMG
+name: Container images
+about: For MCP servers shipped as images.
+defaults: {category: vulnerability, lane: evidence, confidence: high, engine: image}
+mappings:
+  owasp-ast-1.0: [AST02]
+  owasp-mcp-2025-beta: ["MCP04:2025"]
+  owasp-asi-2026: [ASI04]
+  owasp-llm-2026: ["LLM04:2026"]
+  nsa-csi-mcp-2026-05: [recommendations/constrain-and-sandbox]
+  cwe: []
+rules:
+  - [AG-IMG-001, M, A, "Image referenced by tag, not digest", {lane: block, mappings: {cwe: [CWE-829]}}]
+  - [AG-IMG-002, M, G, "Image from a registry outside policy", {engine: policy}]
+  - [AG-IMG-003, L, G, "Image unsigned, or no provenance or SBOM", {category: hygiene, lane: hunt, network: true}]
+  - [AG-IMG-004, var, "-", "Findings from any other family inside image layers", {network: true}]
+  - [AG-IMG-005, L, P, "Runs as root or with broad capabilities", {mappings: {cwe: [CWE-250]}}]
+  - [AG-IMG-006, M, G, "Entrypoint differs from the documented server command", {confidence: medium}]
+  - [AG-IMG-007, var, A, "Known vulnerabilities in image packages", {network: true}]
+  - [AG-IMG-008, H, P, "Dockerfile with `curl | sh`, remote `ADD`, or secrets in build arguments", {lane: block, mappings: {cwe: [CWE-494]}}]
+  - [AG-IMG-009, M, P, "Secrets or files removed in a later layer but still present in history", {network: true}]
+  - [AG-IMG-010, H, X, "Image name or label does not match the claimed server", {category: malice, lane: block, confidence: medium}]

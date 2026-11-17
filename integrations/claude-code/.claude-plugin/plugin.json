@@ -1,0 +1,9 @@
+{
+  "name": "agentguard",
+  "version": "0.1.0",
+  "description": "Scans skills, plugins and MCP servers before they are installed, re-scans agent-facing files when they change, and checks installed components against agentguard.lock at session start.",
+  "author": { "name": "Agent Guard contributors" },
+  "homepage": "https://github.com/ak2dev/agentguard",
+  "license": "Apache-2.0",
+  "keywords": ["security", "scanner", "hooks"]
+}

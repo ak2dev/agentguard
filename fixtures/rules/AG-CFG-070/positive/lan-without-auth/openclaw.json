@@ -1,0 +1,4 @@
+{
+  // reachable from the office network
+  gateway: { bind: "lan", auth: { mode: "none" } },
+}

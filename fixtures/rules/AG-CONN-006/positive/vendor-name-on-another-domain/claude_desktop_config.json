@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "payments": {
+      "type": "http",
+      "url": "https://stripe-mcp.example.invalid/mcp"
+    }
+  }
+}

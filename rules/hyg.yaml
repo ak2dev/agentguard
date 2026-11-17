@@ -1,0 +1,108 @@
+# Detection entries for the HYG family (catalogue: rules/catalog/hyg.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-HYG-005
+    variant: mcp-deprecated-features
+    aliases: [AG-MCP-SPEC-002]
+    version: 1
+    title: Relies on deprecated Roots, Sampling or Logging
+    description: Server or client code uses a feature MCP 2026-07-28 deprecates (SEP-2577) - the `roots/list`, `sampling/createMessage` or `logging/setLevel` methods, their SDK request schemas, SDK calls (`createMessage`, `listRoots`, `sendLoggingMessage`, `create_message`, `list_roots`, `send_log_message`, `set_logging_level`) or callbacks - reported at info. Sampling with `includeContext` set to "thisServer" or "allServers" (deprecated, SEP-2596) is reported at low.
+    why: Deprecated features keep working for at least twelve months, until the first revision released on or after 2027-07-28, but new implementations should not adopt them and existing ones should migrate (tool parameters or resource URIs instead of Roots, direct LLM provider APIs instead of Sampling, stderr or OpenTelemetry instead of Logging). `includeContext` asks the client to add context from this server's or every connected server's conversation to a prompt the server wrote; servers SHOULD NOT use it unless the client declares `sampling.context`.
+    confidence: high
+    applies_to: [source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          ["'`](?:roots/list|sampling/createMessage|logging/setLevel|notifications/roots/list_changed)["'`]
+        - |-
+          \b(?:ListRootsRequestSchema|CreateMessageRequestSchema|SetLevelRequestSchema|RootsListChangedNotificationSchema|LoggingMessageNotificationSchema)\b
+        - |-
+          \b(?:server|mcpServer|mcp_server|session|ctx|context|extra)(?:\.server|\.session)?\.(?:createMessage|listRoots|sendLoggingMessage|create_message|list_roots|send_log_message|set_logging_level)\s*\(
+        - |-
+          \b(?:sampling_callback|list_roots_callback|logging_callback)\s*=
+        - |-
+          \binclude_?context\b["']?\s*[:=]\s*["'](?:thisServer|allServers)["']
+      downgrade:
+        # Everything but includeContext is a deprecation notice, not a risk (\A: the match line only).
+        - severity: info
+          patterns:
+            - |-
+              \A(?![^\n]*include_?context)
+          window: 0
+    remediation: Migrate before the feature is removed. Pass directories or files as tool parameters, resource URIs or server configuration instead of Roots; call an LLM provider API directly instead of Sampling (and never request includeContext); log to stderr or OpenTelemetry instead of Logging.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/deprecated", "https://modelcontextprotocol.io/specification/2026-07-28/changelog"]
+
+
+  - id: AG-HYG-008
+    variant: script
+    aliases: [AG-SKL-BND-003]
+    version: 1
+    title: Unreferenced or hidden script
+    description: A script in the skill is not referenced from SKILL.md, or is a hidden dotfile.
+    why: Scripts nobody is told about are easy to overlook in review.
+    confidence: medium
+    applies_to: [script]
+    match: {type: analyzer, analyzer: skill.bundle}
+    remediation: Reference every script from SKILL.md, or remove unused ones.
+
+
+  - id: AG-HYG-001
+    version: 1
+    description: A directory where agents load skills contains files and no `SKILL.md`.
+    why: The agent does not load it, and nothing states what the files are for.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Add a `SKILL.md` with `name` and `description`, or remove the directory.
+
+  - id: AG-HYG-002
+    version: 1
+    description: A skill declares no licence in its frontmatter and ships no licence file.
+    why: Without a licence there is no stated permission to use or share the skill.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Add a `license` field or a licence file.
+
+  - id: AG-HYG-003
+    version: 1
+    description: An instruction or reference file links to a file that is not in the package.
+    why: The agent is sent to content that does not exist, and a reviewer cannot tell what was meant to be there.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Fix the link or remove it.
+
+  - id: AG-HYG-004
+    version: 1
+    description: "`SKILL.md` is longer than the specification recommends (500 lines, about 5,000 tokens)."
+    why: A long skill body costs context every time it loads and is harder to review; detail belongs in reference files loaded on demand.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Move detail into files under `references/` and link to them.
+
+  - id: AG-HYG-006
+    version: 1
+    description: A skill has no usable description, or almost no instructions.
+    why: The description decides when the agent uses the skill. Without one, neither the agent nor a reviewer knows what it is for.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Describe what the skill does and when to use it.
+
+  - id: AG-HYG-007
+    version: 1
+    description: A plugin or bundle has no version and no changelog.
+    why: An update cannot be told apart from the version it replaces, so drift cannot be tracked.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Add a `version` to the manifest and bump it on every change.
+
+  - id: AG-HYG-009
+    version: 1
+    description: An install step in the instructions fetches whatever is current - `releases/latest`, `@latest`, an unversioned `pip install` or `npm install`, a clone of the default branch.
+    why: The same instructions install different software on different days, so what was reviewed is not what a later user gets.
+    confidence: medium
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Name an exact version, tag or commit in every install step.
+
+  - id: AG-HYG-010
+    version: 1
+    description: A skill, plugin or bundle makes persistent changes (start-up files, scheduled jobs, agent configuration) and its documentation does not say how to remove them.
+    why: Removing the package leaves the changes behind, and the user has no description of what to undo.
+    confidence: medium
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Document every persistent change and how to revert it.

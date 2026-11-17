@@ -1,0 +1,16 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt",
+      "source": {
+        "source": "npm",
+        "package": "@example/fmt-plugin",
+        "version": "1.2.0"
+      }
+    }
+  ]
+}

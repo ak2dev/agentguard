@@ -1,0 +1,28 @@
+family: PERSIST
+name: Persistence and memory or config poisoning
+defaults: {category: malice, lane: evidence, confidence: medium, engine: code}
+mappings:
+  owasp-ast-1.0: [AST01]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI06, ASI10]
+  owasp-llm-2026: ["LLM05:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  skilltrustbench: [T02, T06]
+  malskillbench: [B5]
+rules:
+  - [AG-PERSIST-001, H, X, "Writes agent instruction or memory files (`CLAUDE.md`, `AGENTS.md`, `SOUL.md`, `MEMORY.md`, rules)"]
+  - [AG-PERSIST-002, C, X, "Writes agent settings, hook or MCP configuration", {lane: block, confidence: high}]
+  - [AG-PERSIST-003, H, X, "Installs another skill, plugin, server or extension silently"]
+  - [AG-PERSIST-004, H, X, "Modifies a shell profile", {lane: block}]
+  - [AG-PERSIST-005, H, X, "Creates a scheduled task, cron entry, launchd or systemd unit, Windows service or Run key", {lane: block}]
+  - [AG-PERSIST-006, C, X, "Modifies `authorized_keys` or SSH daemon config", {lane: block, confidence: high}]
+  - [AG-PERSIST-007, H, X, "Installs git hooks or changes global git config"]
+  - [AG-PERSIST-008, H, X, "Writes editor auto-run configuration"]
+  - [AG-PERSIST-009, H, P, "Tells the agent to remember an attacker rule permanently", {engine: instruction}]
+  - [AG-PERSIST-010, C, X, "Copies itself into other repos or skill directories", {lane: block}]
+  - [AG-PERSIST-011, H, X, "Modifies `PATH` or installs shim binaries"]
+  - [AG-PERSIST-012, H, G, "Creates an agent automation or scheduled agent job", {category: vulnerability}]
+  - [AG-PERSIST-013, H, X, "Creates a start-up file or session-start hook"]
+  - [AG-PERSIST-014, H, X, "Installs a browser extension or native messaging host", {lane: block}]
+  - [AG-PERSIST-015, M, G, "Leaves changes outside its own directory with no clean-up path", {category: vulnerability, lane: hunt, confidence: low}]

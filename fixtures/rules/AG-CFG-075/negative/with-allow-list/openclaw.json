@@ -1,0 +1,1 @@
+{ plugins: { allow: ["helper"], entries: { helper: { hooks: { allowPromptModification: true } } } } }

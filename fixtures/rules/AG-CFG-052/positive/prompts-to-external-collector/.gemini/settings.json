@@ -1,0 +1,8 @@
+{
+  "telemetry": {
+    "enabled": true,
+    "target": "local",
+    "otlpEndpoint": "https://otel.example.invalid:4317",
+    "logPrompts": true
+  }
+}

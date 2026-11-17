@@ -8,14 +8,10 @@ if (root) main(root);
 function main(root) {
   root.hidden = false;
   const SEVERITIES = ["critical", "high", "medium", "low", "info"];
-  const FRAMEWORK_LABEL = {
-    "owasp-asi-2026": "OWASP Agentic", "owasp-mcp-2025-beta": "OWASP MCP", "owasp-ast-1.0": "OWASP Skills",
-    "owasp-llm-2026": "OWASP LLM", "nsa-csi-mcp-2026-05": "NSA MCP CSI", cwe: "CWE",
-  };
   const MAX_FILES = 5000;
   const MAX_FILE_BYTES = 2 * 1024 * 1024;
   const MAX_TOTAL_BYTES = 64 * 1024 * 1024;
-  const SKIP_DIRS = new Set([".git", "node_modules", ".venv", "venv", ".tox", ".mypy_cache", ".pytest_cache"]); // __pycache__ is scanned (AG-SKL-BND-006)
+  const SKIP_DIRS = new Set([".git", "node_modules", ".venv", "venv", ".tox", ".mypy_cache", ".pytest_cache"]); // __pycache__ is scanned (AG-HYG-004)
   const ARCHIVE = /\.(zip|tgz|tar\.gz|tar)$/i;
   const siteBase = root.dataset.worker.replace(/\/js\/scan-worker\.js$/, "");
 
@@ -347,16 +343,24 @@ function main(root) {
 
   function sevBadge(sev) { return el("span", { class: `sev ${sev}` }, sev); }
 
-  function locationUrl(target, span) {
-    if (!target?.source_url_template || !target.resolved || !span) return null;
-    const path = span.path.split("/").map(encodeURIComponent).join("/");
-    return target.source_url_template.replace("{resolved}", target.resolved).replace("{path}", path).replace("{line}", String(span.start_line || 1));
+  // The report's target: the immutable reference it was resolved to (kind, locator, resolved commit or version).
+  function targetRef(report) {
+    const t = report.target || {};
+    return { ...(t.ref || {}), kind: t.ref?.kind || t.kind, commit: t.commit };
   }
 
-  function where(span) { return span ? `${span.path}:${span.start_line}` : ""; }
+  function locationUrl(ref, loc) {
+    if (!ref?.source_url_template || !ref.resolved || !loc?.file || loc.container) return null;
+    const path = loc.file.split("/").map(encodeURIComponent).join("/");
+    return ref.source_url_template.replace("{resolved}", ref.resolved).replace("{path}", path).replace("{line}", String(loc.start?.line || 1));
+  }
+
+  // A finding's location (file, line; the archive or image it is inside, when it is) and an evidence span.
+  function where(loc) { return loc ? `${loc.container ? loc.container + " › " : ""}${loc.file}:${loc.start?.line ?? 1}` : ""; }
+  function whereSpan(span) { return span ? `${span.path}:${span.start_line ?? 1}` : ""; }
 
   function renderTarget(report, meta, label) {
-    const t = report.target || {};
+    const t = targetRef(report);
     if (t.kind === "github" && t.resolved) {
       const [owner, repo, ...sub] = t.locator.split("/");
       const url = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree/${t.resolved}/${sub.map(encodeURIComponent).join("/")}`;
@@ -389,37 +393,58 @@ function main(root) {
     return el("div", {}, el("dt", {}, label), el("dd", {}, el("span", { class: "v" }, String(value)), sub ? el("span", { class: "sub" }, sub) : null));
   }
 
-  function renderReport(report, meta, label) {
-    const findings = report.findings || [];
-    const pack = report.rule_pack || {};
-    const counts = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
-    const failOn = (report.fail_on || "high").toUpperCase();
-    const atOrAbove = findings.filter((f) => SEVERITIES.indexOf(f.severity) <= SEVERITIES.indexOf(report.fail_on || "high")).length;
-    const files = report.stats?.files_scanned ?? 0;
-    const components = report.inventory?.length ?? 0;
+  // spec/interfaces.md §8: the verdict is rule-based; the score never decides it alone.
+  const VERDICT_TEXT = {
+    ALLOW: ["Nothing that counts towards the verdict matched.",
+      "ALLOW does not mean safe: static rules miss paraphrased or novel attacks, and behaviour that only appears at run time."],
+    REVIEW: ["Review this before installing or enabling it.", "At least one finding needs a person to look at it."],
+    BLOCK: ["Do not install or enable this.", "At least one finding is strong enough to block on its own."],
+  };
+  const TIER_TEXT = {
+    L0: "only adds instructions", L1: "writes files in the workspace", L2: "uses shell, network or credentials",
+    L3: "persistent, system-level, financial or destructive",
+  };
+  const FIX_LABEL = { auto: "Auto-fix available", patch: "Proposed patch", guidance: "Guidance", remove: "Do not install", none: "No fix" };
+  const MAP_LABEL = {
+    owasp_asi: "OWASP Agentic", owasp_mcp: "OWASP MCP", owasp_ast: "OWASP Skills", owasp_llm: "OWASP LLM", nsa_csi_mcp: "NSA MCP CSI",
+    cwe: "CWE", skilltrustbench: "SkillTrustBench", malskillbench: "MalSkillBench", mitre_atlas: "MITRE ATLAS",
+  };
 
-    const verdict = !findings.length
-      ? el("div", { class: "verdict" }, el("strong", {}, "That means no rule matched."),
-        "It does not prove the content is safe: static rules miss paraphrased or novel attacks, and behavior that only appears at run time.")
-      : atOrAbove
-        ? el("div", { class: "verdict hot" }, el("strong", {}, `${plural(atOrAbove, "finding")} ${atOrAbove === 1 ? "is" : "are"} at or above ${failOn}.`),
-          `Review ${atOrAbove === 1 ? "it" : "them"} before installing or enabling this.`)
-        : el("div", { class: "verdict" }, el("strong", {}, `Nothing at or above ${failOn}.`), "The findings below are lower-severity observations.");
+  function renderReport(report, meta, label) {
+    const findings = (report.findings || []).filter((f) => !f.suppressed);
+    const tool = report.tool || {};
+    const cov = report.coverage || {};
+    const counts = Object.fromEntries(SEVERITIES.map((s) => [s, findings.filter((f) => f.severity === s).length]));
+    const files = cov.files_total ?? report.stats?.files_scanned ?? 0;
+    const components = report.inventory?.length ?? 0;
+    const counting = findings.filter((f) => f.corroborated !== false && f.category !== "hygiene").length;
+    const verdict = VERDICT_TEXT[report.verdict] ? report.verdict : "ALLOW";
+    const [head, note] = VERDICT_TEXT[verdict];
+    const reasons = (report.verdict_reasons || []).slice(0, 4);
+
+    const verdictBox = el("div", { class: `verdict${verdict === "ALLOW" ? "" : " hot"}` },
+      el("strong", {}, `${verdict}: ${head}`), note,
+      reasons.length ? el("ul", { class: "verdict-reasons" }, ...reasons.map((r) => el("li", {}, r))) : null);
     const summary = findings.length
       ? `${plural(findings.length, "finding")}: ${SEVERITIES.filter((s) => counts[s]).map((s) => `${counts[s]} ${s}`).join(", ")}`
-      : `No findings from ${report.stats?.rules_evaluated ?? pack.rule_count} rules`;
+      : `No findings from ${report.stats?.rules_evaluated ?? tool.rule_count} rules`;
     const board = el("div", { class: "board corners" },
-      el("div", { class: "board-head" }, el("span", { class: "summary" }, summary), el("span", { class: "accent" }, `Threshold: ${failOn}`)),
+      el("div", { class: "board-head" }, el("span", { class: "summary" }, summary),
+        el("span", { class: "accent" }, `Score ${report.score ?? 0} · tier ${report.risk_tier || "L0"}`)),
       el("ul", { class: "sev-counts", "aria-label": "Findings by severity" }, ...SEVERITIES.map((s) =>
         el("li", { class: `sev-count ${s}${counts[s] ? "" : " zero"}` }, el("span", { class: "n" }, String(counts[s])), sevBadge(s)))),
-      el("p", { class: "board-note" }, `${plural(files, "file")} and ${plural(components, "component")} scanned`));
+      el("p", { class: "board-note" }, `${plural(counting, "finding")} count${counting === 1 ? "s" : ""} towards the verdict · `
+        + `${plural(files, "file")} and ${plural(components, "component")} scanned`));
 
+    const pct = Math.round((cov.analyzability ?? 1) * 1000) / 10;
     const facts = el("dl", { class: "report-facts" },
-      stat("Files", files, plural(components, "component")),
-      stat("Rule pack", `v${pack.version}`, `${pack.rule_count} rules · digest ${String(pack.digest || "").slice(0, 12)}`),
-      stat("Engine", report.engine_version, meta.serverKey
+      stat("Verdict", verdict, `score ${report.score ?? 0} of 100 · ${report.policy || "balanced"} policy`),
+      stat("Risk tier", report.risk_tier || "L0", TIER_TEXT[report.risk_tier] || ""),
+      stat("Coverage", `${pct}%`, `${cov.files_analysed ?? files} of ${plural(files, "file")} analysed`),
+      stat("Rule pack", `v${tool.rule_pack}`, `${tool.rules_implemented ?? tool.rule_count} rules · digest ${String(tool.rule_pack_digest || "").slice(0, 12)}`),
+      stat("Engine", tool.version, meta.serverKey
         ? `Agent Guard Web, in an isolated sandbox${meta.cached ? " (cached result for this exact version and rule pack)" : ""}`
-        : "Run on this device"),
+        : `Run on this device · ${report.profile || "quick"} profile`),
       meta.scan_ms ? stat("Scan time", `${(meta.scan_ms / 1000).toFixed(1)} s`,
         meta.fetch_ms !== undefined ? `Fetched from GitHub in ${(meta.fetch_ms / 1000).toFixed(1)} s` : "On this device") : null);
 
@@ -437,12 +462,35 @@ function main(root) {
 
     const parts = [el("div", { class: "report corners" },
       el("div", { class: "report-top" },
-        el("div", { class: "report-intro" }, el("h2", { id: "result-title", tabindex: "-1" }, "Report"), renderTarget(report, meta, label), verdict),
+        el("div", { class: "report-intro" }, el("h2", { id: "result-title", tabindex: "-1" }, "Report"), renderTarget(report, meta, label), verdictBox),
         board),
       facts,
       renderDownloads(meta),
       extra.length ? el("div", { class: "report-extra" }, ...extra) : null,
       el("div", { class: "plans-foot", "aria-hidden": "true" }))];
+
+    const artifacts = (report.artifacts || []).filter((a) => a.type !== "repository" || a.findings);
+    if (artifacts.length) {
+      parts.push(el("h3", { class: "report-h" }, "Components"),
+        el("div", { class: "corners" }, el("div", { class: "table-scroll" }, el("table", { class: "rules-table components-table" },
+          el("thead", {}, el("tr", {}, ...["Component", "Verdict", "Risk tier", "Can do", "Findings"].map((h) => el("th", { scope: "col" }, h)))),
+          el("tbody", {}, ...artifacts.map((a) => el("tr", {},
+            el("td", {}, el("code", {}, a.id), el("span", { class: "muted small" }, ` ${a.type}${a.ecosystem ? " · " + a.ecosystem : ""}`)),
+            el("td", {}, a.verdict, a.triage !== undefined && a.triage !== null
+              ? el("span", { class: "muted small", title: "Triage model (advisory): probability that the component is malicious" }, ` · triage ${a.triage.toFixed(2)}`) : null),
+            el("td", { title: TIER_TEXT[a.risk_tier] || "" }, a.risk_tier),
+            el("td", { class: "muted" }, (a.capabilities || []).join(", ") || "—"),
+            el("td", {}, String(a.findings ?? 0)))))))));
+    }
+
+    if (report.chains?.length) {
+      const byFp = Object.fromEntries(findings.map((f) => [f.fingerprint, f]));
+      parts.push(el("details", { class: "coverage", open: true },
+        el("summary", {}, `Attack chains: ${report.chains.length}`),
+        el("ol", {}, ...report.chains.map((ch) => el("li", {}, sevBadge(ch.severity), " ",
+          ...(ch.steps || []).map((fp) => byFp[fp]).filter(Boolean).flatMap((f, i) => [i ? " → " : "", el("code", {}, f.id), ` ${where(f.location)}`]),
+          ch.sink ? el("span", { class: "muted" }, ` (ends in ${ch.sink})`) : null)))));
+    }
 
     if (report.flows?.length) {
       const names = Object.fromEntries((report.inventory || []).map((c) => [c.id, c.name]));
@@ -455,7 +503,7 @@ function main(root) {
             el("div", {},
               f ? el("p", { class: "flow-title" }, sevBadge(f.severity), el("strong", {}, f.title)) : null,
               fl.narrative ? el("p", { class: "flow-note" }, fl.narrative) : null,
-              f ? el("p", { class: "flow-rule" }, el("a", { href: `${siteBase}/rules/${f.rule_id.toLowerCase()}/` }, f.rule_id), ` · ${f.confidence} confidence`) : null),
+              f ? el("p", { class: "flow-rule" }, el("a", { href: `${siteBase}/rules/${f.id.toLowerCase()}/` }, f.id), ` · ${f.confidence} confidence`) : null),
             el("div", { class: "flow-frame corners" },
               el("div", { class: "pipe-ends", "aria-hidden": "true" }, el("span", {}, "Source"), el("span", {}, "Sink")),
               flowDiagram(fl, names)));
@@ -463,11 +511,12 @@ function main(root) {
     }
 
     if (findings.length) parts.push(el("h3", { class: "report-h" }, "Findings"));
+    const ref = targetRef(report);
     for (const sev of SEVERITIES) {
       const group = findings.filter((f) => f.severity === sev);
       if (!group.length) continue;
       parts.push(el("h4", { class: "sev-group" }, sevBadge(sev), plural(group.length, "finding")),
-        ...group.map((f) => renderFinding(f, report.target)));
+        ...group.map((f) => renderFinding(f, ref)));
     }
 
     parts.push(renderCoverage(report, meta));
@@ -551,17 +600,17 @@ function main(root) {
 
   function renderServerActions(report, meta, label) {
     const key = meta.serverKey;
-    const t = report.target || {};
+    const t = targetRef(report);
     const box = el("div", { class: "server-actions" });
     const current = meta.server?.rule_pack;
     if (t.kind === "remote_mcp") {
       const again = el("button", { type: "button", class: "btn secondary small" }, "Check the server again");
       again.addEventListener("click", () => serverTask(`/api/reports/${key}/rescan`, {}, (final) => loadServerReport(final.report_key, label, final)));
       box.append(el("p", {}, again, el("span", { class: "muted small" }, " A recent check is reused for a few minutes.")));
-    } else if (current && current.digest !== report.rule_pack?.digest) {
+    } else if (current && current.digest !== report.tool?.rule_pack_digest) {
       const rescan = el("button", { type: "button", class: "btn small" }, "Rescan this version with the current rules");
       rescan.addEventListener("click", () => serverTask(`/api/reports/${key}/rescan`, {}, (final) => loadServerReport(final.report_key, label, final)));
-      box.append(el("p", {}, `This report used rule pack v${report.rule_pack?.version}; the server now has v${current.version}. `, rescan));
+      box.append(el("p", {}, `This report used rule pack v${report.tool?.rule_pack}; the server now has v${current.version}. `, rescan));
     } else if (current) {
       box.append(el("p", { class: "muted small" }, "This report uses the server's current rules."));
     }
@@ -616,27 +665,52 @@ function main(root) {
 
   function fact(label, value, cls) { return el("div", { class: cls }, el("dt", {}, label), el("dd", {}, value)); }
 
-  function renderFinding(f, target) {
-    const loc = locationUrl(target, f.primary);
-    const mapped = (f.mappings || []).filter((m) => m.id);
-    const pendingMaps = (f.mappings || []).filter((m) => !m.id);
-    const evidence = (f.evidence || []).filter((ev) => !(ev.snippet && same(ev.snippet, f.message)));
+  const LANE_TEXT = {
+    block: "Counts on its own", evidence: "Counts when a second signal backs it", hunt: "Advisory (hunt lane)",
+  };
+
+  function renderFinding(f, ref) {
+    const loc = locationUrl(ref, f.location);
+    const maps = Object.entries(f.mappings || {}).flatMap(([fw, ids]) => (ids || []).map((id) => [fw, id]));
+    const ev = f.evidence || {};
+    const main = ev.snippet && f.location
+      ? [{ location: { path: f.location.file, start_line: f.location.start?.line }, snippet: ev.snippet, hidden: (f.tags || []).includes("hidden") }]
+      : ev.snippet ? [{ location: null, snippet: ev.snippet }] : [];
+    const seen = new Set(main.map((e) => `${whereSpan(e.location)}|${e.snippet}`));
+    const items = (ev.items || []).filter((e) => {
+      const k = `${whereSpan(e.location)}|${e.snippet}`;
+      if (!e.snippet || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    }).slice(0, 6);
+    const counted = f.category === "hygiene" ? "Informational" : f.corroborated === false ? "No: needs a second signal" : "Yes";
+    const lane = `${f.lane}${(f.tags || []).includes("triage-agrees") ? " · the triage model agrees" : ""}`;
+    const fix = f.fix || {};
+    const title = f.variant ? `${f.id}/${f.variant}` : f.id;
     return el("details", { class: `finding ${f.severity}`, open: f.severity === "critical" || f.severity === "high" },
-      el("summary", {}, sevBadge(f.severity), el("strong", {}, f.title), f.primary ? el("span", { class: "loc" }, where(f.primary)) : null),
+      el("summary", {}, sevBadge(f.severity), el("strong", {}, f.title), f.location ? el("span", { class: "loc" }, where(f.location)) : null),
       el("div", { class: "finding-body" },
-        f.message && !same(f.message, f.title) ? el("p", { class: "finding-msg" }, f.message) : null,
+        f.risk && !same(f.risk, f.title) ? el("p", { class: "finding-msg" }, f.risk) : null,
         el("dl", { class: "facts" },
-          fact("Rule", [el("a", { href: `${siteBase}/rules/${f.rule_id.toLowerCase()}/` }, f.rule_id), el("span", { class: "muted" }, ` v${f.rule_version}`)]),
+          fact("Rule", [el("a", { href: `${siteBase}/rules/${f.id.toLowerCase()}/` }, title), el("span", { class: "muted" }, ` v${f.rule_version}`)]),
+          fact("Category", f.category),
+          fact("Lane", el("span", { title: LANE_TEXT[f.lane] || "" }, lane)),
           fact("Confidence", f.confidence),
-          f.score ? fact("AIVSS", [String(f.score.value), el("span", { class: "muted" }, ` ${f.score.scorer} ${f.score.scorer_version}`)]) : null,
-          f.primary ? fact("Location", loc ? el("a", { href: loc }, where(f.primary)) : where(f.primary), "wide") : null),
-        evidence.length ? el("div", {}, el("h4", {}, "Evidence"), ...evidence.map(renderEvidence)) : null,
-        f.explanation || f.remediation ? el("div", { class: "advice" },
+          fact("Counts towards the verdict", counted),
+          f.adjudication ? fact("Model review", `${f.adjudication.status} (${f.adjudication.model || "model"})`) : null,
+          f.location ? fact("Location", loc ? el("a", { href: loc }, where(f.location)) : where(f.location), "wide") : null),
+        main.length || items.length || ev.decoded ? el("div", {}, el("h4", {}, "Evidence"),
+          ...main.map(renderEvidence),
+          ev.decoded ? renderEvidence({ location: null, snippet: ev.decoded, hidden: true, decode_path: ev.derivation || [], detail: "decoded" }) : null,
+          ...items.map(renderEvidence)) : null,
+        (f.trace || []).length > 1 ? el("div", {}, el("h4", {}, "Trace"),
+          el("ol", { class: "trace" }, ...f.trace.map((s) => el("li", {}, el("code", {}, `${s.file}:${s.line}`), s.role ? ` ${s.role}` : "",
+            s.note ? el("span", { class: "muted" }, ` ${s.note}`) : null)))) : null,
+        f.explanation || fix.summary ? el("div", { class: "advice" },
           f.explanation ? el("div", {}, el("h4", {}, "Why it matters"), el("p", {}, f.explanation)) : null,
-          f.remediation ? el("div", { class: "fix" }, el("h4", {}, "How to fix"), el("p", {}, f.remediation)) : null) : null,
-        mapped.length || pendingMaps.length ? el("p", { class: "maps" }, el("span", { class: "muted small" }, "Standards"),
-          ...mapped.map((m) => el("span", { class: "pill", title: m.title || "" }, `${FRAMEWORK_LABEL[m.framework] || m.framework} ${m.id}`)),
-          pendingMaps.length ? el("span", { class: "muted small" }, ` (${pendingMaps.length} mapping(s) pending review)`) : null) : null,
+          fix.summary ? el("div", { class: "fix" }, el("h4", {}, FIX_LABEL[fix.kind] || "How to fix"), el("p", {}, fix.summary)) : null) : null,
+        maps.length ? el("p", { class: "maps" }, el("span", { class: "muted small" }, "Standards"),
+          ...maps.map(([fw, id]) => el("span", { class: "pill" }, `${MAP_LABEL[fw] || fw} ${id}`))) : null,
         (f.references || []).length ? el("p", { class: "small" }, "References: ",
           ...f.references.filter(safeHref).flatMap((r, i) => [i ? ", " : "", el("a", { href: r }, r)])) : null));
   }
@@ -645,7 +719,7 @@ function main(root) {
     return el("div", { class: "evidence" },
       el("p", { class: "ev-cap" },
         el("span", { class: "ev-dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")),
-        ev.location ? el("code", {}, where(ev.location)) : null,
+        ev.location ? el("code", {}, whereSpan(ev.location)) : null,
         ev.hidden ? el("span", { class: "pill" }, "hidden content") : null,
         ev.decode_path?.length ? el("span", { class: "pill" }, `decoded: ${ev.decode_path.join(" → ")}`) : null,
         ev.detail ? el("span", {}, ev.detail) : null),
@@ -653,10 +727,16 @@ function main(root) {
   }
 
   function renderCoverage(report, meta) {
+    const cov = report.coverage || {};
     const skipped = (report.analyzers || []).filter((a) => a.status !== "ran");
     const events = report.stats?.limit_events || [];
     const items = [];
     if (meta.not_relevant) items.push(el("li", {}, `${meta.not_relevant} file(s) not fetched because no rule reads them (images, lockfiles and similar).`));
+    for (const u of (cov.unanalysed || []).slice(0, 50)) items.push(el("li", {}, el("code", {}, u.path), ` could not be analysed: ${u.reason}`));
+    if ((cov.excluded || []).length) {
+      items.push(el("li", {}, "Not walked (dependency and version-control directories): ",
+        ...cov.excluded.slice(0, 20).flatMap((d, i) => [i ? ", " : "", el("code", {}, d)])));
+    }
     for (const a of skipped) items.push(el("li", {}, el("code", {}, a.id), ` ${a.status}: ${a.reason}`));
     for (const e of events.slice(0, 50)) items.push(el("li", {}, el("code", {}, e.kind), ` ${e.path}${e.detail ? " — " + e.detail : ""}`));
     if (events.length > 50) items.push(el("li", {}, `…and ${events.length - 50} more (see the JSON report).`));

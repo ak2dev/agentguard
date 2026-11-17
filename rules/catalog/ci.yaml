@@ -1,0 +1,27 @@
+family: CI
+name: Agentic CI/CD
+about: Workflows that run coding agents, and agent setup workflows.
+defaults: {category: vulnerability, lane: block, confidence: high, engine: config}
+mappings:
+  owasp-ast-1.0: [AST06]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI01, ASI05]
+  owasp-llm-2026: ["LLM01:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-CI-001, H, P, "Issue, PR, comment or branch text interpolated into an agent prompt", {mappings: {cwe: [CWE-74]}}]
+  - [AG-CI-002, C, P, "Agent runs on `pull_request_target`, `issue_comment` or `workflow_run` with secrets and a write token"]
+  - [AG-CI-003, H, P, "Agent has shell or write tools on an untrusted trigger"]
+  - [AG-CI-004, M, A, "Agent job with broad `permissions:`", {mappings: {cwe: [CWE-250]}}]
+  - [AG-CI-005, M, A, "Agent action not pinned to a commit", {mappings: {cwe: [CWE-829]}}]
+  - [AG-CI-006, H, P, "Agent output used in a `run:` step or as code without review", {mappings: {cwe: [CWE-94]}}]
+  - [AG-CI-007, H, A, "Bypass flag in a CI agent invocation"]
+  - [AG-CI-008, H, P, "Headless agent loads project hooks or MCP servers from pull-request code"]
+  - [AG-CI-009, M, P, "More secrets in the agent's environment than it needs", {lane: evidence, confidence: medium}]
+  - [AG-CI-010, H, P, "Reviewing agent takes its instructions or skills from the pull-request head"]
+  - [AG-CI-011, M, P, "Risky Copilot setup steps, firewall disabled or a broad allow-list"]
+  - [AG-CI-012, H, P, "Agent job on a self-hosted runner with an untrusted trigger"]
+  - [AG-CI-013, M, P, "Agentic workflow file with broad tools or network"]
+  - [AG-CI-014, L, A, "No tool, turn or cost limit on a CI agent", {lane: evidence}]
+  - [AG-CI-015, M, P, "Cache or artifact from untrusted runs feeds agent context", {lane: evidence, confidence: medium}]

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "docs": {
+      "command": "node",
+      "args": [
+        "tools/docs-server.js"
+      ]
+    }
+  }
+}

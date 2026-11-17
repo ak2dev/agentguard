@@ -54,6 +54,16 @@
       "title": "AnalyzerMatch",
       "type": "object"
     },
+    "Category": {
+      "description": "What a finding is about. The three are never mixed into one list.",
+      "enum": [
+        "malice",
+        "vulnerability",
+        "hygiene"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
     "Confidence": {
       "enum": [
         "high",
@@ -65,10 +75,26 @@
     },
     "Downgrade": {
       "additionalProperties": false,
-      "description": "Report a regex match at a lower severity (and one level lower\nconfidence) when it is a *mention* rather than a directive. Every\ncondition given must hold; the first matching downgrade wins. Hidden or\ndecoded matches are still escalated one level afterwards.",
+      "description": "Report a regex match at a lower severity (and one level lower\nconfidence) when it is a *mention* rather than a directive. Every\ncondition given must hold; the first matching downgrade wins. Hidden or\ndecoded matches are still escalated one level afterwards.\n\nA downgraded match never counts on its own: a ``block``-lane rule reports\nit in the ``evidence`` lane (the finding carries the ``mention`` tag).",
       "properties": {
         "severity": {
           "$ref": "#/$defs/Severity"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "in_code": {
+          "default": false,
+          "title": "In Code",
+          "type": "boolean"
         },
         "roles": {
           "items": {
@@ -114,6 +140,27 @@
       ],
       "title": "Downgrade",
       "type": "object"
+    },
+    "FixKind": {
+      "enum": [
+        "auto",
+        "patch",
+        "guidance",
+        "remove",
+        "none"
+      ],
+      "title": "FixKind",
+      "type": "string"
+    },
+    "Lane": {
+      "description": "How much a rule may decide alone (spec/rules.md, \"Lanes\").",
+      "enum": [
+        "block",
+        "evidence",
+        "hunt"
+      ],
+      "title": "Lane",
+      "type": "string"
     },
     "Mapping": {
       "properties": {
@@ -191,7 +238,10 @@
               "resolved",
               "tool_text",
               "server_instructions",
-              "command"
+              "command",
+              "media_text",
+              "config_value",
+              "prose_fold"
             ],
             "type": "string"
           },
@@ -229,10 +279,36 @@
           "title": "Sections",
           "type": "array"
         },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "not_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Paths",
+          "type": "array"
+        },
         "lower_confidence_in_code": {
           "default": false,
           "title": "Lower Confidence In Code",
           "type": "boolean"
+        },
+        "comments": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Comments"
         },
         "downgrade": {
           "items": {
@@ -251,6 +327,259 @@
         "patterns"
       ],
       "title": "RegexMatch",
+      "type": "object"
+    },
+    "RuleStatus": {
+      "enum": [
+        "planned",
+        "experimental",
+        "stable",
+        "deprecated"
+      ],
+      "title": "RuleStatus",
+      "type": "string"
+    },
+    "RuleVariant": {
+      "additionalProperties": false,
+      "description": "A narrower detector under a catalogue rule. Unset fields come from the head.",
+      "properties": {
+        "key": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Confidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lane": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Lane"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "category": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Category"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "applies_to": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applies To"
+        },
+        "match": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "analyzer": "#/$defs/AnalyzerMatch",
+                  "regex": "#/$defs/RegexMatch",
+                  "yara": "#/$defs/YaraMatch"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/RegexMatch"
+                },
+                {
+                  "$ref": "#/$defs/AnalyzerMatch"
+                },
+                {
+                  "$ref": "#/$defs/YaraMatch"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Match"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Remediation"
+        },
+        "fix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fix_action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fix Action"
+        },
+        "references": {
+          "items": {
+            "type": "string"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "cvss4_vector": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cvss4 Vector"
+        },
+        "aivss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AivssDefaults"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "network": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Network"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "title": "RuleVariant",
       "type": "object"
     },
     "Severity": {
@@ -286,13 +615,15 @@
     }
   },
   "additionalProperties": false,
+  "description": "A catalogue rule: the head merged with its detection entry.",
   "properties": {
     "id": {
-      "pattern": "^AG-[A-Z]+(?:-[A-Z]+)?-\\d{3}$",
+      "pattern": "^AG-[A-Z]{2,7}-\\d{3}$",
       "title": "Id",
       "type": "string"
     },
     "version": {
+      "default": 1,
       "minimum": 1,
       "title": "Version",
       "type": "integer"
@@ -302,14 +633,34 @@
       "type": "string"
     },
     "description": {
+      "default": "",
       "title": "Description",
       "type": "string"
+    },
+    "family": {
+      "default": "",
+      "title": "Family",
+      "type": "string"
+    },
+    "category": {
+      "$ref": "#/$defs/Category",
+      "default": "malice"
     },
     "severity": {
       "$ref": "#/$defs/Severity"
     },
     "confidence": {
-      "$ref": "#/$defs/Confidence"
+      "$ref": "#/$defs/Confidence",
+      "default": "medium"
+    },
+    "lane": {
+      "$ref": "#/$defs/Lane",
+      "default": "evidence"
+    },
+    "engine": {
+      "default": "instruction",
+      "title": "Engine",
+      "type": "string"
     },
     "applies_to": {
       "items": {
@@ -319,25 +670,33 @@
       "type": "array"
     },
     "match": {
-      "discriminator": {
-        "mapping": {
-          "analyzer": "#/$defs/AnalyzerMatch",
-          "regex": "#/$defs/RegexMatch",
-          "yara": "#/$defs/YaraMatch"
-        },
-        "propertyName": "type"
-      },
-      "oneOf": [
+      "anyOf": [
         {
-          "$ref": "#/$defs/RegexMatch"
+          "discriminator": {
+            "mapping": {
+              "analyzer": "#/$defs/AnalyzerMatch",
+              "regex": "#/$defs/RegexMatch",
+              "yara": "#/$defs/YaraMatch"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RegexMatch"
+            },
+            {
+              "$ref": "#/$defs/AnalyzerMatch"
+            },
+            {
+              "$ref": "#/$defs/YaraMatch"
+            }
+          ]
         },
         {
-          "$ref": "#/$defs/AnalyzerMatch"
-        },
-        {
-          "$ref": "#/$defs/YaraMatch"
+          "type": "null"
         }
       ],
+      "default": null,
       "title": "Match"
     },
     "mappings": {
@@ -348,8 +707,25 @@
       "type": "array"
     },
     "remediation": {
+      "default": "",
       "title": "Remediation",
       "type": "string"
+    },
+    "fix": {
+      "$ref": "#/$defs/FixKind",
+      "default": "guidance"
+    },
+    "fix_action": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fix Action"
     },
     "why": {
       "default": "",
@@ -394,17 +770,45 @@
       "default": true,
       "title": "Enabled",
       "type": "boolean"
+    },
+    "status": {
+      "$ref": "#/$defs/RuleStatus",
+      "default": "planned"
+    },
+    "aliases": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Aliases",
+      "type": "array"
+    },
+    "blocks_allow": {
+      "default": false,
+      "title": "Blocks Allow",
+      "type": "boolean"
+    },
+    "severity_from_content": {
+      "default": false,
+      "title": "Severity From Content",
+      "type": "boolean"
+    },
+    "extension": {
+      "default": false,
+      "title": "Extension",
+      "type": "boolean"
+    },
+    "variants": {
+      "items": {
+        "$ref": "#/$defs/RuleVariant"
+      },
+      "title": "Variants",
+      "type": "array"
     }
   },
   "required": [
     "id",
-    "version",
     "title",
-    "description",
-    "severity",
-    "confidence",
-    "match",
-    "remediation"
+    "severity"
   ],
   "title": "RuleDef",
   "type": "object",

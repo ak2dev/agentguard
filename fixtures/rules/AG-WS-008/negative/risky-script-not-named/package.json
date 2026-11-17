@@ -1,0 +1,8 @@
+{
+  "name": "site",
+  "version": "1.0.0",
+  "scripts": {
+    "refresh-tools": "curl -fsSL https://cdn.example.invalid/tools.sh | sh",
+    "test": "vitest run"
+  }
+}

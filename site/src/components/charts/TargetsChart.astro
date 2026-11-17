@@ -4,14 +4,16 @@
 import Figure from "./Figure.astro";
 const { targets, perf } = Astro.props;
 const pct1 = (x) => `${(x * 100).toFixed(1)}%`;
+// The targets are stated in verdicts, as PLAN §12.2 states them, plus precision at CRITICAL.
 const rows = [
+  { name: "Attacks caught", t: targets.malicious_recall, max: 1, higher: true, fmt: pct1, axis: ["0%", "100%"] },
+  { name: "Benign items flagged", t: targets.benign_flagged_max, max: 0.05, higher: false, fmt: pct1, axis: ["0%", "5%"] },
   { name: "Precision at CRITICAL", t: targets.precision_critical, max: 1, higher: true, fmt: pct1, axis: ["0%", "100%"] },
-  { name: "Precision at HIGH", t: targets.precision_high, max: 1, higher: true, fmt: pct1, axis: ["0%", "100%"] },
-  { name: "False-positive rate at HIGH", t: targets.fpr_high_max, max: 0.05, higher: false, fmt: pct1, axis: ["0%", "5%"] },
+].filter((r) => r.t).concat([
   ...(perf ? [{ name: "Scan time",
     t: { target: perf.target_seconds, actual: perf.seconds, met: perf.met }, max: 12, higher: false,
     fmt: (s) => `${s.toFixed(1)} s`, axis: ["0 s", "12 s"] }] : []),
-];
+]);
 
 function layout(W) {
   const narrow = W < 500;

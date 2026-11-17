@@ -62,11 +62,11 @@ def run(text, path="server/tools.json"):
 
 
 def rules(text, path="server/tools.json"):
-    return {f.rule_id for f in run(text, path).findings}
+    return {f.key for f in run(text, path).findings}
 
 
 def test_the_plain_tool_fires_what_the_cases_below_compare_against():
-    assert {"AG-MCP-META-002", "AG-MCP-META-003", "AG-MCP-META-006"} <= rules(json.dumps({"tools": [POISONED]}))
+    assert {"AG-MCP-020", "AG-MCP-024", "AG-MCP-022"} <= rules(json.dumps({"tools": [POISONED]}))
 
 
 @pytest.mark.parametrize("key", [
@@ -94,7 +94,7 @@ def test_escaping_every_key_changes_nothing(doc):
 
 
 def test_the_full_manifest_has_something_to_find_in_each_part():
-    assert {"AG-MCP-META-002", "AG-MCP-META-013", "AG-MCP-META-014", "AG-MCP-META-024", "AG-MCP-META-026"} <= rules(json.dumps(FULL))
+    assert {"AG-MCP-020", "AG-MCP-030", "AG-MCP-029/prompt", "AG-MCP-021/output-schema", "AG-MCP-070/unpinned-script"} <= rules(json.dumps(FULL))
 
 
 @pytest.mark.parametrize("key", sorted(keys_in(FULL)))
@@ -119,8 +119,8 @@ def test_a_client_config_reads_the_same_with_escaped_keys(path, key):
 def test_a_broken_client_config_is_reported_however_its_key_is_spelled():
     # With no parsed value, a text check decides whether this file gets a coverage finding.
     broken = '{"mcpServers": {"x": {"command": "sh"}'
-    assert "AG-SYS-001" in rules(broken, ".mcp.json")
-    assert "AG-SYS-001" in rules(broken.replace("mcpServers", spelled("mcpServers")), ".mcp.json")
+    assert "AG-EVADE-001" in rules(broken, ".mcp.json")
+    assert "AG-EVADE-001" in rules(broken.replace("mcpServers", spelled("mcpServers")), ".mcp.json")
 
 
 def test_no_mcp_fixture_depends_on_how_its_keys_are_spelled():
@@ -164,7 +164,7 @@ def deep_manifest(key_of):
 
 @pytest.mark.parametrize("key_of", [lambda k: k, spelled], ids=["plain keys", "escaped keys"])
 def test_a_manifest_past_the_depth_limit_is_reported_however_its_keys_are_spelled(key_of):
-    assert "AG-MCP-META-023" in rules(deep_manifest(key_of))
+    assert "AG-MCP-032/schema-bomb" in rules(deep_manifest(key_of))
 
 
 @pytest.mark.parametrize("doc", [
@@ -182,7 +182,7 @@ def test_deep_ordinary_json_with_an_escape_is_not_called_a_manifest():
     # The depth check has no parsed value to go on, so an escape anywhere in the file
     # must not be taken for the keys it looks for.
     text = f'{{"title": "caf\\u00e9", "data": {nested(70)}}}'
-    assert "AG-MCP-META-023" not in rules(text)
+    assert "AG-MCP-032/schema-bomb" not in rules(text)
 
 
 def test_a_file_of_escapes_does_not_end_the_scan():

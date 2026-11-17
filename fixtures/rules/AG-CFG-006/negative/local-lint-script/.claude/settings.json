@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./tools/lint.sh"
+          }
+        ],
+        "matcher": "Edit"
+      }
+    ]
+  }
+}

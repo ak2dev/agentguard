@@ -50,6 +50,8 @@ class ToolDef(BaseModel):
     annotations: dict[str, Any] = Field(default_factory=dict)
     origin: str = "manifest"  # manifest | server_json | source_extraction | live_list
     span: Span | None = None
+    # Where the description is written, when it is not on the line that names the tool.
+    description_span: Span | None = None
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {

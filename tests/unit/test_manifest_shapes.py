@@ -44,12 +44,12 @@ def test_a_resources_list_alone_reads_like_one_beside_a_tool(resource):
 
 
 def test_entries_around_a_resource_do_not_hide_it():
-    assert rules({"resources": [DESCRIBED, "x"]}) == rules({"resources": [DESCRIBED]}) | {"AG-SYS-001"}
-    assert rules({"resources": ["x", DESCRIBED]}) == rules({"resources": [DESCRIBED]}) | {"AG-SYS-001"}
+    assert rules({"resources": [DESCRIBED, "x"]}) == rules({"resources": [DESCRIBED]}) | {"AG-EVADE-001"}
+    assert rules({"resources": ["x", DESCRIBED]}) == rules({"resources": [DESCRIBED]}) | {"AG-EVADE-001"}
 
 
 def test_a_resource_that_cannot_be_read_is_never_a_clean_result():
-    assert rules({"resources": [{"uri": 5, "description": POISON}]}) == {"AG-SYS-001"}
+    assert rules({"resources": [{"uri": 5, "description": POISON}]}) == {"AG-EVADE-001"}
 
 
 @pytest.mark.parametrize("server", [
@@ -59,7 +59,7 @@ def test_a_resource_that_cannot_be_read_is_never_a_clean_result():
 ], ids=["initialize result", "serverInfo only", "protocolVersion only"])
 def test_instructions_are_read_beside_a_server_marker(server):
     expected = rules({"prompts": [], "instructions": POISON})
-    assert "AG-MCP-META-013" in expected
+    assert "AG-MCP-030" in expected
     assert rules({**server, "instructions": POISON}) == expected
     assert rules({"jsonrpc": "2.0", "id": 1, "result": {**server, "instructions": POISON}}) == expected
 
@@ -79,7 +79,7 @@ def test_a_path_is_not_evidence_for_instructions():
 
 
 def test_instructions_of_the_wrong_type_are_reported():
-    assert rules({**SERVER, "instructions": [POISON]}) == {"AG-SYS-001"}
+    assert rules({**SERVER, "instructions": [POISON]}) == {"AG-EVADE-001"}
 
 
 @pytest.mark.parametrize("doc", [
@@ -124,7 +124,7 @@ def test_a_list_of_links_that_reads_as_a_manifest_reports_nothing():
     {"jsonrpc": "2.0", "id": 1, "result": {"instructions": POISON}},
 ], ids=["tool with no schema", "prompt", "resource", "instructions", "json-rpc response"])
 def test_a_manifest_too_deep_to_parse_is_not_a_clean_result(doc):
-    found = [f for f in findings(padded(doc)) if f.rule_id == "AG-SYS-001"]
+    found = [f for f in findings(padded(doc)) if f.rule_id == "AG-EVADE-001"]
     assert [f.message for f in found] == [
         "server/data.json nests more than 64 levels deep and has the keys of an MCP manifest; it was not analyzed."
     ]
@@ -132,7 +132,7 @@ def test_a_manifest_too_deep_to_parse_is_not_a_clean_result(doc):
 
 def test_a_tool_schema_too_deep_to_parse_is_still_its_own_rule():
     doc = {"tools": [{"name": "add", "description": "Adds.", "inputSchema": {}}]}
-    assert {f.rule_id for f in findings(padded(doc))} == {"AG-MCP-META-023"}
+    assert {f.key for f in findings(padded(doc))} == {"AG-MCP-032/schema-bomb"}
 
 
 @pytest.mark.parametrize("doc", [

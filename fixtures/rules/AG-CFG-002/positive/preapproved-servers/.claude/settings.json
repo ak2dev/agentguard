@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "deploy",
+    "db"
+  ]
+}

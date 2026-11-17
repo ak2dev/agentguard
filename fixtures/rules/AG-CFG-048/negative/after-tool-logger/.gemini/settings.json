@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "AfterTool": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "date"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -6,7 +6,11 @@
 * Auth conformance data: RFC 9728 Protected Resource Metadata (from the
   WWW-Authenticate `resource_metadata` parameter or the well-known URI with
   path insertion), RFC 8414 / OIDC authorization-server metadata.
-* No credentials are ever sent: probes are unauthenticated by design.
+* Probes are unauthenticated unless the user supplies a token for that one
+  endpoint (``AGENTGUARD_MCP_TOKEN``); it is sent to the endpoint only and is
+  dropped on a redirect to another host.
+* A second listing with a different client identity shows whether the server
+  serves different definitions to different clients.
 """
 
 from __future__ import annotations
@@ -53,9 +57,13 @@ def _parse_body(resp: Response) -> list[dict[str, Any]]:
 
 
 class McpReadOnlyClient:
-    def __init__(self, http: SafeHttpClient, url: str) -> None:
+    def __init__(self, http: SafeHttpClient, url: str, *, client_name: str = "agentguard", client_version: str = "0.1",
+                 user_agent: str | None = None, token: str | None = None) -> None:
         self.http = http
         self.url = url
+        self.client_info = {"name": client_name, "version": client_version}
+        self.user_agent = user_agent
+        self.token = token
         self.version: str | None = None
         self.session: str | None = None
         self._id = 0
@@ -76,6 +84,10 @@ class McpReadOnlyClient:
             headers["Mcp-Method"] = method
         if self.session:
             headers["Mcp-Session-Id"] = self.session
+        if self.user_agent:
+            headers["User-Agent"] = self.user_agent
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
         resp = self.http.post_json(self.url, msg, headers=headers)
         if resp.header("mcp-session-id"):
             self.session = resp.header("mcp-session-id")
@@ -88,7 +100,7 @@ class McpReadOnlyClient:
 
     def _meta(self) -> dict[str, Any]:
         return {"_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28",
-                          "io.modelcontextprotocol/clientInfo": {"name": "agentguard", "version": "0.1"},
+                          "io.modelcontextprotocol/clientInfo": dict(self.client_info),
                           "io.modelcontextprotocol/clientCapabilities": {}}}
 
     def handshake(self) -> tuple[Response, dict[str, Any] | None]:
@@ -104,7 +116,7 @@ class McpReadOnlyClient:
         resp, msg = self._call("initialize", {
             "protocolVersion": "2025-11-25",
             "capabilities": {},
-            "clientInfo": {"name": "agentguard", "version": "0.1"},
+            "clientInfo": dict(self.client_info),
         })
         if resp.status == 200 and msg and "result" in msg:
             self.version = str(msg["result"].get("protocolVersion") or "2025-06-18")
@@ -166,9 +178,23 @@ def _fetch_json(http: SafeHttpClient, url: str, probe: RemoteProbe) -> dict[str,
     return data if isinstance(data, dict) else None
 
 
-def probe_server(http: SafeHttpClient, name: str, url: str, config_path: str, *, metadata: bool, auth: bool) -> RemoteProbe:
+def list_as(http: SafeHttpClient, url: str, *, client_name: str, client_version: str, user_agent: str | None = None,
+            token: str | None = None) -> list[dict[str, Any]] | None:
+    """The tool list a server gives one client identity; None when it gives none (refused, unreachable)."""
+    client = McpReadOnlyClient(http, url, client_name=client_name, client_version=client_version, user_agent=user_agent, token=token)
+    try:
+        _, info = client.handshake()
+        if info is None:
+            return None
+        return client.list_all("tools/list", "tools")
+    except (BlockedRequest, FetchError):
+        return None
+
+
+def probe_server(http: SafeHttpClient, name: str, url: str, config_path: str, *, metadata: bool, auth: bool,
+                 token: str | None = None) -> RemoteProbe:
     probe = RemoteProbe(server_name=name, url=url, config_path=config_path)
-    client = McpReadOnlyClient(http, url)
+    client = McpReadOnlyClient(http, url, token=token)
     try:
         resp, info = client.handshake()
     except BlockedRequest as exc:
@@ -183,7 +209,7 @@ def probe_server(http: SafeHttpClient, name: str, url: str, config_path: str, *,
     probe.status_unauth = resp.status
     probe.www_authenticate = resp.header("www-authenticate")
     if info is not None:
-        probe.unauthenticated_list = True
+        probe.unauthenticated_list = token is None
         probe.protocol_version = client.version
         probe.server_info = info.get("serverInfo") or info.get("io.modelcontextprotocol/serverInfo")
         if isinstance(info.get("instructions"), str):

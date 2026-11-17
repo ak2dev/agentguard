@@ -1,0 +1,28 @@
+family: MM
+name: Images, documents and media
+about: >-
+  Text recovered from media is treated as instruction text and re-scanned by the other families.
+defaults: {category: malice, lane: evidence, confidence: medium, engine: media}
+mappings:
+  owasp-ast-1.0: [AST01, AST08]
+  owasp-mcp-2025-beta: ["MCP06:2025"]
+  owasp-asi-2026: [ASI01]
+  owasp-llm-2026: ["LLM01:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-MM-001, H, X, "Image contains instruction text"]
+  - [AG-MM-002, H, P, "Instructions tell the agent to read commands or steps from an image", {engine: instruction}]
+  - [AG-MM-003, H, X, "Instruction split between text and image (blank in the text, answer in the image)"]
+  - [AG-MM-004, H, X, "Low-contrast or very small text in an image"]
+  - [AG-MM-005, H, A, "Image metadata (EXIF, XMP, PNG text chunks) carries instructions, URLs or code"]
+  - [AG-MM-006, H, A, "SVG with script, `foreignObject`, event handlers or external references", {lane: block, confidence: high}]
+  - [AG-MM-007, H, X, "PDF hidden text (invisible render mode, white or low-contrast, tiny font, off-page)", {lane: block, confidence: high}]
+  - [AG-MM-008, H, X, "PDF extracted text differs from rendered text"]
+  - [AG-MM-009, H, X, "PDF active content (`/JS`, `/OpenAction`, `/Launch`, embedded files)", {lane: block, confidence: high}]
+  - [AG-MM-010, H, X, "Office document with macros or embedded OLE objects", {lane: block, confidence: high}]
+  - [AG-MM-011, M, P, "Notebook cell or stored output contains instructions or hidden code"]
+  - [AG-MM-012, M, P, "HTML asset with hidden elements or script"]
+  - [AG-MM-013, M, G, "Audio or video file used as an instruction source", {lane: hunt}]
+  - [AG-MM-014, M, G, "QR code or barcode that decodes to a URL or command"]
+  - [AG-MM-015, L, G, "Statistical signs of steganography", {lane: hunt, confidence: low}]

@@ -1,0 +1,7 @@
+{
+  "slug": "csv-tool",
+  "version": "1.0.0",
+  "audit": {
+    "status": "Warn"
+  }
+}

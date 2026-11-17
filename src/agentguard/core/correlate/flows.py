@@ -69,7 +69,8 @@ _NAME_HINTS: tuple[tuple[str, tuple[CapLabel, ...]], ...] = (
     ("database", (L.reads_private_data,)),
     ("shell", (L.code_exec,)),
 )
-_PROSE_KINDS = (ComponentKind.skill, ComponentKind.instruction_file, ComponentKind.command, ComponentKind.subagent)
+_PROSE_KINDS = (ComponentKind.skill, ComponentKind.instruction_file, ComponentKind.command, ComponentKind.subagent,
+                ComponentKind.plugin, ComponentKind.repository)
 FLOW_LABELS = (L.reads_private_data, L.ingests_untrusted_content, L.external_egress, L.destructive, L.code_exec, L.persistence)
 LABEL_TEXT = {
     L.reads_private_data: "can read private data",
@@ -139,7 +140,7 @@ def build_nodes(ctx: Context) -> list[Node]:
             n.labels[label] = (conf, ev[:2])
 
     for comp in sorted(ctx.inventory.components.values(), key=lambda c: c.id):
-        if comp.kind == ComponentKind.mcp_client_config:
+        if comp.kind in (ComponentKind.mcp_client_config, ComponentKind.repository):
             continue
         # Evidence already gathered by analyzers (strongest).
         for cap in comp.capabilities:
@@ -167,7 +168,7 @@ def build_nodes(ctx: Context) -> list[Node]:
             if ann.get("readOnlyHint") is True:
                 n.labels.pop(L.destructive, None)
         # Config-only servers: known packages / names.
-        if comp.kind in (ComponentKind.mcp_server, ComponentKind.package) and not comp.tools:
+        if comp.kind in (ComponentKind.mcp_server, ComponentKind.package, ComponentKind.bundle) and not comp.tools:
             labels, why = _known_server_labels(comp, table)
             span = comp.server.config_span if comp.server else None
             for label in labels:
@@ -203,15 +204,18 @@ def _best(nodes: list[Node], label: CapLabel, exclude: set[str] = frozenset()) -
 class FlowAnalyzer:
     id: ClassVar[str] = "flows"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = tuple(f"AG-FLOW-00{i}" for i in range(1, 8))
+    rules: ClassVar[tuple[str, ...]] = (
+        "AG-FLOW-001", "AG-FLOW-002", "AG-FLOW-002/unapproved", "AG-FLOW-003/code-exec",
+        "AG-FLOW-003/auto-approved-destructive", "AG-FLOW-003/memory-write", "AG-EXF-001/private-data-to-sink",
+    )
 
     def run(self, ctx: Context) -> None:
         nodes = build_nodes(ctx)
         if not nodes:
             return
         clients = sorted({c for n in nodes for c in session_of(n.component)} - {"*"}) or ["*"]
-        exfil_components = {cid for r in ctx.raw if r.rule_id in ("AG-SKL-EXF-001", "AG-CODE-022") and
-                            (r.rule_id == "AG-SKL-EXF-001" or (r.severity == Severity.high)) for cid in r.component_ids}
+        exfil_components = {cid for r in ctx.raw if r.rule_id in ("AG-EXF-006/known-sink", "AG-EXF-015/hardcoded-host") and
+                            (r.rule_id == "AG-EXF-006/known-sink" or (r.severity == Severity.high)) for cid in r.component_ids}
         policy_sev = ctx.options.policy.trifecta_severity if ctx.options.policy else None
         for client in clients:
             group = [n for n in nodes if session_of(n.component) & {client, "*"}]
@@ -239,35 +243,35 @@ class FlowAnalyzer:
                     continue
                 hops = [d[U][2], d[P][2], d[E][2]]
                 conf = Confidence.min(d[U][0], d[P][0], d[E][0])
-                self._emit(ctx, "AG-FLOW-002", client, agent, hops, (U, P, E), conf, policy_sev)
+                self._emit(ctx, "AG-FLOW-001", client, agent, hops, (U, P, E), conf, policy_sev)
                 single_done.add(cid)
         u, p, e = _best(group, U), _best(group, P), _best(group, E)
         if u and p and e and len({u.component.id, p.component.id, e.component.id}) > 1:
             conf = Confidence.min(u.labels[U][0], p.labels[P][0], e.labels[E][0])
-            self._emit(ctx, "AG-FLOW-001", client, agent, [u, p, e], (U, P, E), conf, policy_sev)
+            self._emit(ctx, "AG-FLOW-002", client, agent, [u, p, e], (U, P, E), conf, policy_sev)
             if all(L.auto_approved in n.labels for n in (u, p, e)):
-                self._emit(ctx, "AG-FLOW-006", client, agent, [u, p, e], (U, P, E), conf, None)
+                self._emit(ctx, "AG-FLOW-002/unapproved", client, agent, [u, p, e], (U, P, E), conf, None)
         # FLOW-003: untrusted → code execution.
         x = _best(group, L.code_exec)
         if u and x:
-            self._emit(ctx, "AG-FLOW-003", client, agent, [u, x], (U, L.code_exec),
+            self._emit(ctx, "AG-FLOW-003/code-exec", client, agent, [u, x], (U, L.code_exec),
                        Confidence.min(u.labels[U][0], x.labels[L.code_exec][0]), None)
         # FLOW-004: untrusted → auto-approved destructive tool.
         d_auto = [n for n in group if L.destructive in n.labels and L.auto_approved in n.labels]
         if u and d_auto:
             dn = max(d_auto, key=lambda n: (n.labels[L.destructive][0].rank, n.subject))
-            self._emit(ctx, "AG-FLOW-004", client, agent, [u, dn], (U, L.destructive),
+            self._emit(ctx, "AG-FLOW-003/auto-approved-destructive", client, agent, [u, dn], (U, L.destructive),
                        Confidence.min(u.labels[U][0], dn.labels[L.destructive][0]), None)
         # FLOW-005: private → egress to a known exfiltration sink.
         e_sink = [n for n in group if E in n.labels and n.component.id in exfil]
         if p and e_sink:
             en = max(e_sink, key=lambda n: (n.labels[E][0].rank, n.subject))
-            self._emit(ctx, "AG-FLOW-005", client, agent, [p, en], (P, E),
+            self._emit(ctx, "AG-EXF-001/private-data-to-sink", client, agent, [p, en], (P, E),
                        Confidence.min(p.labels[P][0], en.labels[E][0]), None)
         # FLOW-007: untrusted → persistence (memory/instruction poisoning).
         per = _best(group, L.persistence)
         if u and per:
-            self._emit(ctx, "AG-FLOW-007", client, agent, [u, per], (U, L.persistence),
+            self._emit(ctx, "AG-FLOW-003/memory-write", client, agent, [u, per], (U, L.persistence),
                        Confidence.min(u.labels[U][0], per.labels[L.persistence][0]), None)
 
     def _emit(self, ctx: Context, rule_id: str, client: str, agent: str, hops: list[Node], labels: tuple[CapLabel, ...],
@@ -282,11 +286,11 @@ class FlowAnalyzer:
             prev = n.subject
         label_map = {n.subject: [lbl for lbl in labels if lbl in n.labels] for n in hops}
         parts = [f"{h.display} {LABEL_TEXT[lbl]}" for h, lbl in zip(hops, labels, strict=False)]
-        if rule_id in ("AG-FLOW-001", "AG-FLOW-002", "AG-FLOW-006"):
+        if rule_id in ("AG-FLOW-002", "AG-FLOW-001", "AG-FLOW-002/unapproved"):
             narrative = (f"In one {client if client != '*' else 'agent'} session: {parts[0]}; {parts[1]}; {parts[2]}. "
                          f"Instructions hidden in that untrusted content could make the agent read private data with "
                          f"{hops[1].display} and send it out with {hops[2].display}.")
-            if rule_id == "AG-FLOW-006":
+            if rule_id == "AG-FLOW-002/unapproved":
                 narrative += " None of these steps requires per-call approval."
         else:
             narrative = f"In one {client if client != '*' else 'agent'} session: " + "; then ".join(parts) + "."

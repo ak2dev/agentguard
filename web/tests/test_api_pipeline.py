@@ -45,8 +45,8 @@ def test_scan_npm_package_end_to_end(env):
     rep = client.get(job["links"]["report"])
     assert rep.status_code == 200 and "immutable" in rep.headers["cache-control"]
     report = rep.json()
-    assert report["target"]["kind"] == "npm" and report["target"]["resolved"] == "1.2.3"
-    assert any(f["rule_id"].startswith("AG-SKL-SE-") for f in report["findings"])
+    assert report["target"]["kind"] == "npm" and report["target"]["commit"] == "1.2.3"
+    assert any(f["id"] == "AG-EXEC-001" for f in report["findings"])
     for fmt in ("sarif", "markdown", "html", "cyclonedx"):
         r = client.get(job["links"]["report"], params={"format": fmt})
         assert r.status_code == 200 and "attachment" in r.headers["content-disposition"]
@@ -68,7 +68,7 @@ def test_same_ref_same_pack_gives_identical_report(env, lure_tar):
     spec = {"source": {"kind": "npm", "locator": "x", "resolved": "1.0.0", "integrity": "sha512:00"}, "strip_components": 1}
     a = InProcessSandbox().run(lure_tar, spec, 30)
     b = InProcessSandbox().run(lure_tar, spec, 30)
-    assert a == b and json.loads(a)["target"]["resolved"] == "1.0.0"
+    assert a == b and json.loads(a)["target"]["commit"] == "1.0.0"
 
 
 def test_bad_input_lists_supported(env):

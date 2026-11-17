@@ -1,0 +1,8 @@
+{
+  "name": "csv-tool",
+  "version": "1.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "event-stream": "3.3.6"
+  }
+}

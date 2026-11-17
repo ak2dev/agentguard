@@ -1,0 +1,148 @@
+# Detection entries for the FLOW family (catalogue: rules/catalog/flow.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-FLOW-001
+    version: 2
+    description: One skill or server alone can ingest untrusted content, read private data and send data out. For skills and instruction files, the private-data read and the egress must be evidenced by code, a command or a fenced snippet, not by words in the prose.
+    why: The whole exfiltration chain is available through a single component; one injected instruction is enough.
+    confidence: high
+    match: {type: analyzer, analyzer: flows}
+    remediation: Scope the component's credentials to public data only, or disable its write/egress tools for this agent.
+
+  - id: AG-FLOW-002
+    version: 2
+    description: Within one agent session, one component can bring in untrusted content, another can read private data, and another can send data out.
+    why: A prompt injection delivered through the untrusted-content source can direct the agent to read private data and exfiltrate it through the egress sink. Most real exfiltration chains combine several individually reasonable tools.
+    confidence: medium
+    match: {type: analyzer, analyzer: flows}
+    remediation: Remove one leg of the trifecta for this session (for example disable the untrusted-content source or the egress tool), require approval for each call, or split the tools across separate agent profiles.
+    references: ["https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/"]
+
+
+  - id: AG-FLOW-002
+    variant: unapproved
+    lane: block
+    version: 2
+    title: Lethal trifecta with no human approval on any hop
+    description: Every component on a lethal-trifecta path runs without per-call approval.
+    why: The full chain can complete silently.
+    confidence: high
+    match: {type: analyzer, analyzer: flows}
+    remediation: Remove auto-approval from at least one hop, preferably the egress tool.
+
+
+  - id: AG-FLOW-003
+    variant: auto-approved-destructive
+    lane: block
+    version: 2
+    title: Untrusted content can reach an auto-approved destructive tool
+    description: A destructive tool (delete/overwrite/modify) is auto-approved in a session that also ingests untrusted content.
+    why: Injected instructions can destroy data without any human seeing the call.
+    confidence: medium
+    match: {type: analyzer, analyzer: flows}
+    remediation: Remove auto-approval from destructive tools.
+
+
+  - id: AG-FLOW-003
+    variant: code-exec
+    lane: evidence
+    version: 3
+    title: Untrusted content can reach code execution
+    description: Within one session, a component that ingests untrusted content coexists with one that executes code or commands.
+    why: Injection-to-RCE is the most damaging agent attack path.
+    confidence: medium
+    match: {type: analyzer, analyzer: flows}
+    remediation: Require approval for every command execution, or do not combine code execution with untrusted-content sources.
+
+
+  - id: AG-FLOW-003
+    variant: memory-write
+    lane: block
+    version: 2
+    title: Untrusted content can reach memory or instruction files
+    description: A session combines an untrusted-content source with a component that writes agent memory/instruction files or startup locations.
+    why: Memory poisoning persists injected instructions into future sessions (ASI06).
+    confidence: medium
+    match: {type: analyzer, analyzer: flows}
+    remediation: Require approval for writes to memory and instruction files, or separate these tools.
+
+
+  - id: AG-FLOW-010
+    version: 1
+    description: The component brings untrusted third-party content into the conversation - web pages, search results, issues, messages, uploaded documents.
+    why: Whatever that content says reaches the model as text. Combined with access to private data and a way to send data out, it completes the path an injected instruction needs.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Keep components that read untrusted content apart from ones that can reach secrets or send data, or require approval for their calls.
+
+  - id: AG-FLOW-011
+    version: 1
+    description: The component reads sensitive or workspace data - credentials, the environment, private files.
+    why: This is the data an attacker wants. The label matters when another component in the same session can send data out.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Narrow what the component can read to what its purpose needs.
+
+  - id: AG-FLOW-012
+    version: 1
+    description: The component can modify or delete data irreversibly.
+    why: A destructive action triggered by an injected instruction cannot be undone.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Require approval for the destructive calls, and keep backups.
+
+  - id: AG-FLOW-014
+    version: 1
+    description: A skill or command with a declared tool grant hands its work to a subagent that has more tools than the grant.
+    why: The limit a reviewer read on the skill does not hold - the work is done by an agent with wider access.
+    match: {type: analyzer, analyzer: privilege}
+    remediation: Give the subagent a `tools` list no wider than the skill's `allowed-tools`.
+
+# ---- added: flow_rules ----
+  - id: AG-FLOW-004
+    version: 1
+    description: One component reads sensitive data (private files, records, credentials) and another, in the scanned tree or among the installed components, can send data out. Neither has both capabilities alone.
+    why: The agent connects them. An instruction that reaches the agent can read with the first and send with the second, although each was reviewed as harmless.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not enable both for the same agent session, or require confirmation for the sending tool.
+
+  - id: AG-FLOW-005
+    version: 1
+    description: "One component writes a file at a shared location (the home directory, a temp directory, a dot-directory of the workspace) and another component runs that file or is told to follow it. Evaluated across the scanned tree and the installed components; at least one side is in the scanned tree."
+    why: Split this way, neither part contains an attack. The writer decides what the reader executes, which is the collusion pattern scanners that look at one skill at a time cannot see.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not install the candidate, or remove the hand-off. Skills should not exchange executable files.
+    references: ["https://arxiv.org/html/2608.09732v1"]
+
+  - id: AG-FLOW-006
+    version: 1
+    description: One component sets an environment variable and another component executes that variable's value (evaluates it, runs it as a command, fetches it as a URL).
+    why: The environment is state every component in a session shares. Used as a channel it carries a command from one component into another with nothing in either file showing the whole.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not install the candidate, or remove the variable hand-off.
+
+  - id: AG-FLOW-007
+    version: 1
+    description: A skill, command or instruction file tells the agent to use another skill, command or subagent by name, and that one has sensitive capabilities (shell, deletion, credentials, sending data, payments, persistence).
+    why: The caller decides when the sensitive capability runs and with what input, so the review of the sensitive skill no longer covers how it is used.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Check what the caller passes to the sensitive skill, and keep the sensitive skill invocable by the user only.
+
+  - id: AG-FLOW-008
+    version: 1
+    description: "One component writes a memory or instruction file (`MEMORY.md`, `CLAUDE.md`, `AGENTS.md`, rules files), and another component, in the tree or installed, is that file or follows it."
+    why: Whatever is written there is given to the agent as instructions in every later session. The writer steers the reader long after its own task is over.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not install the candidate, or remove its write to the instruction file.
+
+  - id: AG-FLOW-009
+    version: 1
+    description: "Instructions tell the agent to pass the result of one MCP server's read tool to another server's sending tool (`mcp__a__get_…` into `mcp__b__send_…`)."
+    why: Data read with one server's access leaves through another server. Each server's own review and permissions say nothing about the route between them.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Remove the instruction, or require confirmation before the second tool is called with data from the first.
+
+  - id: AG-FLOW-013
+    version: 1
+    description: "The candidate has the same name as an installed skill, command, subagent, plugin or server; writes into an installed component's directory; or gives the agent rules for using an installed component (\"whenever you use the X skill, also…\")."
+    why: Something you installed and reviewed now behaves differently, or is replaced, without any change to its own files.
+    match: {type: analyzer, analyzer: composition}
+    remediation: Do not install the candidate. If the override is intended, rename it and make the change in the original component.

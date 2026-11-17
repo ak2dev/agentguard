@@ -1,0 +1,375 @@
+# Detection entries for the SUPPLY family (catalogue: rules/catalog/supply.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-SUPPLY-001
+    aliases: [AG-SC-022]
+    version: 1
+    description: The package version is affected by a published advisory (severity taken from the advisory).
+    why: Known vulnerabilities in MCP servers are actively exploited.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: supply.osv}
+    remediation: Upgrade to a fixed version.
+
+  - id: AG-SUPPLY-001
+    variant: bundled-advisory
+    version: 1
+    title: Launcher pinned to a version with a published advisory
+    description: An MCP client configuration starts a package at a version that the bundled advisory snapshot lists as affected. No network lookup is needed.
+    why: The configuration pins the vulnerable release, so every start runs it. Helpers such as `mcp-remote` connect to servers the user did not write, so a flaw in the helper is reachable by any server it is pointed at.
+    confidence: high
+    match: {type: analyzer, analyzer: connector}
+    remediation: Pin the first fixed version named in the finding, or a later one.
+
+
+  - id: AG-SUPPLY-003
+    variant: mcp-package
+    aliases: [AG-SC-025]
+    lane: evidence
+    version: 1
+    title: Package name imitates a popular MCP server
+    description: A configured package name is within a small edit distance of, or re-scopes, a popular MCP server package.
+    why: Typosquatted and re-scoped packages are a common supply-chain attack on MCP users.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: supply.offline}
+    remediation: Check the exact package name and publisher before installing.
+
+
+  - id: AG-SUPPLY-004
+    aliases: [AG-SC-027]
+    version: 1
+    description: A skill install command, package.json, requirements file or MCP server entry names an npm or PyPI package that the registry does not have, or whose versions were all unpublished (opt-in --check-hijackable). Medium for npm scoped names, which only the scope owner can publish.
+    why: Anyone can publish a missing name, and the next install (often run by the agent itself) fetches the attacker's package.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: supply.hijack}
+    remediation: Fix the package name, or register a placeholder under your own account; do not install or run the reference until it points at a real, maintained package.
+
+
+  - id: AG-SUPPLY-007
+    aliases: [AG-SKL-SE-012]
+    version: 1
+    description: A command, script or config snippet points npm, yarn, pnpm, pip, uv, Go or RubyGems at a registry other than the official one (npm/yarn config set registry, registry= written to .npmrc/.yarnrc, npmRegistryServer, pip config set global.index-url, --index-url/--extra-index-url, PIP_/UV_ index variables, GOPROXY, gem sources --add).
+    why: Every later install on the machine then resolves packages through a host the skill author chose, which can serve modified packages long after the skill is removed. The change is easy to dress up as a "corporate mirror" (the Trail of Bits dev-env-setup bypass, June 2026).
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:npm|pnpm|yarn)\s+config\s+set\s+["']?(?:@[\w.-]+:)?registry["']?(?:\s*=\s*|\s+)["']?https?://
+        - |-
+          \bregistry\s*=\s*["']?https?://[^\s"']+["']?[^\n]{0,60}?>>?\s*["']?[^\s"']*\.npmrc\b
+        - |-
+          \bregistry\s+["']?https?://[^\s"']+["']?[^\n]{0,60}?>>?\s*["']?[^\s"']*\.yarnrc\b
+        - |-
+          \bnpmRegistryServer\s*:\s*["']?https?://
+        - |-
+          \bpip3?\s+config\s+set\s+(?:global|user|site)\.(?:extra-)?index-url\s+["']?https?://
+        - |-
+          (?:\bpip3?\s+install|\buv\s+pip\s+install|\buv\s+(?:add|sync))\b[^\n]*\s--(?:extra-)?index-url[=\s]+["']?https?://
+        - |-
+          \b(?:PIP_(?:EXTRA_)?INDEX_URL|UV_(?:EXTRA_)?INDEX_URL|UV_DEFAULT_INDEX|UV_INDEX)\s*=\s*["']?https?://
+        - |-
+          (?m)^\s*(?:extra-)?index-url\s*=\s*https?://
+        - |-
+          \bGOPROXY\s*=\s*["']?https?://
+        - |-
+          \bgem\s+sources\s+(?:--add|-a)\s+["']?https?://
+      unless:
+        # Official registries, the PyTorch/NVIDIA wheel indexes (the documented way to install CUDA builds) and local test registries.
+        - |-
+          https?://(?:registry\.npmjs\.org|registry\.yarnpkg\.com|pypi\.org|pypi\.python\.org|files\.pythonhosted\.org|download\.pytorch\.org|pypi\.nvidia\.com|proxy\.golang\.org|rubygems\.org|localhost|127\.0\.0\.1|\[::1\])(?:[:/"'\s]|$)
+      window: 0
+    remediation: Do not change package-manager configuration from a skill. If a private registry is genuinely required, document it for the user to configure themselves, scope it to one package namespace (npm "@scope:registry"), and never ship a script that writes ~/.npmrc, ~/.yarnrc or pip.conf.
+    references: ["https://blog.trailofbits.com/2026/06/03/the-sorry-state-of-skill-distribution/"]
+
+
+  - id: AG-SUPPLY-009
+    aliases: [AG-CODE-025]
+    version: 2
+    description: Code downloads and executes code, imports from a URL, or installs a package at run time from a URL, a git reference or a registry other than the default one (an install command handed to a process runner). A package installed by name from the default registry is AG-EXEC-008. Installing the declared dependencies (bare `npm install`, `pip install -r requirements.txt`) and install hints in messages are not reported.
+    why: Code fetched at run time bypasses every review and pin, and whoever controls that URL decides what runs.
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Declare dependencies in the package manifest with pinned versions and hashes, from the default registry.
+
+
+  # --- MCP 2026-07-28 tool schemas (SEP-2106) and the MCP Apps extension (io.modelcontextprotocol/ui, 2026-01-26).
+
+  - id: AG-SUPPLY-009
+    variant: schema-ref
+    aliases: [AG-MCP-META-022]
+    lane: evidence
+    version: 1
+    title: Tool schema $ref points at a network URI
+    description: A tool's inputSchema or outputSchema has a `$ref`, `$dynamicRef` or `$recursiveRef` that resolves (against any `$id` base) to an http(s), ws(s) or ftp URI. Reported at high when the URI is a loopback, private, link-local or cloud-metadata address.
+    why: MCP 2026-07-28 says implementations MUST NOT automatically dereference a `$ref` that resolves to a network URI and SHOULD reject a schema whose external `$ref` cannot be resolved. A conforming client drops the tool; a validator that does fetch it makes a request from the user's machine every time it validates (server-side request forgery, tracking), and the tool's real contract is whatever that URL serves today.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Inline the referenced schema under `$defs` and point the `$ref` at it (`#/$defs/...`).
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/index#ref-resolution"]
+
+
+  - id: AG-SUPPLY-011
+    variant: mcp-raw-ip
+    aliases: [AG-MCP-CFG-014]
+    version: 1
+    title: Remote server addressed by raw public IP
+    description: The remote server URL uses a literal public IP address.
+    why: Raw IPs bypass DNS reputation and certificate hostname checks are usually disabled to make them work.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Use a hostname with a valid TLS certificate.
+
+
+  - id: AG-SUPPLY-011
+    variant: raw-ip
+    aliases: [AG-SKL-EXF-002]
+    version: 1
+    title: URL to a raw public IP address
+    description: A URL points at a literal public IPv4 address instead of a hostname.
+    why: Raw IPs avoid DNS-based reputation and are common for command-and-control and drop servers.
+    severity: medium
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:https?|ftp|wss?|tcp)://(?!(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|0\.0\.0\.0|169\.254\.|192\.0\.2\.|198\.51\.100\.|203\.0\.113\.|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.))(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}\b
+    remediation: Use a named, documented endpoint over HTTPS.
+
+
+  - id: AG-SUPPLY-011
+    variant: shortener
+    aliases: [AG-SKL-EXF-003]
+    version: 1
+    title: URL shortener
+    description: A link uses a URL-shortening service.
+    why: Shorteners hide the real destination from reviewers and can be re-pointed after review.
+    severity: medium
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bhttps?://(?:www\.)?(?:bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly|rb\.gy|ow\.ly|buff\.ly|shorturl\.at|tiny\.cc|v\.gd|rebrand\.ly|bl\.ink|t\.ly|s\.id|lnkd\.in|shorturl\.gg|urlz\.fr|qrco\.de)/\S+
+    remediation: Use the full destination URL.
+
+
+  - id: AG-SUPPLY-012
+    variant: unregistered
+    aliases: [AG-SC-028]
+    lane: block
+    version: 2
+    title: Download or install domain is unregistered, expired, or a freed cloud-app slot
+    description: A domain used to download, install or reach an MCP server does not resolve, and RDAP shows it unregistered or expired (high); registered but without DNS records is low. A cloud-app hostname that no longer resolves (<app>.azurewebsites.net, <project>.pages.dev, <app>.fly.dev, ...) is high with medium confidence, because the app name may be free to claim (opt-in --check-hijackable).
+    why: A lapsed domain can be bought by anyone, and a deleted cloud app's name can be re-created by anyone with an account on the platform; either way they then serve the installer, script or MCP endpoint the skill or config trusts ("MCPJacking").
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: supply.hijack}
+    remediation: Remove the reference or point it at the publisher's current domain, and pin downloads by hash.
+
+
+  - id: AG-SUPPLY-013
+    aliases: [AG-SC-020]
+    version: 1
+    description: The npm package version has no provenance attestation (opt-in --provenance).
+    why: Provenance ties a package to the source repository and CI build that produced it.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: supply.provenance}
+    remediation: Prefer versions published with provenance, or ask the maintainer to enable it.
+
+
+  - id: AG-SUPPLY-014
+    aliases: [AG-SC-021]
+    version: 1
+    description: The package's provenance attestation does not match the published tarball (subject digest mismatch). Full Sigstore certificate-chain verification is not yet performed (see limitations).
+    why: A mismatched attestation means the published artifact is not the one the build attested to.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: supply.provenance}
+    remediation: Do not install this version; report it to the registry and maintainer.
+
+
+  - id: AG-SUPPLY-015
+    variant: new-package
+    aliases: [AG-SC-023]
+    version: 1
+    title: Very new package
+    description: The package was first published less than 30 days ago (opt-in --registry).
+    why: Malicious packages are typically very young; age is a weak but useful signal.
+    severity: low
+    confidence: medium
+    network: true
+    match: {type: analyzer, analyzer: supply.age}
+    remediation: Wait, or review the package and its publisher before use.
+
+
+  - id: AG-SUPPLY-015
+    variant: repojacking
+    aliases: [AG-SC-026]
+    lane: block
+    version: 1
+    title: Referenced GitHub account no longer exists (repojacking)
+    description: A skill, script or MCP config fetches from, clones or links to a GitHub owner (github.com/<owner>/..., raw.githubusercontent.com/<owner>/, github:<owner>/..., <owner>.github.io) that GitHub reports as nonexistent (opt-in --check-hijackable). High when the reference downloads, installs or runs code; medium for a plain link.
+    why: A deleted or renamed GitHub account name can be registered by anyone, who then serves their own code at the same URLs ("SkillJacking" / repojacking).
+    confidence: medium
+    network: true
+    match: {type: analyzer, analyzer: supply.hijack}
+    remediation: Point the reference at the project's current home (or vendor the file and pin its hash); remove the skill or server if no maintained source exists.
+
+
+  - id: AG-SUPPLY-017
+    variant: domain
+    aliases: [AG-SC-011]
+    version: 1
+    title: Domain or IP matches the IOC feed
+    description: A referenced host or IP matches an entry in the signed local IOC feed.
+    why: The destination is known infrastructure of a reported campaign.
+    severity: high
+    confidence: high
+    match: {type: analyzer, analyzer: supply.intel}
+    remediation: Remove the reference and the component that contains it.
+
+
+  - id: AG-SUPPLY-017
+    variant: hash
+    aliases: [AG-SC-010]
+    version: 1
+    title: Content hash matches the IOC feed
+    description: A file or component content hash matches an entry in the signed local IOC feed.
+    why: The exact content has been reported as malicious by the feed maintainers.
+    confidence: high
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: supply.intel}
+    remediation: Remove the component and review the host for other indicators.
+
+
+  - id: AG-SUPPLY-017
+    variant: publisher
+    aliases: [AG-SC-012]
+    version: 1
+    title: Publisher matches the IOC feed
+    description: The component's publisher, package scope or registry namespace matches the IOC feed.
+    why: Publishers behind prior malicious releases are likely to publish more.
+    severity: high
+    confidence: medium
+    match: {type: analyzer, analyzer: supply.intel}
+    remediation: Avoid components from this publisher until the listing is reviewed.
+
+
+  - id: AG-SUPPLY-002
+    version: 1
+    description: A dependency is a package published as malware or taken over and republished with a payload - it is on the bundled list drawn from public advisories, or the vulnerability lookup returned a malicious-package record for it.
+    why: Installing the package runs the attacker's code. No configuration of the dependent makes it safe.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Do not install. Remove the dependency, and treat any machine that installed it as compromised.
+
+  - id: AG-SUPPLY-005
+    version: 1
+    description: A skill, plugin or server declares dependencies as version ranges (or with no version) and ships no lockfile.
+    why: Each install resolves the ranges again, so the code that runs can differ from the code that was reviewed, and a compromised new release is picked up automatically.
+    match: {type: analyzer, analyzer: supply.deps}
+    fix_action: pin-version
+    remediation: Pin exact versions, or commit a lockfile with integrity hashes.
+
+  - id: AG-SUPPLY-006
+    version: 1
+    description: A dependency is installed from a URL or a git source with no commit pin - a tarball URL, `git+https://…` at a branch or tag, or a `github:` shorthand.
+    why: The registry's immutability does not apply. Whoever controls the URL or the branch decides what is installed next time.
+    match: {type: analyzer, analyzer: supply.deps}
+    fix_action: pin-commit
+    remediation: Use a registry release at an exact version, or pin the git source to a full commit hash.
+
+  - id: AG-SUPPLY-008
+    version: 1
+    description: A locked dependency declares an install script (`hasInstallScript` in the lockfile).
+    why: Install scripts run arbitrary code at install time with the installing user's permissions; they are the usual delivery vehicle of compromised packages.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Install with scripts disabled (`--ignore-scripts`) and review the listed packages; allow scripts only for the ones that need them.
+
+  - id: AG-SUPPLY-010
+    version: 1
+    description: Instructions send the agent to an external document for guidance (a README, a wiki page, a raw file on a branch), and the document is not pinned to a commit or a recorded hash.
+    why: The document is part of the instructions without being part of the package. Its owner can change what the agent is told after the package was reviewed.
+    confidence: medium
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Copy the needed text into the package, link to a commit-pinned URL, or record the document's hash in the lockfile.
+
+  - id: AG-SUPPLY-016
+    version: 1
+    description: The published package contains files that are not in its source repository at the tagged commit, or files whose content differs.
+    why: Reviews are done on the repository; users install the package. Code that exists only in the published archive was never reviewed, which is how several registry compromises shipped their payload.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Do not install this version. Build from the reviewed source, or ask the publisher to explain the difference.
+
+  - id: AG-SUPPLY-018
+    version: 1
+    description: The source repository is archived, or has had no commit for more than two years.
+    why: Vulnerabilities found in it will not be fixed, and abandoned names are a target for takeover.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Prefer a maintained alternative, or vendor and maintain the code yourself.
+
+  - id: AG-SUPPLY-020
+    version: 1
+    description: A git submodule uses an unauthenticated URL (`http://`, `git://`) or one with embedded credentials, tracks a branch, or is declared without its content being present.
+    why: A submodule is part of what gets installed. Fetched over an unauthenticated channel or from a moving branch, it can be replaced; absent from the scan, it was not analysed.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Use an `https://` URL, pin the submodule to a commit, and scan the repository with submodules fetched.
+
+  - id: AG-SUPPLY-021
+    version: 1
+    description: A package declares no licence and ships no licence file.
+    why: Without a licence there is no permission to use, modify or redistribute the code.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Ask the author to add a licence, or do not depend on the package.
+
+  - id: AG-SUPPLY-023
+    version: 1
+    description: A skill, plugin or bundle ships a compiled executable or library and contains no source it could have been built from.
+    why: A binary cannot be reviewed like source, and with no source there is nothing to rebuild it from and compare.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Ask for the source and a reproducible build, or replace the binary with a pinned package from a registry.
+
+  - id: AG-SUPPLY-024
+    version: 1
+    description: A lockfile entry resolves from an unexpected place - plain HTTP, a raw IP address, or a host different from the one the rest of the lockfile uses - or has no integrity hash.
+    why: The lockfile decides what is downloaded. One entry pointed at another host replaces that package with the attacker's archive, and reviewers rarely read lockfile diffs.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Regenerate the lockfile from the manifest against the official registry and compare; do not install from the current one.
+
+  - id: AG-SUPPLY-025
+    version: 1
+    description: A marketplace's own record for an installed skill carries an audit status other than passed (Review, Warn, Pending, Error, Malicious).
+    why: The marketplace scanned the release and did not clear it, or had not finished. The install went ahead anyway.
+    match: {type: analyzer, analyzer: supply.deps}
+    remediation: Remove the skill until its audit passes, or review it yourself before keeping it.
+
+# ---- added: supply_ci ----
+  - id: AG-SUPPLY-022
+    version: 1
+    description: "A workflow that runs a coding agent uses another action by tag or branch (`@v4`, `@main`) instead of a 40-character commit SHA. First-party `actions/*` and `github/*` actions are reported at low."
+    why: Every action in the job runs with the same token and can read what the agent step leaves behind. A moved tag changes that code without any change in the repository.
+    match: {type: analyzer, analyzer: ci}
+    fix_action: pin-commit
+    remediation: Pin each action to a full commit SHA and keep the version in a comment for readers and update tools.
+
+# ---- added: shipped_supply ----
+  - id: AG-SUPPLY-019
+    version: 1
+    description: "Vendored third-party code no longer matches what its publisher released: the hashes in a Python package's `.dist-info/RECORD` disagree with the files beside it, or a recorded comparison with the published package (`facts.vendored`) lists changed or added files."
+    why: Reviewers skip a vendored library once they recognise its name. A change inside it is therefore one of the least looked-at places in a package.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Replace the vendored copy with the published release, pinned by hash, or review the listed files as first-party code.

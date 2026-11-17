@@ -730,6 +730,8 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 /* orange text on a dark orange tint, as the reference marks the one figure that matters */
 .verdict.hot { background: #26140c; border-color: #6e3215; color: #eaa682; }
 .verdict.hot strong { color: var(--accent); }
+.verdict .verdict-reasons { margin: 10px 0 0; padding-left: 18px; font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; }
+.verdict .verdict-reasons li { margin: 2px 0; }
 .board { border: 1px solid var(--line); padding: 20px 22px 18px; }
 .board-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin: 0 0 14px; font-size: .95rem; }
 .board-head .summary { color: var(--fg-2); }
@@ -748,6 +750,7 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .report-facts dd { margin: 0; }
 .report-facts .v { display: block; margin: 10px 0 2px; font-size: 1.6rem; font-weight: 500; letter-spacing: -.03em; line-height: 1.1; color: var(--fg); overflow-wrap: anywhere; }
 .report-facts .sub { display: block; color: var(--muted); font-size: .88rem; line-height: 1.35; overflow-wrap: anywhere; }
+.sample-facts { margin: 24px 0 32px; border: 1px solid var(--line); }
 .downloads { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 18px 26px; border-top: 1px solid var(--line); }
 .downloads .label { color: var(--muted); margin-right: 6px; }
 .downloads .btn { margin: 0; background: var(--surface-2); }
@@ -838,6 +841,14 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .coverage > :last-child:not(summary) { margin-bottom: 18px; }
 .coverage ul { color: var(--fg-2); padding-left: 20px; }
 .coverage li { overflow-wrap: anywhere; }
+.coverage ol { color: var(--fg-2); padding-left: 22px; line-height: 1.7; }
+.coverage ol .sev { margin-right: 2px; }
+/* a finding's trace (instruction, source, sink) and the components table of a report */
+.finding-body ol.trace { margin: 0; padding-left: 22px; color: var(--fg-2); font-size: .92rem; line-height: 1.7; }
+.finding-body ol.trace code { font-size: .84rem; }
+.components-table td:first-child { white-space: normal; }
+.components-table td:nth-child(2) { min-width: 0; white-space: nowrap; }
+.components-table td:nth-child(4) { white-space: normal; min-width: 200px; }
 .result > .coverage { margin-top: 40px; }
 
 /* rule pages (rules/[id].astro): the report's block, with the rule's facts in dashed cells
@@ -848,7 +859,7 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .report-intro > .rule-id { margin: 0; }
 .rule-id code { background: none; border: 0; padding: 0; color: var(--accent); font-size: .95rem; letter-spacing: .02em; }
 .rule-head h1 { margin: 12px 0 14px; font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 500; letter-spacing: -0.032em; }
-.rule-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.rule-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
 .rule-cells > div { display: grid; align-content: start; gap: 10px; padding: 16px 14px 18px; border: 1px dashed var(--line-2); min-width: 0; }
 .rule-cells dt { color: var(--muted); font-size: .86rem; }
 .rule-cells dd { margin: 0; font-size: 1.3rem; font-weight: 500; letter-spacing: -.02em; line-height: 1.2; color: var(--fg); overflow-wrap: anywhere; }

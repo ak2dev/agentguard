@@ -1,0 +1,22 @@
+family: IMPACT
+name: Destruction, abuse and financial action
+defaults: {category: malice, lane: evidence, confidence: medium, engine: code}
+mappings:
+  owasp-ast-1.0: [AST01, AST03]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI02]
+  owasp-llm-2026: ["LLM03:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  malskillbench: [B7, B8]
+rules:
+  - [AG-IMPACT-001, C, X, "Mass delete or wipe", {lane: block, confidence: high}]
+  - [AG-IMPACT-002, C, X, "Mass encryption or ransom note", {lane: block, confidence: high}]
+  - [AG-IMPACT-003, H, X, "Cryptocurrency miner or other resource abuse", {lane: block, mappings: {owasp-llm-2026: ["LLM06:2026"]}}]
+  - [AG-IMPACT-004, M, X, "Fork bomb, denial-of-service loop or token-burning loop", {mappings: {cwe: [CWE-400], owasp-llm-2026: ["LLM06:2026"]}}]
+  - [AG-IMPACT-005, H, P, "Destructive git operations instructed without confirmation", {category: vulnerability, engine: instruction}]
+  - [AG-IMPACT-006, H, P, "Database or cloud resource destruction", {category: vulnerability}]
+  - [AG-IMPACT-007, M, G, "Direct financial execution (payments, transfers, trades, crypto sends)", {category: vulnerability}]
+  - [AG-IMPACT-008, M, G, "Sends messages, mail or posts at scale", {category: vulnerability}]
+  - [AG-IMPACT-009, H, X, "Disables backups, logging or auditing", {lane: block}]
+  - [AG-IMPACT-010, M, G, "Modifies system services or system-wide settings", {category: vulnerability}]

@@ -1,0 +1,285 @@
+# Detection entries for the OBF family (catalogue: rules/catalog/obf.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+  - id: AG-OBF-001
+    aliases: [AG-SKL-HID-001]
+    version: 1
+    description: Characters from the Unicode tag block (U+E0000–E007F) are invisible but encode ASCII text that models read.
+    why: '"ASCII smuggling" with tag characters hides instructions from human reviewers while models still process them.'
+    confidence: high
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove all tag characters. Legitimate text never needs them (flag emoji sequences excepted, which are not used in skill text).
+    references: ["https://unicode.org/charts/PDF/UE0000.pdf"]
+
+
+  - id: AG-OBF-002
+    aliases: [AG-SKL-HID-003]
+    version: 1
+    description: Zero-width characters split words or appear in runs.
+    why: Splitting keywords with invisible characters evades keyword review and filters while models still read the word.
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove zero-width characters from instructions and metadata.
+
+
+  - id: AG-OBF-003
+    aliases: [AG-SKL-HID-002]
+    version: 1
+    description: Bidi override/embedding/isolate controls reorder how text is displayed.
+    why: Displayed text can differ from the text the agent processes, so a reviewer approves something other than what runs.
+    confidence: high
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove bidi control characters (U+202A–202E, U+2066–2069).
+    references: ["https://trojansource.codes/"]
+
+
+  - id: AG-OBF-005
+    aliases: [AG-SKL-HID-004]
+    version: 1
+    description: A single word mixes Latin letters with look-alike Cyrillic, Greek, Armenian or Cherokee letters.
+    why: Homoglyphs make a name, host or command look like something trusted while being different.
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Replace look-alike characters with their ASCII equivalents.
+
+
+  - id: AG-OBF-007
+    aliases: [AG-SKL-HID-005]
+    version: 1
+    description: An HTML comment (invisible when rendered) contains instructions or commands aimed at the agent.
+    why: Reviewers read rendered Markdown; agents read the raw text, including comments.
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove the comment or move its content into visible text so reviewers can see it.
+
+
+  - id: AG-OBF-008
+    variant: html-css
+    aliases: [AG-SKL-HID-010]
+    version: 1
+    title: Text hidden with HTML/CSS
+    description: Text inside elements hidden with display:none, visibility:hidden, zero font size, invisible color or the `hidden` attribute.
+    why: Hidden elements are invisible to reviewers but read by agents.
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove hidden elements from agent-facing Markdown.
+
+
+  - id: AG-OBF-008
+    variant: markdown
+    aliases: [AG-SKL-HID-007]
+    version: 1
+    title: Agent-directed text in link references, alt text or titles
+    description: Link-reference definitions, image alt text or link titles contain instructions aimed at the agent.
+    why: These fields are rarely visible when Markdown is rendered.
+    severity: low
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Keep alt text and titles descriptive; move instructions into visible text.
+
+
+  - id: AG-OBF-010
+    aliases: [AG-SKL-HID-009]
+    version: 2
+    description: A decoded blob contains agent-directed instructions, shell commands or URLs.
+    why: Instructions or commands that only exist in encoded form are a strong sign of deliberate concealment.
+    confidence: high
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove the encoded payload; if it is legitimate, store it in plain text with an explanation.
+
+
+  - id: AG-OBF-012
+    variant: decoded-blob
+    lane: evidence
+    # A record, not an accusation: what the blob decodes to is judged by the rules that rescan it (AG-OBF-010 and the rest).
+    category: hygiene
+    aliases: [AG-SKL-HID-008]
+    version: 2
+    title: Encoded blob decoded and rescanned
+    description: A base64, hex, percent-encoded or compressed blob decoded to readable text. Percent-encoding inside a URL is ordinary and is not recorded.
+    why: Encoding hides content from reviewers. Agent Guard decodes (bounded depth) and rescans it; this finding records that it did.
+    severity: low
+    confidence: high
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Store content in plain text, or document why the encoding is needed.
+
+
+  - id: AG-OBF-017
+    aliases: [AG-SKL-HID-006]
+    version: 1
+    description: Text pushed far to the right by a long run of spaces or tabs.
+    why: Most viewers do not scroll horizontally, so appended instructions go unnoticed.
+    confidence: medium
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove the padding and review the trailing text.
+
+
+  - id: AG-OBF-018
+    variant: bundled-archive
+    aliases: [AG-SKL-BND-002]
+    version: 1
+    title: Bundled archive
+    description: The bundle contains an archive (zip, 7z, rar, tar.gz…). Password-protected archives escalate to high.
+    why: Archive contents are not scanned, and password protection is used to get payloads past scanners.
+    severity: medium
+    confidence: high
+    applies_to: [archive]
+    match: {type: analyzer, analyzer: skill.bundle}
+    remediation: Unpack the archive contents into the bundle as reviewable files.
+
+
+  - id: AG-OBF-020
+    aliases: [AG-SKL-BND-006]
+    version: 1
+    description: The bundle ships a .pyc file (including in __pycache__) that has no .py source next to it, or whose header records a source size different from the .py it sits beside, or that is hash-based and cannot be checked. A cache that matches its source is not reported.
+    why: Python imports the bytecode when the header matches, so a benign utils.py can run malicious utils.cpython-312.pyc. Reviewers and scanners read the source and miss it (the Trail of Bits simple-formatter bypass, June 2026).
+    confidence: high
+    applies_to: [binary]
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: skill.bundle}
+    remediation: Delete __pycache__ directories and .pyc files from the bundle and ship only source; Python rebuilds the cache from the reviewed source.
+    references: ["https://blog.trailofbits.com/2026/06/03/the-sorry-state-of-skill-distribution/"]
+
+
+  - id: AG-OBF-025
+    aliases: [AG-SKL-SE-003]
+    version: 1
+    description: Instructions to extract an archive using a password given alongside it.
+    why: Password-protected archives are used to get malware past scanners; publishing the password defeats any legitimate reason for it.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:archive|zip|rar|7z|extraction|unzip)\s+(?:password|passcode|pass|pwd)\s*(?:is|:|=)\s*[`"'*]*[^\s`"'*]{3,}
+        - |-
+          \b(?:password|passcode|pwd)\s*(?:is|:|=)\s*[`"'*]*[^\s`"'*]{3,}
+        - |-
+          \b(?:password|passcode|pwd)\s+[`"'*]+[^\s`"'*]{3,}[`"'*]+
+        - |-
+          \b7z\s+[xe]\b[^\n]*\s-p\S+|\bunzip\s+[^\n]*-P\s+\S+|\bunrar\s+[xe]\b[^\n]*-p\S+
+      require:
+        - |-
+          \.(?:zip|7z|rar)\b|\barchive\b|\bextract\b|\bunzip\b|\bunrar\b|\b7z\b
+      window: 3
+    remediation: Remove password-protected archives. Distribute code as reviewable source or signed packages.
+
+# ---- added: obf_rules ----
+  - id: AG-OBF-004
+    version: 1
+    description: A URL host, a command in a code span or code block, a token in a script or configuration file, or a tool name contains a character from another script that looks like a Latin letter (Cyrillic, Greek, Armenian and similar).
+    why: The name reads as the expected command, host or tool, but it is a different one. That is how a lookalike domain, package or binary gets used without anyone noticing in review.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: fold-confusables
+    remediation: Replace the look-alike characters with the plain letters, then check that the command, URL or name is the one you meant.
+
+  - id: AG-OBF-006
+    version: 1
+    description: Two or more variation selectors in a row, variation selectors from the supplementary range, or a run of eight or more invisible separator characters. The hidden bytes are decoded and shown where they form text.
+    why: These characters display as nothing and each can carry data, so a line can hold a whole instruction that only the model receives.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: strip-codepoints
+    remediation: Remove the invisible characters, and treat the file as hostile if you did not put them there.
+
+  - id: AG-OBF-009
+    version: 1
+    description: The file contains terminal escape sequences (the ESC control character followed by a CSI, OSC or other sequence).
+    why: Printed in a terminal they can hide text, change colours to match the background, move the cursor or rewrite earlier lines, so a reviewer using `cat` or `less -R` does not see what the agent reads.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: strip-escapes
+    remediation: Remove the escape sequences. Instruction and configuration files have no use for them.
+
+  - id: AG-OBF-011
+    version: 1
+    description: A blob decodes through two or more layers (for example base64 inside base64, or hex inside base64) to readable text.
+    why: One layer of encoding is sometimes data. Stacked layers exist to get past tools that decode once and stop.
+    match: {type: analyzer, analyzer: text.integrity}
+    remediation: Do not install it. Ask the author for the content in plain text.
+
+  - id: AG-OBF-013
+    version: 1
+    description: A script or instruction decodes, decrypts or unpacks a data file shipped in the same package (a base64 or hex block, an archive, high-entropy data) and then runs or loads the result.
+    why: This is the self-extracting pattern. The reviewed files are a stub and a blob; the real instructions or code come into existence at first run, after every static check has passed.
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: code.obfuscation}
+    remediation: Do not install it. Anything the extension runs should be in the package in readable form.
+    references: ["https://arxiv.org/html/2607.02357"]
+
+  - id: AG-OBF-014
+    version: 1
+    description: "A command, path or URL is put together at run time from fragments: concatenated string pieces, a joined list of pieces, `chr()` or `String.fromCharCode` sequences, a byte list, or shell variables spliced together. Reported when the assembled text contains a sensitive token that no single fragment holds."
+    why: A search for the command or the credential path finds nothing, because it is never written out. Honest code has no reason to spell `curl` as two strings.
+    match: {type: analyzer, analyzer: code.obfuscation}
+    remediation: Do not install it, or have the author write the command out so it can be reviewed.
+
+  - id: AG-OBF-015
+    version: 1
+    description: "A command or a dangerous function is given another name and used through it: a shell alias or short variable for `curl`, `bash`, `eval`; a variable bound to `eval`, `exec` or `os.system`; `getattr` on `os` or `subprocess`; lookups through `globals()` or `__builtins__`."
+    why: Rules and reviewers look for the call by name. Indirection keeps the name out of the line that does the work.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \balias\s+[\w-]+=["']?(?:curl|wget|nc|ncat|bash|sh|eval|sudo|base64|python3?|rm|ssh|scp)\b
+        - |-
+          ^\s*(?:export\s+)?([A-Za-z_]\w{0,3})=["']?(?:curl|wget|nc|ncat|bash|eval|base64)["']?\s*(?:;|\n)[^\n]*\$\{?\1\}?\s+\S
+        - |-
+          ^\s*\w+\s*=\s*(?:eval|exec|__import__|os\.system|os\.popen|subprocess\.(?:run|Popen|call|check_output))\s*(?:;|\n|$)
+        - |-
+          \b(?:const|let|var)\s+\w+\s*=\s*(?:eval|Function|require\(\s*["']child_process["']\s*\)\.exec(?:Sync)?)\s*;
+        - |-
+          \bgetattr\(\s*(?:os|subprocess|builtins|__builtins__|shutil|importlib)\s*,|\bglobals\(\)\s*\[\s*["'](?:__builtins__|eval|exec)|__builtins__\s*(?:\[|\.__dict__)|\b(?:window|globalThis|global)\s*\[\s*["'][^"'\n]{1,8}["']\s*\+
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Call the function or command by its own name, or remove it.
+
+  - id: AG-OBF-016
+    version: 1
+    description: A sensitive command, path or URL is split in the middle of the word across lines, with a backslash line continuation in a shell command or with adjacent string pieces on separate lines. Splits across files are not followed.
+    why: Line-based rules and people both read one line at a time; the word only exists once the lines are joined.
+    match: {type: analyzer, analyzer: code.obfuscation}
+    remediation: Write the command on one line, or break it between arguments.
+
+  - id: AG-OBF-019
+    version: 1
+    description: "A script in a skill, plugin or bundle is minified or packed: very long lines with almost no whitespace, a known packer wrapper, or a dozen or more machine-generated `_0x…` identifiers."
+    why: The agent will run it, and nobody can review it as shipped. Packing is also how the payload of a self-extracting skill is kept out of sight.
+    match: {type: analyzer, analyzer: file.integrity}
+    remediation: Ship the readable source. If the file is a build output, include the source it was built from and a way to reproduce the build.
+
+  - id: AG-OBF-021
+    version: 1
+    description: A file's bytes do not match its extension (a script or archive named `.png`, binary data named `.txt` or `.json`), or the file is at once a valid image and a zip archive (a polyglot).
+    why: Scanners and reviewers pick how to treat a file by its name. A file that is something else is skipped by them and still usable by whatever the instructions tell the agent to do with it.
+    match: {type: analyzer, analyzer: file.integrity}
+    remediation: Remove the file, or rename it to what it is and review it as that.
+
+  - id: AG-OBF-022
+    version: 1
+    description: "A PNG, JPEG, GIF, PDF or zip file carries bytes after the point where its format says the content ends. The signature block of a signed MCP bundle is not counted."
+    why: Viewers and archive tools ignore trailing bytes, so the file opens normally. A command that reads the tail of the file gets the hidden payload.
+    match: {type: analyzer, analyzer: file.integrity}
+    remediation: Remove the file, or re-save it from a trusted source so only the real content remains.
+
+  - id: AG-OBF-023
+    version: 1
+    description: A word of three or more characters is written in compatibility characters - fullwidth, mathematical or enclosed letters - that Unicode normalisation turns into plain ASCII. Not reported in text that also contains Chinese, Japanese or Korean, where fullwidth Latin is ordinary typography.
+    why: A filter comparing against the plain word does not match these characters; a model reads them as the plain word.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: normalize-nfkc
+    remediation: Replace the characters with their plain forms.
+
+  - id: AG-OBF-024
+    version: 1
+    description: "Text addressed to the agent sits in a YAML comment in the frontmatter, in a frontmatter key that no agent uses, or in a comment of a YAML configuration file."
+    why: Tools that display parsed metadata drop comments and unknown keys, so reviewers do not see them. An agent that is given the raw file reads every line.
+    match: {type: analyzer, analyzer: text.integrity}
+    fix_action: remove-line
+    remediation: Remove the comment or key.

@@ -42,6 +42,7 @@ TEMPLATE_METHODS = {"from_string"}
 # Kind-specific evidence of sanitization in the handler body (heuristic).
 SANITIZERS: dict[str, tuple[str, ...]] = {
     "path": ("is_relative_to", "commonpath", "os.path.commonprefix"),
+    "write": ("is_relative_to", "commonpath", "os.path.commonprefix"),
     "url": ("ALLOWED_HOSTS", "allowed_hosts", "ALLOWLIST", "allowlist", "is_private", "is_global"),
     "shell": ("shlex.quote", "pipes.quote"),
     "argv": ("shlex.quote", "startswith(\"-\")", "startswith('-')", "re.fullmatch", "re.match"),
@@ -50,7 +51,7 @@ SANITIZERS: dict[str, tuple[str, ...]] = {
 
 @dataclass
 class TaintHit:
-    kind: str           # shell | argv | eval | deser | path | url | sql | template
+    kind: str           # shell | argv | eval | deser | path | write | url | sql | template
     line: int
     col: int
     sink: str
@@ -97,7 +98,7 @@ class _Taint(ast.NodeVisitor):
     def tainted_in(self, node: ast.AST | None) -> str | None:
         if node is None:
             return None
-        for sub in ast.walk(node):
+        for sub in _walk_operands(node):
             if isinstance(sub, ast.Name) and sub.id in self.tainted and isinstance(sub.ctx, ast.Load):
                 return sub.id
         return None
@@ -188,9 +189,12 @@ class _Taint(ast.NodeVisitor):
         elif name in DESER_FUNCS or (name == "yaml.load" and not _safe_loader(kw)):
             hit("deser", src)
         elif name in PATH_FUNCS:
-            hit("path", src or self.tainted_in(kw.get("file")) or self.tainted_in(kw.get("path")))
+            # A tainted path opened for writing is an arbitrary file write, not a read (AG-VULN-006).
+            writes = name in ("open", "io.open") and _write_mode(node, kw)
+            hit("write" if writes else "path", src or self.tainted_in(kw.get("file")) or self.tainted_in(kw.get("path")))
         elif method in ("read_text", "read_bytes", "write_text", "write_bytes", "unlink", "rmdir", "open") and isinstance(node.func, ast.Attribute):
-            hit("path", self.tainted_in(node.func.value))
+            writes = method in ("write_text", "write_bytes") or (method == "open" and _write_mode(node, kw, first_is_mode=True))
+            hit("write" if writes else "path", self.tainted_in(node.func.value))
         elif name in URL_FUNCS or (method in URL_METHODS and isinstance(node.func, ast.Attribute)
                                    and any(s in dotted(node.func.value).lower() for s in ("session", "client", "http", "requests"))):
             url = first if first is not None else kw.get("url")
@@ -224,6 +228,20 @@ class _Taint(ast.NodeVisitor):
             for h in self.resolver.summary(target, param, self.depth + 1):
                 self.hits.append(TaintHit(h.kind, node.lineno, node.col_offset + 1, h.sink, src, h.sanitized,
                                           via=[(target.path, h.line), *h.via], helper=target.name))
+
+
+def _walk_operands(node: ast.AST):  # noqa: ANN202 - generator of ast nodes
+    """``ast.walk``, leaving out the elements of an argument list that follow a literal ``"--"``:
+    the program takes those as operands, never as options (``['git', 'log', '--', path]``)."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        yield n
+        if isinstance(n, (ast.List, ast.Tuple)):
+            cut = next((i for i, e in enumerate(n.elts) if isinstance(e, ast.Constant) and e.value == "--"), None)
+            stack.extend(n.elts if cut is None else n.elts[:cut])
+        else:
+            stack.extend(ast.iter_child_nodes(n))
 
 
 def _safe_loader(kw: dict[str, ast.AST]) -> bool:
@@ -265,6 +283,13 @@ def analyze_function(fn: ast.FunctionDef | ast.AsyncFunctionDef, aliases: dict[s
     return _run(fn, params, aliases, source, resolver, where, 0)
 
 
+def _write_mode(node: ast.Call, kw: dict[str, ast.expr], *, first_is_mode: bool = False) -> bool:
+    """True when an ``open`` call names a mode that writes (``w``, ``a``, ``x`` or ``+``)."""
+    idx = 0 if first_is_mode else 1
+    mode = node.args[idx] if len(node.args) > idx else kw.get("mode")
+    return isinstance(mode, ast.Constant) and isinstance(mode.value, str) and any(c in mode.value for c in "wax+")
+
+
 def _run(fn: ast.FunctionDef | ast.AsyncFunctionDef, params: list[str], aliases: dict[str, str], source: str,
          resolver: Resolver | None, where: tuple[str, str | None], depth: int) -> list[TaintHit]:
     t = _Taint(params, aliases, resolver, where, depth)
@@ -275,7 +300,7 @@ def _run(fn: ast.FunctionDef | ast.AsyncFunctionDef, params: list[str], aliases:
     for h in t.hits:
         hints = SANITIZERS.get(h.kind, ())
         if any(s in body_src for s in hints):
-            if h.kind in ("path", "url"):
+            if h.kind in ("path", "url", "write"):
                 continue  # containment / allowlist check present: not reported
             h.sanitized = True  # quoting/validation present: reported with lower confidence
         h.path = sorted({ln for n, ln in t.tainted.items() if ln})

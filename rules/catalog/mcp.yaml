@@ -1,0 +1,93 @@
+family: MCP
+name: MCP servers, definitions and bundles
+defaults: {category: vulnerability, lane: block, confidence: high, engine: config}
+mappings:
+  owasp-ast-1.0: [AST01]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: []
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  skilltrustbench: [T07]
+groups:
+  - name: Configuration
+    mappings:
+      owasp-mcp-2025-beta: ["MCP04:2025", "MCP05:2025"]
+      owasp-asi-2026: [ASI04]
+      nsa-csi-mcp-2026-05: [concerns/misconfiguration]
+    rules:
+      - [AG-MCP-001, M, A, "Unpinned launcher (`npx -y pkg`, `uvx pkg`, `image:latest`)", {mappings: {cwe: [CWE-829]}}]
+      - [AG-MCP-002, H, P, "Server command is a shell wrapper or inline script", {mappings: {cwe: [CWE-78]}}]
+      - [AG-MCP-003, H, X, "Server command downloads code at start", {category: malice, mappings: {cwe: [CWE-494]}}]
+      - [AG-MCP-004, H, A, "Remote server over plain HTTP", {mappings: {cwe: [CWE-319]}}]
+      - [AG-MCP-005, H, A, "Static credential literal in headers or env", {confidence: medium, mappings: {cwe: [CWE-798], owasp-mcp-2025-beta: ["MCP01:2025"]}}]
+      - [AG-MCP-006, M, G, "Headers produced by a helper command", {lane: evidence}]
+      - [AG-MCP-007, M, G, "Server name collides with a well-known server", {lane: evidence, confidence: medium, mappings: {owasp-mcp-2025-beta: ["MCP09:2025"]}}]
+      - [AG-MCP-008, M, G, "Local server path outside the repository or plugin root", {lane: evidence}]
+      - [AG-MCP-009, H, A, "Dangerous container flags (`--privileged`, host mounts, Docker socket, host network)", {mappings: {cwe: [CWE-250]}}]
+      - [AG-MCP-010, H, P, "Stdio arguments built from untrusted variables or templates", {confidence: medium, mappings: {cwe: [CWE-88]}}]
+      - [AG-MCP-011, L, A, "Deprecated SSE transport", {lane: evidence, mappings: {cwe: [CWE-477]}}]
+      - [AG-MCP-012, H, X, "Same server name as the baseline, different command or URL", {category: malice, engine: supply}]
+  - name: Tool, prompt and resource definitions
+    defaults: {category: malice, confidence: medium, engine: instruction}
+    mappings:
+      owasp-mcp-2025-beta: ["MCP03:2025", "MCP06:2025"]
+      owasp-asi-2026: [ASI01, ASI02]
+      owasp-llm-2026: ["LLM01:2026"]
+      nsa-csi-mcp-2026-05: [examples/tool-parameter-injection]
+    rules:
+      - [AG-MCP-020, C, X, "Injection in a tool description"]
+      - [AG-MCP-021, C, X, "Injection elsewhere in the schema (parameter names, descriptions, enums, defaults, title, annotations, output schema)"]
+      - [AG-MCP-022, H, X, "Description refers to another server's tool (shadowing)", {mappings: {nsa-csi-mcp-2026-05: [examples/tool-invocation-path-confusion]}}]
+      - [AG-MCP-023, H, G, "Tool name collides with, or closely imitates, another server's tool", {category: vulnerability, lane: evidence, engine: config, mappings: {nsa-csi-mcp-2026-05: [examples/tool-invocation-path-confusion]}}]
+      - [AG-MCP-024, C, X, "Description requires sensitive files or secrets as parameters"]
+      - [AG-MCP-025, H, X, "Unused or oddly named parameter that collects extra context", {lane: evidence, engine: config}]
+      - [AG-MCP-026, H, P, "Annotation contradicts behaviour (`readOnlyHint` on a tool that writes)", {category: vulnerability, lane: evidence, engine: code}]
+      - [AG-MCP-027, H, G, "Tool definition changed from the baseline", {category: vulnerability, confidence: high, engine: supply}]
+      - [AG-MCP-028, M, G, "Tool set changed from the baseline", {category: vulnerability, confidence: high, engine: supply}]
+      - [AG-MCP-029, H, X, "Injection in prompt or resource content"]
+      - [AG-MCP-030, H, X, "Injection in server-level instructions or identity text"]
+      - [AG-MCP-031, H, P, "Tool results or error messages carry directives", {lane: evidence, engine: dynamic}]
+      - [AG-MCP-032, L, G, "Very large tool count or description length", {category: hygiene, lane: hunt, engine: config}]
+      - [AG-MCP-033, L, P, "Sensitive tool schema accepts arbitrary extra properties", {category: vulnerability, lane: evidence, engine: config}]
+      - [AG-MCP-034, L, A, "Remote or script-bearing icon", {category: vulnerability, lane: evidence, confidence: high, engine: config}]
+  - name: Implementation and authorization
+    defaults: {lane: evidence, confidence: medium, engine: code}
+    mappings:
+      owasp-mcp-2025-beta: ["MCP07:2025"]
+      owasp-asi-2026: [ASI03]
+      nsa-csi-mcp-2026-05: [concerns/access-control]
+    rules:
+      - [AG-MCP-040, H, P, "HTTP server with no authentication"]
+      - [AG-MCP-041, H, P, "Binds to all interfaces, or no Origin check (DNS rebinding)", {mappings: {cwe: [CWE-346]}}]
+      - [AG-MCP-042, H, P, "Forwards the client's token to upstream APIs", {mappings: {owasp-mcp-2025-beta: ["MCP01:2025"], nsa-csi-mcp-2026-05: [concerns/token-session-security]}}]
+      - [AG-MCP-043, H, P, "No token audience validation", {mappings: {nsa-csi-mcp-2026-05: [concerns/token-session-security]}}]
+      - [AG-MCP-044, M, P, "OAuth gaps: no protected-resource metadata, no PKCE, wildcard redirects, open registration"]
+      - [AG-MCP-045, H, P, "Token in a query string or log", {mappings: {cwe: [CWE-598], owasp-mcp-2025-beta: ["MCP01:2025"]}}]
+      - [AG-MCP-046, M, P, "Returns external content to the model without marking it untrusted", {mappings: {owasp-mcp-2025-beta: ["MCP06:2025"]}}]
+      - [AG-MCP-047, M, P, "Requests broader upstream scopes than its tools use", {mappings: {owasp-mcp-2025-beta: ["MCP02:2025"]}}]
+      - [AG-MCP-048, H, G, "Unconstrained shell or code-execution tool", {mappings: {owasp-mcp-2025-beta: ["MCP05:2025"], nsa-csi-mcp-2026-05: [recommendations/constrain-and-sandbox]}}]
+      - [AG-MCP-049, H, P, "File tool with no path confinement", {mappings: {cwe: [CWE-22]}}]
+      - [AG-MCP-050, M, P, "State shared across users or requests"]
+      - [AG-MCP-051, L, P, "Destructive tool with no validation or rate limit", {mappings: {nsa-csi-mcp-2026-05: [recommendations/validate-parameters]}}]
+  - name: Registry entries and bundles
+    defaults: {engine: supply}
+    mappings:
+      owasp-mcp-2025-beta: ["MCP04:2025"]
+      owasp-asi-2026: [ASI04]
+      owasp-llm-2026: ["LLM04:2026"]
+    rules:
+      - [AG-MCP-060, H, X, "`server.json` name not backed by package ownership proof (`mcpName`, `mcp-name:`, OCI label)", {category: malice, confidence: medium}]
+      - [AG-MCP-061, H, X, "MCPB bundle hash missing or not matching", {category: malice, mappings: {cwe: [CWE-494]}}]
+      - [AG-MCP-062, H, G, "MCPB `mcp_config` runs a risky command, or differs by platform", {confidence: medium}]
+      - [AG-MCP-063, M, G, "Tools declared in the manifest differ from the tools served", {lane: evidence}]
+      - [AG-MCP-064, L, G, "Bundle carries no signature", {category: hygiene, lane: hunt}]
+      - [AG-MCP-065, M, A, "Bundle `user_config` secret not marked `sensitive`"]
+  - name: Carried over from the first rule pack
+    defaults: {extension: true, lane: evidence}
+    mappings:
+      owasp-mcp-2025-beta: ["MCP03:2025"]
+    rules:
+      - [AG-MCP-070, M, G, "MCP Apps UI resource weakens its sandbox or acts without the user", {confidence: medium}]
+      - [AG-MCP-071, M, G, "Repository-shipped MCP config starts a local server", {mappings: {owasp-mcp-2025-beta: ["MCP09:2025"]}}]
+      - [AG-MCP-072, H, A, "Tools or servers auto-approved in an MCP client config", {lane: block, mappings: {owasp-mcp-2025-beta: ["MCP02:2025"], nsa-csi-mcp-2026-05: [concerns/approval-workflows]}}]

@@ -10,6 +10,8 @@ const install = [
 const extras = [
   `pipx install "${requirement("code")}"   # tree-sitter taint for JS/TS tool handlers and shell scripts`,
   `pipx install "${requirement("yara")}"   # YARA rules over bundled binaries (Python 3.12–3.13)`,
+  `pipx install "${requirement("ocr")}"    # text in images and rendered PDF pages, QR codes (local ONNX OCR)`,
+  `pipx install "${requirement("judge")}"  # the Anthropic SDK, for the model adjudicator in the standard profile`,
 ].join("\n");
 const uvx = `uvx --from "${SOURCE}" agentguard scan ./my-skill`;
 ---
@@ -28,8 +30,9 @@ const uvx = `uvx --from "${SOURCE}" agentguard scan ./my-skill`;
 
   <h2>What it needs</h2>
   <ul>
-    <li><strong>Filesystem:</strong> read access to the paths you scan (and, for <code>agentguard scan</code> with no path, your agent configuration in your home directory).</li>
+    <li><strong>Filesystem:</strong> read access to the paths you scan (and, for <code>agentguard scan --machine</code>, your agents' configuration in your home directory).</li>
     <li><strong>Network:</strong> none by default. Network features are opt-in flags (<code>--live-metadata</code>, <code>--auth-checks</code>, <code>--osv</code>, <code>--provenance</code>, <code>--registry</code>, <code>--check-hijackable</code>) and every report lists the ones that were used.</li>
-    <li><strong>Processes:</strong> none. Agent Guard installs an audit hook that blocks process creation, so nothing it scans can run — not even by accident.</li>
+    <li><strong>Processes:</strong> none for a static scan. Agent Guard installs an audit hook that blocks process creation, so nothing it scans can run — not even by accident. The <code>deep</code> profile starts Docker, and only Docker, to detonate a target in its sandbox.</li>
+    <li><strong>A model:</strong> optional. The <code>standard</code> profile runs the local triage model; with a model API key it also asks a bounded adjudicator about candidate findings, within a budget, and lists what was sent.</li>
   </ul>
 </Doc>
