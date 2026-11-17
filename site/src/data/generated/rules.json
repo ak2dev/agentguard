@@ -10638,7 +10638,7 @@
       "examples": {
         "unsafe": {
           "path": "csv-tool/.env",
-          "text": "LOG_LEVEL=info\nSTRIPE_SECRET_KEY=sk_l…[78a08441]"
+          "text": "LOG_LEVEL=info\nSTRIPE_SECRET_KEY=sk_l…[015f4653]"
         },
         "safe": {
           "path": ".env.example",

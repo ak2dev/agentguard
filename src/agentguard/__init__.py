@@ -54,12 +54,20 @@ if TYPE_CHECKING:
     from .runner import UsageError, scan
 
 
+# The browser and Pyodide builds ship only the pure core (no runner, io or net). There ``scan`` is the engine's own:
+# a pure scan of an ArtifactTree, which is also what the runner's ``scan`` does with a tree.
+_CORE_FALLBACK = {"scan": ".core.engine"}
+
+
 def __getattr__(name: str) -> Any:
     module = _LAZY.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     import importlib
+    import importlib.util
 
+    if name in _CORE_FALLBACK and importlib.util.find_spec(__name__ + module) is None:
+        module = _CORE_FALLBACK[name]
     value = getattr(importlib.import_module(module, __name__), name)
     globals()[name] = value
     return value
