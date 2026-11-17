@@ -27,7 +27,7 @@ jobs:
           fail-on: block
 ```
 
-On a pull request the action runs in **pull-request mode** (`pr-mode`, on by default): it scans with `--diff <base>..<head>`, so changed files are scanned in full and the rest of the repository supplies context, configuration is read from the base commit, and only findings whose fingerprints are new fail the job. It then:
+On a pull request the action runs in **pull-request mode** (`pr-mode`, on by default): it scans with `--diff <base>..<head>`, so changed files are scanned in full and the rest of the repository supplies context, the configuration, `agentguard.lock` and inline suppressions are taken from the base commit, and only findings whose fingerprints are new fail the job. It then:
 
 - annotates the changed lines with the findings that decide the verdict;
 - uploads SARIF to GitHub code scanning (`upload-sarif`);

@@ -24,6 +24,7 @@ from .cli.config import (
     load_baseline,
     load_user_config,
     load_user_level_config,
+    parse_baseline,
     parse_project_config,
     resolve_policy,
 )
@@ -248,17 +249,24 @@ def _github_token(req: ScanRequest) -> tuple[str | None, str | None]:
     return (env[var], var) if var else (None, None)
 
 
+def _diffed_cwd(req: ScanRequest) -> Path | None:
+    """The repository being diffed, when diff mode runs from inside it (its root is the directory the user runs
+    from): what the scan would read from there (configuration, lockfile) is then read from the base commit."""
+    if not req.diff or len(req.targets) != 1:
+        return None
+    root = Path(req.targets[0]) if Path(req.targets[0]).is_absolute() else req.cwd / req.targets[0]
+    try:
+        return root if root.is_dir() and root.resolve() == req.cwd.resolve() else None
+    except OSError:
+        return None
+
+
 def _config_at_diff_base(req: ScanRequest) -> tuple[bool, str | None, str]:
     """In diff mode, when the configuration would be read from the repository
     being diffed, it is read as it was at the base commit: a change set cannot
     relax the policy it is scanned with. Returns (applies, text or None, origin)."""
-    if not req.diff or req.config is not None or len(req.targets) != 1:
-        return False, None, ""
-    root = Path(req.targets[0]) if Path(req.targets[0]).is_absolute() else req.cwd / req.targets[0]
-    try:
-        if not root.is_dir() or root.resolve() != req.cwd.resolve():
-            return False, None, ""
-    except OSError:
+    root = _diffed_cwd(req)
+    if root is None or req.config is not None:
         return False, None, ""
     from .acquire.diff import config_at_base
 
@@ -357,18 +365,32 @@ def run_scan(req: ScanRequest) -> ScanOutcome:
     local_roots = [p.local_root for p in parts]
     options.own_repo = len(parts) == 1 and is_own_repo(local_roots[0], req.cwd)
 
-    # Baseline: what was approved before. Defaults to agentguard.lock where the user runs.
+    # Baseline: what was approved before. Defaults to agentguard.lock where the user runs. In diff mode, run from the
+    # repository being diffed, that file is read as it was at the base commit: a change set cannot approve itself
+    # by adding lock entries (AG-POL-010 reports the change).
     lock_path = req.baseline
     if lock_path is None and (req.cwd / LOCK_NAME).is_file():
         lock_path = req.cwd / LOCK_NAME
-    if lock_path is not None:
+    lock_at_base = req.baseline is None and _diffed_cwd(req) is not None
+    if lock_at_base:
+        from .acquire.diff import file_at_base
+
+        try:
+            got = file_at_base(req.cwd, str(req.diff), (LOCK_NAME,), max_bytes=64 << 20)
+            lock, known = parse_baseline(got[0], got[1]) if got else (None, None)
+        except (ConfigError, TargetError) as exc:
+            raise UsageError(str(exc)) from exc
+        options.lock, options.baseline = lock, known
+        if got:
+            notes.append(f"diff mode: {LOCK_NAME} read from the base commit ({got[1]})")
+    elif lock_path is not None:
         try:
             lock, known = load_baseline(lock_path)
         except ConfigError as exc:
             raise UsageError(str(exc)) from exc
         options.lock, options.baseline = lock, known
-        if len(parts) == 1:
-            _without(tree, local_roots[0], lock_path)
+    if lock_path is not None and len(parts) == 1:
+        _without(tree, local_roots[0], lock_path)
     if req.lock_in_use is not None and len(parts) == 1:
         _without(tree, local_roots[0], req.lock_in_use)
 
@@ -382,11 +404,13 @@ def run_scan(req: ScanRequest) -> ScanOutcome:
             raise UsageError("--diff needs exactly one local repository as the target")
         from .acquire.diff import diff_local
 
-        d_changed, base_fps, d_notes = diff_local(parts[0].local_root, req.diff, options, pack, excludes=actx.excludes)
-        changed = (changed or set()) | d_changed
-        notes += d_notes
-        if base_fps is not None:
-            options.baseline = (options.baseline or set()) | base_fps
+        res = diff_local(parts[0].local_root, req.diff, options, pack, excludes=actx.excludes)
+        changed = (changed or set()) | res.changed
+        notes += res.notes
+        if res.base_fingerprints is not None:
+            options.baseline = (options.baseline or set()) | res.base_fingerprints
+        if options.own_repo:
+            options.inline_at_base = res.inline_at_base      # only ignore comments the base already had count
     else:
         for part in parts:
             if part.base_tree is not None:

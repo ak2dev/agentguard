@@ -2,17 +2,22 @@
 
 Changed files are scanned in full and the rest of the repository supplies
 context; only findings whose fingerprints are new since the base are reported.
-The base tree is read straight from the object database (``gitread``), so the
-repository's own git configuration never runs.
+What could approve the change (the configuration, the lockfile, inline ignore
+comments) is taken from the base commit. The base tree is read straight from
+the object database (``gitread``), so the repository's own git configuration
+never runs.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
+from ..core.artifacts import decode_text
 from ..core.engine import scan as core_scan
 from ..core.models import LimitEvent, LoadLimits, ScanOptions, SourceRef
 from ..core.models.enums import SourceKind
+from ..core.policy.apply import inline_keys
 from ..core.rules.pack import RulePack
 from ..core.tree import ArtifactTree
 from .gitread import GitReadError, Repo
@@ -70,14 +75,14 @@ def base_commit(root: Path, spec: str) -> tuple[Repo, str, str]:
     return repo, repo.merge_base(base, head) or base, head
 
 
-def config_at_base(root: Path, spec: str) -> tuple[str, str] | None:
-    """The scanner configuration as it was at the base commit: a change set cannot relax its own policy."""
+def file_at_base(root: Path, spec: str, names: tuple[str, ...], max_bytes: int = 1 << 20) -> tuple[str, str] | None:
+    """(text, origin) of the first of ``names`` (paths from the repository root) as it was at the base commit."""
     repo, base, _ = base_commit(root, spec)
     try:
         files = repo.walk(repo.commit(base).tree)
-        for name in CONFIG_NAMES:
+        for name in names:
             if name in files:
-                data = repo.blob(files[name].sha, 1 << 20)
+                data = repo.blob(files[name].sha, max_bytes)
                 if data is not None:
                     return data.decode("utf-8", "replace"), f"{base[:12]}:{name}"
     except GitReadError:
@@ -87,12 +92,27 @@ def config_at_base(root: Path, spec: str) -> tuple[str, str] | None:
     return None
 
 
-def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack,
-               excludes: tuple[str, ...] = ()) -> tuple[set[str], set[str] | None, list[str]]:
-    """(changed paths, fingerprints present at the base, notes). The base is read
-    with the same directory exclusions as the working tree."""
+def config_at_base(root: Path, spec: str) -> tuple[str, str] | None:
+    """The scanner configuration as it was at the base commit: a change set cannot relax its own policy."""
+    return file_at_base(root, spec, CONFIG_NAMES)
+
+
+@dataclass
+class DiffResult:
+    changed: set[str]
+    base_fingerprints: set[str] | None          # None when the base tree could not be read
+    # The ignore comments the base commit had, by path (policy.apply.inline_key); empty when the base was unreadable,
+    # so that no inline suppression counts.
+    inline_at_base: dict[str, frozenset[tuple[str, str | None]]]
+    notes: list[str]
+
+
+def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack, excludes: tuple[str, ...] = ()) -> DiffResult:
+    """What changed from the base, and what the base already had: its findings' fingerprints and its inline ignore
+    comments. The base is read with the same directory exclusions as the working tree."""
     repo, base, head = base_commit(root, spec)
     notes = [f"diff mode: changes from {base[:12]} to {head[:12]}"]
+    inline: dict[str, frozenset[tuple[str, str | None]]] = {}
     try:
         changed = set(repo.changed_paths(base, head))
         head_now = repo.head()[1]
@@ -102,12 +122,17 @@ def diff_local(root: Path, spec: str, options: ScanOptions, pack: RulePack,
         try:
             base_tree = tree_at(repo, base, options.limits, excludes=excludes)
             base_opts = options.model_copy(update={"changed_paths": None, "baseline": None, "lock": None,
-                                                   "remote_probes": [], "context": None})
+                                                   "remote_probes": [], "context": None, "inline_at_base": None})
             base_fps = {f.fingerprint for f in core_scan(base_tree, base_opts, pack).findings}
+            for path, blob in base_tree.files.items():
+                if b"agentguard-ignore" in blob.data:
+                    text, _ = decode_text(blob.data)
+                    if text is not None and (keys := inline_keys(text)):
+                        inline[path] = keys
         except GitReadError as exc:
             notes.append(f"the base tree could not be read ({exc}); every finding in a changed component is reported")
     except GitReadError as exc:
         raise TargetError(f"--diff {spec}: {exc}") from exc
     finally:
         repo.close()
-    return changed, base_fps, notes
+    return DiffResult(changed=changed, base_fingerprints=base_fps, inline_at_base=inline, notes=notes)

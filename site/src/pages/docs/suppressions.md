@@ -22,7 +22,7 @@ suppressions:
 - Suppressed findings are left out of the result but kept in the JSON report under `suppressed_findings`.
 - An **expired** suppression no longer hides anything: the finding is reported again, together with an `AG-POL-005` notice.
 - A suppression without a reason or an expiry is ignored and reported as `AG-POL-006`.
-- In `--diff` mode, suppressions come from the base commit.
+- In `--diff` mode, suppressions come from the base commit: the configuration and `agentguard.lock` are read as they were there, so a change set cannot suppress or accept its own findings. A change to either is reported as `AG-POL-010`.
 
 ## Inline suppressions
 
@@ -31,6 +31,8 @@ In your own repository (and only there; never in a third-party target), a commen
 ```markdown
 <!-- agentguard-ignore: AG-SUPPLY-010 reason="pinned in the lockfile" until=2027-01-01 -->
 ```
+
+In `--diff` mode a comment counts only if the base commit already had it, above the same line. A comment the change adds or moves is ignored, and the finding is reported with the tag `inline-suppression-not-at-base`.
 
 ## Baselines
 

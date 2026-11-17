@@ -102,18 +102,28 @@ def load_baseline(path: Path) -> tuple[Lockfile | None, set[str] | None]:
     """``--baseline``: a lockfile (what was approved), a previous JSON report,
     or ``{"fingerprints": [...]}``. Returns (lock, fingerprints to treat as known)."""
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
         raise ConfigError(f"{path}: cannot read baseline: {exc}") from exc
+    return parse_baseline(text, str(path))
+
+
+def parse_baseline(text: str, origin: str) -> tuple[Lockfile | None, set[str] | None]:
+    """``load_baseline`` for text already read (``origin`` names it in errors), such as the
+    lockfile at a pull request's base commit."""
+    try:
+        data = json.loads(text)
+    except ValueError as exc:
+        raise ConfigError(f"{origin}: cannot read baseline: {exc}") from exc
     if isinstance(data, dict) and ("lock_version" in data or "artifacts" in data and "findings" not in data or "entries" in data):
         try:
             lock = Lockfile.model_validate(data)
         except ValidationError as exc:
-            raise ConfigError(f"{path}: not a valid lockfile: {exc.errors()[0]['msg']}") from exc
+            raise ConfigError(f"{origin}: not a valid lockfile: {exc.errors()[0]['msg']}") from exc
         accepted = {fp for e in lock.artifacts for fp in e.accepted_findings}
         return lock, accepted or None
     if isinstance(data, dict) and isinstance(data.get("fingerprints"), list):
         return None, {str(x) for x in data["fingerprints"]}
     if isinstance(data, dict) and isinstance(data.get("findings"), list):
         return None, {str(f.get("fingerprint")) for f in data["findings"] if isinstance(f, dict) and f.get("fingerprint")}
-    raise ConfigError(f"{path}: not a lockfile, a baseline or an Agent Guard report")
+    raise ConfigError(f"{origin}: not a lockfile, a baseline or an Agent Guard report")

@@ -13,7 +13,7 @@ inputs:
     description: "`<base>..<head>`: scan the changed files in full, the rest as context, and fail only on new findings. Empty on a pull request means the pull request's own base and head (see `pr-mode`). Needs `fetch-depth: 0`."
     default: ""
   pr-mode:
-    description: On pull requests, use the pull request's base and head as `diff` when `diff` is empty. Configuration is then read from the base commit.
+    description: On pull requests, use the pull request's base and head as `diff` when `diff` is empty. Configuration, the lockfile and inline suppressions are then taken from the base commit.
     default: "true"
   policy:
     description: A preset (strict, balanced, permissive) or a policy file.

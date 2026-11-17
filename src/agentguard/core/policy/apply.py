@@ -99,13 +99,35 @@ def inline_suppressions(text: str) -> list[tuple[int, bool, list[str], str, str]
     return out
 
 
+def inline_key(lines: list[str], line: int, whole_file: bool) -> tuple[str, str | None]:
+    """What an ignore comment is recognised by when its file changes: the comment's own line and, unless it covers
+    the whole file, the line it covers after it (whitespace-trimmed; line numbers are not part of it)."""
+    own = lines[line - 1].strip()
+    if whole_file:
+        return own, None
+    return own, (lines[line].strip() if line < len(lines) else "")
+
+
+def inline_keys(text: str) -> frozenset[tuple[str, str | None]]:
+    """The keys of every ignore comment in a file (see ``inline_key``)."""
+    if "agentguard-ignore" not in text:
+        return frozenset()
+    lines = text.split("\n")
+    return frozenset(inline_key(lines, line, whole) for line, whole, *_ in inline_suppressions(text))
+
+
 def apply_inline_suppressions(findings: list[Finding], inv: Inventory, options: ScanOptions,
                               pack: RulePack) -> tuple[list[Finding], list[Finding]]:
     """Inline ignore comments, honoured only in the user's own repository (the
     caller checks ``options.own_repo``; a scanned third-party target can never
-    suppress its own findings). A comment covers its own line and the next one."""
+    suppress its own findings). A comment covers its own line and the next one.
+
+    In pull-request mode (``options.inline_at_base`` set) a comment counts only if the base commit already had it,
+    covering the same line: a change set cannot suppress what it introduces. A comment the change added or moved is
+    ignored, and the finding is tagged ``inline-suppression-not-at-base``."""
     today = options.today or dt.date.today()
-    cache: dict[str, list[tuple[int, bool, list[str], str, str]]] = {}
+    at_base = options.inline_at_base
+    cache: dict[str, list[tuple[int, bool, list[str], str, str, tuple[str, str | None]]]] = {}
     kept: list[Finding] = []
     suppressed: list[Finding] = []
     for f in findings:
@@ -115,15 +137,22 @@ def apply_inline_suppressions(findings: list[Finding], inv: Inventory, options: 
             continue
         if loc.path not in cache:
             at = inv.texts.get(loc.path)
-            cache[loc.path] = inline_suppressions(at.text) if at is not None else []
+            lines = at.text.split("\n") if at is not None else []
+            cache[loc.path] = [(*d, inline_key(lines, d[0], d[1])) for d in inline_suppressions(at.text)] if at is not None else []
         hit = None
-        for line, whole, rules, reason, until in cache[loc.path]:
+        not_at_base = False
+        for line, whole, rules, reason, until, key in cache[loc.path]:
             if not (whole or line in (loc.start_line, loc.start_line - 1)):
                 continue
             if any(_rule_matches(pack, r, f) for r in rules):
+                if at_base is not None and key not in at_base.get(loc.path, frozenset()):
+                    not_at_base = True
+                    continue
                 hit = (reason, until)
                 break
         if hit is None:
+            if not_at_base:
+                f.tags = sorted({*f.tags, "inline-suppression-not-at-base"})
             kept.append(f)
             continue
         reason, until = hit

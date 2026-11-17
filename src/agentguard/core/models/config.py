@@ -535,6 +535,9 @@ class ScanOptions(BaseModel):
     suppressions: list[Suppression] = Field(default_factory=list)
     # Inline `agentguard-ignore` comments are honoured only in the user's own repository.
     own_repo: bool = False
+    # Pull-request mode: the ignore comments the base commit had (path -> keys, see policy.apply.inline_key). Only
+    # those count, so a change set cannot suppress its own findings. None outside pull-request mode.
+    inline_at_base: dict[str, frozenset[tuple[str, str | None]]] | None = None
     baseline: set[str] | None = None            # fingerprints
     changed_paths: set[str] | None = None
     lock: Lockfile | None = None

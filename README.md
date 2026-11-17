@@ -167,8 +167,8 @@ Requires Python 3.12+.
   with: { targets: ., policy: balanced, fail-on: block }
 ```
 
-On pull requests the Action scans with `--diff base..head`: changed files in full, the rest as context, configuration
-from the base commit, and only new findings fail. It annotates the changed lines, uploads SARIF to code scanning and
+On pull requests the Action scans with `--diff base..head`: changed files in full, the rest as context, configuration,
+lockfile and inline suppressions from the base commit, and only new findings fail. It annotates the changed lines, uploads SARIF to code scanning and
 sets `verdict` and `score` outputs. A pre-commit hook is included (`.pre-commit-hooks.yaml`), and `integrations/` holds
 hooks for Claude Code (a plugin), Cursor, Codex and Gemini CLI that scan an install before it runs and re-scan
 agent-facing files when they change.
