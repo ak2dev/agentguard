@@ -3,7 +3,7 @@
   "engine_version": "0.2.0.dev0",
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "21fa9863d38e85b84a3386570972594b428a2fbfcb98836fdf3af6830c74dc87"
+    "digest": "14359d8f91a2f1b7a271677cad75b2fd7efbd1ecf761e8e77023779d8a57c1b9"
   },
   "date": "2026-11-17",
   "split": "all",
@@ -476,12 +476,12 @@
     }
   },
   "performance": {
-    "total_seconds": 136.848,
-    "mean_ms_per_item": 478.5,
+    "total_seconds": 210.2,
+    "mean_ms_per_item": 735.0,
     "perf_check": {
       "skills": 100,
       "configs": 20,
-      "seconds": 6.002,
+      "seconds": 7.584,
       "target_seconds": 10,
       "met": true,
       "findings": 647

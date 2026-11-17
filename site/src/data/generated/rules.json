@@ -1,7 +1,7 @@
 {
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "21fa9863d38e85b84a3386570972594b428a2fbfcb98836fdf3af6830c74dc87",
+    "digest": "14359d8f91a2f1b7a271677cad75b2fd7efbd1ecf761e8e77023779d8a57c1b9",
     "rules": 450,
     "implemented": 450,
     "detectors": 524
@@ -10836,8 +10836,8 @@
       ],
       "match_type": "analyzer:coverage",
       "fixtures": {
-        "positive": 3,
-        "negative": 3
+        "positive": 4,
+        "negative": 5
       },
       "variants": [
         {
@@ -31398,7 +31398,7 @@
       "match_type": "analyzer:text.integrity",
       "fixtures": {
         "positive": 2,
-        "negative": 2
+        "negative": 3
       },
       "variants": [],
       "examples": {

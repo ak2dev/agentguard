@@ -3,7 +3,7 @@
   "engine_version": "0.2.0.dev0",
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "21fa9863d38e85b84a3386570972594b428a2fbfcb98836fdf3af6830c74dc87"
+    "digest": "14359d8f91a2f1b7a271677cad75b2fd7efbd1ecf761e8e77023779d8a57c1b9"
   },
   "date": "2026-11-17",
   "split": "all",
@@ -476,12 +476,12 @@
     }
   },
   "performance": {
-    "total_seconds": 136.848,
-    "mean_ms_per_item": 478.5,
+    "total_seconds": 210.2,
+    "mean_ms_per_item": 735.0,
     "perf_check": {
       "skills": 100,
       "configs": 20,
-      "seconds": 6.002,
+      "seconds": 7.584,
       "target_seconds": 10,
       "met": true,
       "findings": 647
@@ -512,7 +512,7 @@
       "verdict": "BLOCK",
       "score": 70,
       "flow_findings": [],
-      "ms": 224.1
+      "ms": 225.8
     },
     {
       "id": "lure-curl-bash",
@@ -538,7 +538,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 12.2
+      "ms": 28.9
     },
     {
       "id": "lure-b64-paste",
@@ -571,7 +571,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 11.5
+      "ms": 26.1
     },
     {
       "id": "lure-quarantine",
@@ -599,7 +599,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 11.1
+      "ms": 23.5
     },
     {
       "id": "lure-msi",
@@ -626,7 +626,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.7
+      "ms": 20.5
     },
     {
       "id": "lure-iex",
@@ -652,7 +652,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 9.0
+      "ms": 20.4
     },
     {
       "id": "lure-winr",
@@ -681,7 +681,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 8.5
+      "ms": 24.0
     },
     {
       "id": "envdump-python",
@@ -742,7 +742,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 14.8
+      "ms": 34.6
     },
     {
       "id": "envdump-node",
@@ -771,7 +771,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 11.8
+      "ms": 49.0
     },
     {
       "id": "poison-manifest",
@@ -797,7 +797,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 14.2
+      "ms": 25.7
     },
     {
       "id": "poison-python-source",
@@ -825,7 +825,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 25.9
+      "ms": 51.6
     },
     {
       "id": "poison-ts-hidden",
@@ -852,7 +852,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 15.2
+      "ms": 49.0
     },
     {
       "id": "poison-sidechannel",
@@ -878,7 +878,7 @@
       "verdict": "BLOCK",
       "score": 74,
       "flow_findings": [],
-      "ms": 7.6
+      "ms": 18.5
     },
     {
       "id": "shadow-bcc",
@@ -903,7 +903,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 6.5
+      "ms": 31.0
     },
     {
       "id": "shadow-replace",
@@ -928,7 +928,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 6.6
+      "ms": 26.1
     },
     {
       "id": "stdio-curl-sh",
@@ -956,7 +956,7 @@
       "verdict": "BLOCK",
       "score": 83,
       "flow_findings": [],
-      "ms": 9.1
+      "ms": 23.0
     },
     {
       "id": "stdio-docker-sock",
@@ -984,7 +984,7 @@
       "verdict": "REVIEW",
       "score": 56,
       "flow_findings": [],
-      "ms": 5.6
+      "ms": 15.2
     },
     {
       "id": "stdio-inline-python",
@@ -1013,7 +1013,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 4.6
+      "ms": 14.7
     },
     {
       "id": "stdio-cmd-enc",
@@ -1044,7 +1044,7 @@
       "verdict": "BLOCK",
       "score": 92,
       "flow_findings": [],
-      "ms": 6.8
+      "ms": 23.2
     },
     {
       "id": "stdio-chain",
@@ -1072,7 +1072,7 @@
       "verdict": "BLOCK",
       "score": 87,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 20.7
     },
     {
       "id": "exfil-ssh-transfer",
@@ -1101,7 +1101,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 12.2
+      "ms": 22.1
     },
     {
       "id": "exfil-aws-script",
@@ -1128,7 +1128,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 11.3
+      "ms": 37.8
     },
     {
       "id": "exfil-browser-discord",
@@ -1161,7 +1161,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 25.6
+      "ms": 43.3
     },
     {
       "id": "adv-zero-width",
@@ -1189,7 +1189,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 16.8
+      "ms": 21.0
     },
     {
       "id": "adv-homoglyph-curl",
@@ -1217,7 +1217,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 14.1
+      "ms": 18.7
     },
     {
       "id": "adv-tag-smuggle",
@@ -1248,7 +1248,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 13.1
+      "ms": 22.5
     },
     {
       "id": "adv-b64-comment",
@@ -1278,7 +1278,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 15.0
+      "ms": 22.5
     },
     {
       "id": "adv-hex-b64",
@@ -1309,7 +1309,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 11.8
+      "ms": 23.3
     },
     {
       "id": "adv-paraphrase-lure",
@@ -1337,7 +1337,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 11.9
+      "ms": 20.8
     },
     {
       "id": "adv-paraphrase-override",
@@ -1365,7 +1365,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 13.1
+      "ms": 20.8
     },
     {
       "id": "adv-split-files",
@@ -1393,7 +1393,7 @@
       "verdict": "BLOCK",
       "score": 75,
       "flow_findings": [],
-      "ms": 12.3
+      "ms": 40.6
     },
     {
       "id": "adv-split-param",
@@ -1418,7 +1418,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 5.9
+      "ms": 15.3
     },
     {
       "id": "rugpull-description",
@@ -1445,7 +1445,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 8.2
+      "ms": 32.3
     },
     {
       "id": "rugpull-new-tool",
@@ -1470,7 +1470,7 @@
       "verdict": "REVIEW",
       "score": 24,
       "flow_findings": [],
-      "ms": 5.7
+      "ms": 17.4
     },
     {
       "id": "rugpull-skill-egress",
@@ -1502,7 +1502,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 12.3
+      "ms": 41.6
     },
     {
       "id": "locked-unchanged",
@@ -1525,7 +1525,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 4.4
+      "ms": 16.3
     },
     {
       "id": "pdf-report",
@@ -1550,7 +1550,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.3
+      "ms": 33.3
     },
     {
       "id": "git-changelog",
@@ -1577,7 +1577,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 10.7
+      "ms": 22.9
     },
     {
       "id": "github-sync",
@@ -1602,7 +1602,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 12.8
+      "ms": 36.7
     },
     {
       "id": "uv-setup",
@@ -1629,7 +1629,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 8.6
+      "ms": 20.9
     },
     {
       "id": "security-reviewer",
@@ -1654,7 +1654,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 10.4
+      "ms": 19.7
     },
     {
       "id": "docx-builder",
@@ -1679,7 +1679,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 13.0
+      "ms": 42.1
     },
     {
       "id": "sql-helper",
@@ -1704,7 +1704,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 8.7
+      "ms": 17.6
     },
     {
       "id": "k8s-deploy",
@@ -1729,7 +1729,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 10.4
+      "ms": 28.7
     },
     {
       "id": "slack-notifier",
@@ -1754,7 +1754,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.7
+      "ms": 33.3
     },
     {
       "id": "csv-analyzer",
@@ -1779,7 +1779,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 6.6
+      "ms": 16.7
     },
     {
       "id": "web-research",
@@ -1804,7 +1804,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.0
+      "ms": 19.3
     },
     {
       "id": "commit-lint",
@@ -1833,7 +1833,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 9.6
+      "ms": 19.2
     },
     {
       "id": "cfg-pinned",
@@ -1868,7 +1868,7 @@
         "AG-FLOW-002:high",
         "AG-FLOW-004:medium"
       ],
-      "ms": 8.1
+      "ms": 18.5
     },
     {
       "id": "cfg-vscode-inputs",
@@ -1891,7 +1891,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 16.4
     },
     {
       "id": "cfg-cursor-remote",
@@ -1918,7 +1918,7 @@
       "flow_findings": [
         "AG-FLOW-001:high"
       ],
-      "ms": 4.8
+      "ms": 15.8
     },
     {
       "id": "cfg-codex-docker",
@@ -1941,7 +1941,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 5.4
+      "ms": 18.3
     },
     {
       "id": "cfg-windows-cmd",
@@ -1968,7 +1968,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 4.8
+      "ms": 15.9
     },
     {
       "id": "cfg-gemini",
@@ -1991,7 +1991,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 4.3
+      "ms": 14.6
     },
     {
       "id": "srv-weather-ts",
@@ -2018,7 +2018,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 13.5
+      "ms": 38.7
     },
     {
       "id": "srv-notes-py",
@@ -2041,7 +2041,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 12.0
+      "ms": 33.6
     },
     {
       "id": "srv-issues-manifest",
@@ -2064,7 +2064,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 5.7
+      "ms": 21.4
     },
     {
       "id": "agents-md",
@@ -2087,7 +2087,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 5.4
+      "ms": 16.3
     },
     {
       "id": "claude-md",
@@ -2110,7 +2110,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 5.1
+      "ms": 15.3
     },
     {
       "id": "cursor-rules",
@@ -2133,7 +2133,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 5.1
+      "ms": 16.5
     },
     {
       "id": "h2-para-fetch-exec",
@@ -2160,7 +2160,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 9.2
+      "ms": 21.7
     },
     {
       "id": "h2-para-pull-mark",
@@ -2187,7 +2187,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 9.1
+      "ms": 22.3
     },
     {
       "id": "h2-para-console",
@@ -2214,7 +2214,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.5
+      "ms": 26.7
     },
     {
       "id": "h2-para-installer-warnings",
@@ -2241,7 +2241,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.9
+      "ms": 27.4
     },
     {
       "id": "h2-para-override-disregard",
@@ -2268,7 +2268,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.7
+      "ms": 27.9
     },
     {
       "id": "h2-para-override-superseded",
@@ -2295,7 +2295,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.8
+      "ms": 22.2
     },
     {
       "id": "h2-para-override-authority",
@@ -2322,7 +2322,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 8.9
+      "ms": 20.6
     },
     {
       "id": "h2-para-override-comment",
@@ -2350,7 +2350,7 @@
       "verdict": "BLOCK",
       "score": 74,
       "flow_findings": [],
-      "ms": 10.9
+      "ms": 22.7
     },
     {
       "id": "h2-split-py-sh",
@@ -2376,7 +2376,7 @@
       "verdict": "BLOCK",
       "score": 70,
       "flow_findings": [],
-      "ms": 13.1
+      "ms": 44.3
     },
     {
       "id": "h2-split-md-sh",
@@ -2403,7 +2403,7 @@
       "verdict": "BLOCK",
       "score": 70,
       "flow_findings": [],
-      "ms": 9.8
+      "ms": 32.2
     },
     {
       "id": "h2-split-cred-paste",
@@ -2436,7 +2436,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 17.7
+      "ms": 52.0
     },
     {
       "id": "h2-split-b64-ref",
@@ -2467,7 +2467,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 14.4
+      "ms": 75.2
     },
     {
       "id": "h2-lolbin-regsvr32",
@@ -2494,7 +2494,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 8.4
+      "ms": 45.6
     },
     {
       "id": "h2-lolbin-certutil",
@@ -2522,7 +2522,7 @@
       "verdict": "BLOCK",
       "score": 91,
       "flow_findings": [],
-      "ms": 9.2
+      "ms": 21.2
     },
     {
       "id": "h2-macos-cmdsubst",
@@ -2548,7 +2548,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 9.7
+      "ms": 21.6
     },
     {
       "id": "h2-revshell-cfg",
@@ -2577,7 +2577,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 5.5
+      "ms": 28.3
     },
     {
       "id": "h2-revshell-py",
@@ -2604,7 +2604,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 12.2
+      "ms": 39.4
     },
     {
       "id": "h2-cred-dirs-zip",
@@ -2634,7 +2634,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 10.6
+      "ms": 22.4
     },
     {
       "id": "h2-cred-node-kube",
@@ -2664,7 +2664,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 15.6
+      "ms": 58.1
     },
     {
       "id": "h2-ps-enc-skill",
@@ -2696,7 +2696,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 14.2
+      "ms": 64.5
     },
     {
       "id": "h2-ps-enc-config",
@@ -2728,7 +2728,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 6.5
+      "ms": 24.6
     },
     {
       "id": "h2-poison-comment",
@@ -2753,7 +2753,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 5.4
+      "ms": 22.2
     },
     {
       "id": "h2-shadow-redirect",
@@ -2778,7 +2778,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 5.9
+      "ms": 30.9
     },
     {
       "id": "h2-rugpull-exec",
@@ -2806,7 +2806,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 6.4
+      "ms": 35.1
     },
     {
       "id": "h2-ok-pkg-install",
@@ -2831,7 +2831,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 8.8
+      "ms": 32.8
     },
     {
       "id": "h2-ok-ignore-cache",
@@ -2856,7 +2856,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 7.6
+      "ms": 27.6
     },
     {
       "id": "h2-ok-refuse-override",
@@ -2879,7 +2879,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 7.3
+      "ms": 20.5
     },
     {
       "id": "h2-ok-build-run",
@@ -2904,7 +2904,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 10.3
+      "ms": 40.2
     },
     {
       "id": "h2-ok-fetch-data",
@@ -2929,7 +2929,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.4
+      "ms": 45.0
     },
     {
       "id": "h2-ok-ssh-keygen",
@@ -2954,7 +2954,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 8.1
+      "ms": 19.0
     },
     {
       "id": "h2-ok-s3-backup",
@@ -2979,7 +2979,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 7.1
+      "ms": 19.4
     },
     {
       "id": "h2-ok-detect-revshell",
@@ -3004,7 +3004,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 9.1
+      "ms": 21.4
     },
     {
       "id": "h2-ok-vendor-installer",
@@ -3029,7 +3029,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 8.0
+      "ms": 20.6
     },
     {
       "id": "h2-ok-python-module",
@@ -3056,7 +3056,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 3.7
+      "ms": 15.8
     },
     {
       "id": "a3-para-run-with-bash",
@@ -3084,7 +3084,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 7.1
+      "ms": 19.2
     },
     {
       "id": "a3-para-make-exec",
@@ -3112,7 +3112,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 7.2
+      "ms": 17.9
     },
     {
       "id": "a3-para-forget",
@@ -3141,7 +3141,7 @@
       "verdict": "BLOCK",
       "score": 74,
       "flow_findings": [],
-      "ms": 9.9
+      "ms": 21.1
     },
     {
       "id": "a3-para-void",
@@ -3169,7 +3169,7 @@
       "verdict": "BLOCK",
       "score": 49,
       "flow_findings": [],
-      "ms": 7.3
+      "ms": 19.8
     },
     {
       "id": "a3-split-wget",
@@ -3197,7 +3197,7 @@
       "verdict": "BLOCK",
       "score": 75,
       "flow_findings": [],
-      "ms": 10.4
+      "ms": 38.7
     },
     {
       "id": "a3-lolbin-bitsadmin",
@@ -3225,7 +3225,7 @@
       "verdict": "BLOCK",
       "score": 97,
       "flow_findings": [],
-      "ms": 8.6
+      "ms": 23.7
     },
     {
       "id": "a3-revshell-fifo",
@@ -3251,7 +3251,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 8.6
+      "ms": 30.0
     },
     {
       "id": "a3-ps-enc-iex",
@@ -3283,7 +3283,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 12.7
+      "ms": 32.8
     },
     {
       "id": "a3-ok-install-vendor",
@@ -3308,7 +3308,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 9.0
+      "ms": 27.2
     },
     {
       "id": "a3-ok-ignore-baseline",
@@ -3333,7 +3333,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 9.5
+      "ms": 23.2
     },
     {
       "id": "a3-ok-two-scripts",
@@ -3359,7 +3359,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 12.9
+      "ms": 44.4
     },
     {
       "id": "a3-ok-make-run",
@@ -3385,7 +3385,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.4
+      "ms": 29.8
     },
     {
       "id": "h3-comp-tmp-relay",
@@ -3413,7 +3413,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 20.3
+      "ms": 53.2
     },
     {
       "id": "h3-comp-runs-script",
@@ -3449,7 +3449,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 19.9
+      "ms": 54.3
     },
     {
       "id": "h3-comp-py-sibling",
@@ -3479,7 +3479,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 17.2
+      "ms": 51.5
     },
     {
       "id": "h3-comp-md-chain",
@@ -3507,7 +3507,7 @@
       "verdict": "BLOCK",
       "score": 100,
       "flow_findings": [],
-      "ms": 17.3
+      "ms": 50.9
     },
     {
       "id": "h3-comp-mcp-helper",
@@ -3533,7 +3533,7 @@
       "verdict": "REVIEW",
       "score": 42,
       "flow_findings": [],
-      "ms": 15.5
+      "ms": 38.9
     },
     {
       "id": "h3-comp-mcp-relative",
@@ -3559,7 +3559,7 @@
       "verdict": "REVIEW",
       "score": 42,
       "flow_findings": [],
-      "ms": 14.7
+      "ms": 47.1
     },
     {
       "id": "h3-comp-mcp-module",
@@ -3587,7 +3587,7 @@
       "verdict": "REVIEW",
       "score": 52,
       "flow_findings": [],
-      "ms": 15.5
+      "ms": 53.1
     },
     {
       "id": "h3-comp-mcp-ts-import",
@@ -3613,7 +3613,7 @@
       "verdict": "REVIEW",
       "score": 42,
       "flow_findings": [],
-      "ms": 18.6
+      "ms": 80.4
     },
     {
       "id": "h3-ok-tmp-no-secret",
@@ -3639,7 +3639,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 15.4
+      "ms": 53.0
     },
     {
       "id": "h3-ok-cred-local",
@@ -3668,7 +3668,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 16.8
+      "ms": 46.2
     },
     {
       "id": "h3-ok-unlinked",
@@ -3696,7 +3696,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 15.5
+      "ms": 59.4
     },
     {
       "id": "h3-ok-runs-config",
@@ -3724,7 +3724,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 13.5
+      "ms": 63.4
     },
     {
       "id": "h3-ok-mcp-argv-helper",
@@ -3747,7 +3747,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.0
+      "ms": 44.2
     },
     {
       "id": "h3-ok-mcp-const-helper",
@@ -3770,7 +3770,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11.0
+      "ms": 45.0
     },
     {
       "id": "h3-ok-mcp-allowlist",
@@ -3793,7 +3793,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 12.6
+      "ms": 58.5
     },
     {
       "id": "h3-ok-mcp-ts-const",
@@ -3816,7 +3816,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 13.4
+      "ms": 57.1
     },
     {
       "id": "real-anthropic-academy-guide",
@@ -3841,7 +3841,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 284.6
+      "ms": 442.8
     },
     {
       "id": "real-anthropic-algorithmic-art",
@@ -3866,7 +3866,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 595.1
+      "ms": 952.5
     },
     {
       "id": "real-anthropic-brand-guidelines",
@@ -3889,7 +3889,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 195.3
+      "ms": 313.6
     },
     {
       "id": "real-anthropic-claude-api",
@@ -3943,7 +3943,7 @@
       "flow_findings": [
         "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 28525.4
+      "ms": 38709.3
     },
     {
       "id": "real-anthropic-discernment-nudge",
@@ -3966,7 +3966,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 331.5
+      "ms": 465.0
     },
     {
       "id": "real-anthropic-frontend-design",
@@ -3989,7 +3989,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 323.7
+      "ms": 457.1
     },
     {
       "id": "real-anthropic-internal-comms",
@@ -4012,7 +4012,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 338.4
+      "ms": 557.5
     },
     {
       "id": "real-anthropic-mcp-builder",
@@ -4045,7 +4045,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1614.0
+      "ms": 2352.7
     },
     {
       "id": "real-anthropic-skill-creator",
@@ -4073,7 +4073,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2169.8
+      "ms": 3345.0
     },
     {
       "id": "real-anthropic-slack-gif-creator",
@@ -4103,7 +4103,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 471.2
+      "ms": 696.3
     },
     {
       "id": "real-anthropic-theme-factory",
@@ -4126,7 +4126,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 370.9
+      "ms": 690.5
     },
     {
       "id": "real-anthropic-web-artifacts-builder",
@@ -4156,7 +4156,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1318.9
+      "ms": 1908.3
     },
     {
       "id": "real-anthropic-webapp-testing",
@@ -4179,7 +4179,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 294.2
+      "ms": 570.1
     },
     {
       "id": "real-openai-aspnet-core",
@@ -4202,7 +4202,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 749.9
+      "ms": 1340.7
     },
     {
       "id": "real-openai-chatgpt-apps",
@@ -4231,7 +4231,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1092.7
+      "ms": 1723.5
     },
     {
       "id": "real-openai-cli-creator",
@@ -4254,7 +4254,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 421.7
+      "ms": 681.4
     },
     {
       "id": "real-openai-define-goal",
@@ -4277,7 +4277,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 257.5
+      "ms": 393.2
     },
     {
       "id": "real-openai-gh-address-comments",
@@ -4305,7 +4305,7 @@
       "flow_findings": [
         "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 253.0
+      "ms": 429.6
     },
     {
       "id": "real-openai-gh-fix-ci",
@@ -4328,7 +4328,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 343.0
+      "ms": 554.6
     },
     {
       "id": "real-openai-hatch-pet",
@@ -4353,7 +4353,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1573.2
+      "ms": 2533.5
     },
     {
       "id": "real-openai-jupyter-notebook",
@@ -4378,7 +4378,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 341.0
+      "ms": 666.6
     },
     {
       "id": "real-openai-linear",
@@ -4403,7 +4403,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 259.8
+      "ms": 379.8
     },
     {
       "id": "real-openai-migrate-to-codex",
@@ -4435,7 +4435,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1315.4
+      "ms": 2164.1
     },
     {
       "id": "real-openai-netlify-deploy",
@@ -4462,7 +4462,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 435.0
+      "ms": 683.7
     },
     {
       "id": "real-openai-notion-knowledge-capture",
@@ -4490,7 +4490,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 776.8
+      "ms": 1450.1
     },
     {
       "id": "real-openai-notion-meeting-intelligence",
@@ -4515,7 +4515,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 675.3
+      "ms": 1176.4
     },
     {
       "id": "real-openai-notion-research-documentation",
@@ -4540,7 +4540,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 815.3
+      "ms": 1493.3
     },
     {
       "id": "real-openai-notion-spec-to-implementation",
@@ -4568,7 +4568,7 @@
       "verdict": "ALLOW",
       "score": 9,
       "flow_findings": [],
-      "ms": 906.5
+      "ms": 1648.7
     },
     {
       "id": "real-openai-openai-docs",
@@ -4597,7 +4597,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1118.9
+      "ms": 1817.0
     },
     {
       "id": "real-openai-pdf",
@@ -4622,7 +4622,7 @@
       "verdict": "ALLOW",
       "score": 3,
       "flow_findings": [],
-      "ms": 210.3
+      "ms": 361.1
     },
     {
       "id": "real-openai-playwright",
@@ -4647,7 +4647,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 295.7
+      "ms": 505.2
     },
     {
       "id": "real-openai-playwright-interactive",
@@ -4676,7 +4676,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 683.7
+      "ms": 1141.2
     },
     {
       "id": "real-openai-render-deploy",
@@ -4709,7 +4709,7 @@
       "verdict": "ALLOW",
       "score": 31,
       "flow_findings": [],
-      "ms": 1244.1
+      "ms": 2104.5
     },
     {
       "id": "real-openai-screenshot",
@@ -4735,7 +4735,7 @@
       "verdict": "ALLOW",
       "score": 17,
       "flow_findings": [],
-      "ms": 526.4
+      "ms": 893.9
     },
     {
       "id": "real-openai-security-best-practices",
@@ -4767,7 +4767,7 @@
       "verdict": "ALLOW",
       "score": 24,
       "flow_findings": [],
-      "ms": 6494.8
+      "ms": 9126.4
     },
     {
       "id": "real-openai-security-ownership-map",
@@ -4794,7 +4794,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 911.9
+      "ms": 1392.7
     },
     {
       "id": "real-openai-security-threat-model",
@@ -4817,7 +4817,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 486.7
+      "ms": 749.4
     },
     {
       "id": "real-openai-sentry",
@@ -4843,7 +4843,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 232.6
+      "ms": 367.3
     },
     {
       "id": "real-openai-speech",
@@ -4873,7 +4873,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 613.2
+      "ms": 1024.7
     },
     {
       "id": "real-openai-transcribe",
@@ -4898,7 +4898,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 303.0
+      "ms": 470.7
     },
     {
       "id": "real-openai-vercel-deploy",
@@ -4921,7 +4921,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 169.9
+      "ms": 310.5
     },
     {
       "id": "real-openai-winui-app",
@@ -4948,7 +4948,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1157.9
+      "ms": 1812.5
     },
     {
       "id": "real-openai-yeet",
@@ -4971,7 +4971,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 287.5
+      "ms": 430.0
     },
     {
       "id": "real-openai-system-imagegen",
@@ -4999,7 +4999,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 1196.6
+      "ms": 1629.9
     },
     {
       "id": "real-openai-system-openai-docs",
@@ -5028,7 +5028,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1140.2
+      "ms": 1518.2
     },
     {
       "id": "real-openai-system-plugin-creator",
@@ -5055,7 +5055,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 449.4
+      "ms": 650.8
     },
     {
       "id": "real-openai-system-skill-creator",
@@ -5078,7 +5078,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 725.9
+      "ms": 1077.2
     },
     {
       "id": "real-openai-system-skill-installer",
@@ -5104,7 +5104,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 347.3
+      "ms": 538.8
     },
     {
       "id": "real-mcp-everything",
@@ -5134,7 +5134,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2627.0
+      "ms": 4373.0
     },
     {
       "id": "real-mcp-fetch",
@@ -5159,7 +5159,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 697.3
+      "ms": 1033.7
     },
     {
       "id": "real-mcp-filesystem",
@@ -5193,7 +5193,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2263.4
+      "ms": 3229.3
     },
     {
       "id": "real-mcp-git",
@@ -5220,7 +5220,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 803.9
+      "ms": 1157.4
     },
     {
       "id": "real-mcp-memory",
@@ -5249,7 +5249,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 879.3
+      "ms": 1406.5
     },
     {
       "id": "real-mcp-sequentialthinking",
@@ -5281,7 +5281,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 352.2
+      "ms": 656.4
     },
     {
       "id": "real-mcp-time",
@@ -5309,7 +5309,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 554.4
+      "ms": 944.6
     },
     {
       "id": "real-playwright-mcp",
@@ -5353,7 +5353,7 @@
         "AG-FLOW-002:high",
         "AG-FLOW-003/code-exec:high"
       ],
-      "ms": 2002.8
+      "ms": 3137.2
     },
     {
       "id": "real-hf-hf-cli",
@@ -5381,7 +5381,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 540.3
+      "ms": 666.7
     },
     {
       "id": "real-hf-hf-cloud-aws-context-discovery",
@@ -5409,7 +5409,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 75.1
+      "ms": 100.4
     },
     {
       "id": "real-hf-hf-cloud-python-env-setup",
@@ -5437,7 +5437,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 173.1
+      "ms": 290.1
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-deployment-planner",
@@ -5462,7 +5462,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 157.5
+      "ms": 217.0
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-iam-preflight",
@@ -5487,7 +5487,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 239.6
+      "ms": 395.4
     },
     {
       "id": "real-hf-hf-cloud-sagemaker-production-defaults",
@@ -5519,7 +5519,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1232.7
+      "ms": 1759.1
     },
     {
       "id": "real-hf-hf-cloud-serving-image-selection",
@@ -5545,7 +5545,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 557.4
+      "ms": 796.8
     },
     {
       "id": "real-hf-hf-mem",
@@ -5573,7 +5573,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 57.1
+      "ms": 81.8
     },
     {
       "id": "real-hf-huggingface-best",
@@ -5598,7 +5598,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 106.9
+      "ms": 142.8
     },
     {
       "id": "real-hf-huggingface-community-evals",
@@ -5623,7 +5623,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 321.9
+      "ms": 515.2
     },
     {
       "id": "real-hf-huggingface-datasets",
@@ -5651,7 +5651,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 81.6
+      "ms": 123.0
     },
     {
       "id": "real-hf-huggingface-gradio",
@@ -5677,7 +5677,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 531.3
+      "ms": 724.6
     },
     {
       "id": "real-hf-huggingface-llm-trainer",
@@ -5706,7 +5706,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2189.9
+      "ms": 3040.1
     },
     {
       "id": "real-hf-huggingface-local-models",
@@ -5732,7 +5732,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 228.2
+      "ms": 337.8
     },
     {
       "id": "real-hf-huggingface-lora-space-builder",
@@ -5758,7 +5758,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1972.3
+      "ms": 2632.3
     },
     {
       "id": "real-hf-huggingface-paper-publisher",
@@ -5787,7 +5787,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1007.7
+      "ms": 1535.6
     },
     {
       "id": "real-hf-huggingface-papers",
@@ -5812,7 +5812,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 164.5
+      "ms": 213.3
     },
     {
       "id": "real-hf-huggingface-spaces",
@@ -5845,7 +5845,7 @@
       "verdict": "ALLOW",
       "score": 17,
       "flow_findings": [],
-      "ms": 2466.4
+      "ms": 3553.1
     },
     {
       "id": "real-hf-huggingface-tool-builder",
@@ -5873,7 +5873,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 311.2
+      "ms": 521.2
     },
     {
       "id": "real-hf-huggingface-trackio",
@@ -5899,7 +5899,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 351.1
+      "ms": 500.8
     },
     {
       "id": "real-hf-huggingface-vision-trainer",
@@ -5926,7 +5926,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2238.9
+      "ms": 3100.8
     },
     {
       "id": "real-hf-huggingface-zerogpu",
@@ -5951,7 +5951,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 584.4
+      "ms": 828.2
     },
     {
       "id": "real-hf-train-sentence-transformers",
@@ -5984,7 +5984,7 @@
       "verdict": "ALLOW",
       "score": 18,
       "flow_findings": [],
-      "ms": 3301.1
+      "ms": 5013.4
     },
     {
       "id": "real-hf-transformers-js",
@@ -6010,7 +6010,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 1237.8
+      "ms": 1964.9
     },
     {
       "id": "real-hf-trl-training",
@@ -6038,7 +6038,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 159.4
+      "ms": 214.8
     },
     {
       "id": "real-supabase-mcp-server-supabase",
@@ -6085,7 +6085,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 11287.1
+      "ms": 17669.1
     },
     {
       "id": "real-supabase-mcp-server-postgrest",
@@ -6116,7 +6116,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 282.9
+      "ms": 565.4
     },
     {
       "id": "real-supabase-mcp-utils",
@@ -6139,7 +6139,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 387.7
+      "ms": 747.6
     },
     {
       "id": "real-ms-agent-framework-azure-ai-py",
@@ -6169,7 +6169,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 627.3
+      "ms": 881.7
     },
     {
       "id": "real-ms-applicationinsights-web-ts",
@@ -6194,7 +6194,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 616.1
+      "ms": 934.8
     },
     {
       "id": "real-ms-azure-ai-contentsafety-py",
@@ -6219,7 +6219,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 165.0
+      "ms": 286.7
     },
     {
       "id": "real-ms-azure-ai-contentunderstanding-py",
@@ -6244,7 +6244,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 236.9
+      "ms": 402.6
     },
     {
       "id": "real-ms-azure-ai-language-conversations-py",
@@ -6267,7 +6267,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 162.8
+      "ms": 291.2
     },
     {
       "id": "real-ms-azure-ai-ml-py",
@@ -6292,7 +6292,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 188.1
+      "ms": 295.7
     },
     {
       "id": "real-ms-azure-ai-projects-py",
@@ -6317,7 +6317,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 1406.1
+      "ms": 2289.7
     },
     {
       "id": "real-ms-azure-ai-textanalytics-py",
@@ -6342,7 +6342,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 202.6
+      "ms": 286.5
     },
     {
       "id": "real-ms-azure-ai-transcription-py",
@@ -6367,7 +6367,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 123.6
+      "ms": 208.4
     },
     {
       "id": "real-ms-azure-ai-translation-document-py",
@@ -6392,7 +6392,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 218.1
+      "ms": 357.4
     },
     {
       "id": "real-ms-azure-ai-translation-text-py",
@@ -6417,7 +6417,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 236.2
+      "ms": 406.0
     },
     {
       "id": "real-ms-azure-ai-vision-imageanalysis-py",
@@ -6442,7 +6442,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 207.0
+      "ms": 343.7
     },
     {
       "id": "real-ms-azure-ai-voicelive-py",
@@ -6467,7 +6467,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 649.1
+      "ms": 1035.7
     },
     {
       "id": "real-ms-azure-appconfiguration-py",
@@ -6492,7 +6492,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 150.2
+      "ms": 295.6
     },
     {
       "id": "real-ms-azure-containerregistry-py",
@@ -6517,7 +6517,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 179.5
+      "ms": 313.3
     },
     {
       "id": "real-ms-azure-cosmos-db-py",
@@ -6542,7 +6542,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 914.6
+      "ms": 1492.3
     },
     {
       "id": "real-ms-azure-cosmos-py",
@@ -6568,7 +6568,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 403.2
+      "ms": 622.9
     },
     {
       "id": "real-ms-azure-cosmos-rust",
@@ -6591,7 +6591,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 101.9
+      "ms": 173.2
     },
     {
       "id": "real-ms-azure-data-tables-py",
@@ -6616,7 +6616,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 160.0
+      "ms": 266.7
     },
     {
       "id": "real-ms-azure-eventgrid-py",
@@ -6641,7 +6641,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 146.8
+      "ms": 259.3
     },
     {
       "id": "real-ms-azure-eventhub-py",
@@ -6666,7 +6666,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 495.8
+      "ms": 831.4
     },
     {
       "id": "real-ms-azure-eventhub-rust",
@@ -6689,7 +6689,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 98.7
+      "ms": 182.7
     },
     {
       "id": "real-ms-azure-identity-py",
@@ -6718,7 +6718,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 347.4
+      "ms": 555.6
     },
     {
       "id": "real-ms-azure-identity-rust",
@@ -6741,7 +6741,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 99.9
+      "ms": 169.6
     },
     {
       "id": "real-ms-azure-keyvault-certificates-rust",
@@ -6764,7 +6764,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 113.9
+      "ms": 211.4
     },
     {
       "id": "real-ms-azure-keyvault-keys-rust",
@@ -6787,7 +6787,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 108.2
+      "ms": 204.3
     },
     {
       "id": "real-ms-azure-keyvault-py",
@@ -6812,7 +6812,7 @@
       "verdict": "ALLOW",
       "score": 3,
       "flow_findings": [],
-      "ms": 174.0
+      "ms": 312.1
     },
     {
       "id": "real-ms-azure-keyvault-secrets-rust",
@@ -6835,7 +6835,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 92.4
+      "ms": 141.9
     },
     {
       "id": "real-ms-azure-messaging-webpubsubservice-py",
@@ -6860,7 +6860,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 180.8
+      "ms": 291.3
     },
     {
       "id": "real-ms-azure-mgmt-apicenter-py",
@@ -6885,7 +6885,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 208.4
+      "ms": 336.6
     },
     {
       "id": "real-ms-azure-mgmt-apimanagement-py",
@@ -6910,7 +6910,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 196.5
+      "ms": 338.3
     },
     {
       "id": "real-ms-azure-mgmt-botservice-py",
@@ -6935,7 +6935,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 226.7
+      "ms": 381.7
     },
     {
       "id": "real-ms-azure-mgmt-fabric-py",
@@ -6960,7 +6960,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 201.1
+      "ms": 318.2
     },
     {
       "id": "real-ms-azure-monitor-ingestion-py",
@@ -6985,7 +6985,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 170.2
+      "ms": 276.9
     },
     {
       "id": "real-ms-azure-monitor-opentelemetry-exporter-py",
@@ -7010,7 +7010,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 198.8
+      "ms": 336.5
     },
     {
       "id": "real-ms-azure-monitor-opentelemetry-py",
@@ -7035,7 +7035,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 190.6
+      "ms": 363.8
     },
     {
       "id": "real-ms-azure-monitor-query-py",
@@ -7060,7 +7060,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 146.1
+      "ms": 233.2
     },
     {
       "id": "real-ms-azure-search-documents-py",
@@ -7088,7 +7088,7 @@
       "verdict": "ALLOW",
       "score": 2,
       "flow_findings": [],
-      "ms": 600.7
+      "ms": 945.7
     },
     {
       "id": "real-ms-azure-servicebus-py",
@@ -7113,7 +7113,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 570.9
+      "ms": 824.7
     },
     {
       "id": "real-ms-azure-speech-to-text-rest-py",
@@ -7138,7 +7138,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 252.9
+      "ms": 416.9
     },
     {
       "id": "real-ms-azure-storage-blob-py",
@@ -7163,7 +7163,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 170.8
+      "ms": 330.8
     },
     {
       "id": "real-ms-azure-storage-blob-rust",
@@ -7186,7 +7186,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 158.1
+      "ms": 242.8
     },
     {
       "id": "real-ms-azure-storage-file-datalake-py",
@@ -7211,7 +7211,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 169.3
+      "ms": 309.0
     },
     {
       "id": "real-ms-azure-storage-file-share-py",
@@ -7236,7 +7236,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 142.3
+      "ms": 245.9
     },
     {
       "id": "real-ms-azure-storage-queue-py",
@@ -7261,7 +7261,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 172.4
+      "ms": 270.1
     },
     {
       "id": "real-ms-azure-storage-queue-rust",
@@ -7284,7 +7284,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 118.2
+      "ms": 170.0
     },
     {
       "id": "real-ms-cloud-solution-architect",
@@ -7309,7 +7309,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2005.4
+      "ms": 2799.6
     },
     {
       "id": "real-ms-continual-learning",
@@ -7334,7 +7334,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 42.5
+      "ms": 89.8
     },
     {
       "id": "real-ms-copilot-sdk",
@@ -7365,7 +7365,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 417.1
+      "ms": 571.1
     },
     {
       "id": "real-ms-debugview",
@@ -7390,7 +7390,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 429.4
+      "ms": 740.1
     },
     {
       "id": "real-ms-entra-agent-id",
@@ -7416,7 +7416,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 459.2
+      "ms": 710.6
     },
     {
       "id": "real-ms-fastapi-router-py",
@@ -7439,7 +7439,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 89.0
+      "ms": 188.5
     },
     {
       "id": "real-ms-frontend-design-review",
@@ -7464,7 +7464,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 199.3
+      "ms": 311.4
     },
     {
       "id": "real-ms-github-issue-creator",
@@ -7489,7 +7489,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 58.8
+      "ms": 103.0
     },
     {
       "id": "real-ms-kql",
@@ -7514,7 +7514,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 936.7
+      "ms": 1267.6
     },
     {
       "id": "real-ms-m365-agents-py",
@@ -7539,7 +7539,7 @@
       "verdict": "ALLOW",
       "score": 3,
       "flow_findings": [],
-      "ms": 236.6
+      "ms": 341.6
     },
     {
       "id": "real-ms-mcp-builder",
@@ -7573,7 +7573,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 1867.2
+      "ms": 2676.9
     },
     {
       "id": "real-ms-microsoft-docs",
@@ -7599,7 +7599,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 51.7
+      "ms": 84.3
     },
     {
       "id": "real-ms-podcast-generation",
@@ -7624,7 +7624,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 184.4
+      "ms": 314.2
     },
     {
       "id": "real-ms-pydantic-models-py",
@@ -7647,7 +7647,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 62.1
+      "ms": 133.0
     },
     {
       "id": "real-ms-skill-creator",
@@ -7681,7 +7681,7 @@
       "verdict": "ALLOW",
       "score": 1,
       "flow_findings": [],
-      "ms": 1816.0
+      "ms": 2417.5
     },
     {
       "id": "real-cloudflare-ai-gateway",
@@ -7707,7 +7707,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 316.9
+      "ms": 675.0
     },
     {
       "id": "real-cloudflare-auditlogs",
@@ -7730,7 +7730,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 46.8
+      "ms": 292.5
     },
     {
       "id": "real-cloudflare-autorag",
@@ -7756,7 +7756,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 288.6
+      "ms": 585.7
     },
     {
       "id": "real-cloudflare-browser-rendering",
@@ -7782,7 +7782,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 422.5
+      "ms": 700.3
     },
     {
       "id": "real-cloudflare-cloudflare-blog",
@@ -7805,7 +7805,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 27.7
+      "ms": 209.4
     },
     {
       "id": "real-cloudflare-cloudflare-one-casb",
@@ -7831,7 +7831,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 332.9
+      "ms": 643.8
     },
     {
       "id": "real-cloudflare-demo-day",
@@ -7858,7 +7858,7 @@
       "verdict": "REVIEW",
       "score": 42,
       "flow_findings": [],
-      "ms": 313.7
+      "ms": 807.4
     },
     {
       "id": "real-cloudflare-dex-analysis",
@@ -7881,7 +7881,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 62.7
+      "ms": 290.5
     },
     {
       "id": "real-cloudflare-dns-analytics",
@@ -7904,7 +7904,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 36.3
+      "ms": 257.6
     },
     {
       "id": "real-cloudflare-docs-ai-search",
@@ -7927,7 +7927,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 26.7
+      "ms": 168.2
     },
     {
       "id": "real-cloudflare-graphql",
@@ -7953,7 +7953,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 647.8
+      "ms": 1058.1
     },
     {
       "id": "real-cloudflare-logpush",
@@ -7976,7 +7976,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 32.4
+      "ms": 187.5
     },
     {
       "id": "real-cloudflare-radar",
@@ -8002,7 +8002,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 2140.0
+      "ms": 3009.7
     },
     {
       "id": "real-cloudflare-sandbox-container",
@@ -8034,7 +8034,7 @@
       "verdict": "ALLOW",
       "score": 9,
       "flow_findings": [],
-      "ms": 563.6
+      "ms": 1341.1
     },
     {
       "id": "real-cloudflare-stack-mcp",
@@ -8063,7 +8063,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 221.4
+      "ms": 465.9
     },
     {
       "id": "real-cloudflare-workers-bindings",
@@ -8086,7 +8086,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 96.0
+      "ms": 567.4
     },
     {
       "id": "real-cloudflare-workers-builds",
@@ -8109,7 +8109,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 47.5
+      "ms": 312.6
     },
     {
       "id": "real-cloudflare-workers-observability",
@@ -8132,7 +8132,7 @@
       "verdict": "ALLOW",
       "score": 0,
       "flow_findings": [],
-      "ms": 67.0
+      "ms": 293.3
     }
   ],
   "suite": "corpus",
