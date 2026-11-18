@@ -35,7 +35,7 @@ code = [
   "tree-sitter-bash>=0.23",
 ]
 yara = ["yara-python>=4.5,<5"]
-judge = ["anthropic>=1.0,<2"]
+judge = ["anthropic>=1.0,<3"]
 # Pixel checks on images: low-contrast text (MIT-CMU licence).
 media = ["pillow>=10"]
 # Text in images and rendered PDF pages, QR codes: RapidOCR on ONNX Runtime, pypdfium2, zxing-cpp (Apache-2.0 / BSD).
