@@ -14,6 +14,8 @@ function main(root) {
   const SKIP_DIRS = new Set([".git", "node_modules", ".venv", "venv", ".tox", ".mypy_cache", ".pytest_cache"]); // __pycache__ is scanned (AG-HYG-004)
   const ARCHIVE = /\.(zip|tgz|tar\.gz|tar)$/i;
   const siteBase = root.dataset.worker.replace(/\/js\/scan-worker\.js$/, "");
+  // Sign-in and saved scans (public/js/account.js), when the site is built with a Supabase project.
+  const account = window.agentguardAccount?.enabled ? window.agentguardAccount : null;
 
   const $ = (id) => document.getElementById(id);
   const status = $("status"), statusText = $("status-text"), errorBox = $("error"), result = $("result");
@@ -118,6 +120,10 @@ function main(root) {
 
   function showError(err) {
     errorBox.replaceChildren(el("p", {}, err.message || String(err)));
+    if (err.signedOut) {
+      const next = location.pathname + location.search;
+      errorBox.append(el("p", {}, el("a", { class: "btn small", href: `${siteBase}/signin/?next=${encodeURIComponent(next)}` }, "Sign in")));
+    }
     if (err.supported?.length) {
       errorBox.append(el("p", {}, "Supported inputs:"), el("ul", {}, ...err.supported.map((s) => el("li", {}, s))));
     }
@@ -246,6 +252,17 @@ function main(root) {
     status.hidden = false;
     statusText.textContent = "Loading the report…";
     loadServerReport(permalink, "").catch(showError).finally(() => { status.hidden = true; });
+  }
+
+  // A report saved to My scans (?saved=<id>): read from the signed-in user's account.
+  const savedId = new URLSearchParams(location.search).get("saved");
+  if (savedId && account) {
+    status.hidden = false;
+    statusText.textContent = "Loading the saved scan…";
+    account.ready.then(() => account.getScan(savedId))
+      .then((row) => renderReport(row.report, { saved: row }, row.label))
+      .catch(showError)
+      .finally(() => { status.hidden = true; });
   }
 
   // Paste
@@ -442,7 +459,9 @@ function main(root) {
       stat("Risk tier", report.risk_tier || "L0", TIER_TEXT[report.risk_tier] || ""),
       stat("Coverage", `${pct}%`, `${cov.files_analysed ?? files} of ${plural(files, "file")} analysed`),
       stat("Rule pack", `v${tool.rule_pack}`, `${tool.rules_implemented ?? tool.rule_count} rules · digest ${String(tool.rule_pack_digest || "").slice(0, 12)}`),
-      stat("Engine", tool.version, meta.serverKey
+      stat("Engine", tool.version, meta.saved
+        ? `Saved to My scans ${new Date(meta.saved.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+        : meta.serverKey
         ? `Agent Guard Web, in an isolated sandbox${meta.cached ? " (cached result for this exact version and rule pack)" : ""}`
         : `Run on this device · ${report.profile || "quick"} profile`),
       meta.scan_ms ? stat("Scan time", `${(meta.scan_ms / 1000).toFixed(1)} s`,
@@ -465,7 +484,8 @@ function main(root) {
         el("div", { class: "report-intro" }, el("h2", { id: "result-title", tabindex: "-1" }, "Report"), renderTarget(report, meta, label), verdictBox),
         board),
       facts,
-      renderDownloads(meta),
+      renderDownloads(meta, report),
+      account ? renderSave(report, meta, label) : null,
       extra.length ? el("div", { class: "report-extra" }, ...extra) : null,
       el("div", { class: "plans-foot", "aria-hidden": "true" }))];
 
@@ -744,7 +764,58 @@ function main(root) {
     return el("details", { class: "coverage" }, el("summary", {}, "What was not scanned"), el("ul", {}, ...items));
   }
 
-  function renderDownloads(meta = {}) {
+  // Save to My scans: only when the user asks, and only the report (never the scanned files).
+  function renderSave(report, meta, label) {
+    const row = el("div", { class: "save-row" });
+    const mine = `${siteBase}/account/`;
+    if (meta.saved) {
+      row.append(el("span", { class: "muted" }, "This report is saved to your account. "), el("a", { href: mine }, "My scans"));
+      return row;
+    }
+    const entry = { report, label: label || meta.name || "", source: meta.serverKey ? "server" : "device", serverKey: meta.serverKey || null };
+    const note = el("span", { class: "muted small" }, "Saves the report (verdict, findings and evidence snippets) to your account. Your files are not uploaded.");
+    if (!account.user()) {
+      const btn = el("a", { class: "btn secondary small", href: `${siteBase}/signin/?next=${encodeURIComponent(mine)}` }, "Sign in to save this report");
+      // Keep the report for this tab so My scans can save it once sign-in finishes.
+      btn.addEventListener("click", () => { account.setPendingSave(entry); });
+      row.append(btn, note);
+      return row;
+    }
+    const btn = el("button", { type: "button", class: "btn small" }, "Save to My scans");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+      try {
+        const saved = await account.saveScan(entry);
+        const view = new URL(`${siteBase}/scan/`, location.href);
+        view.searchParams.set("saved", saved.id);
+        row.replaceChildren(el("span", {}, "Saved. "), el("a", { href: mine }, "My scans"), " · ", el("a", { href: view.href }, "Link to this saved report"));
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Save to My scans";
+        showError(err);
+      }
+    });
+    row.append(btn, note);
+    return row;
+  }
+
+  function renderDownloads(meta = {}, report = {}) {
+    if (meta.saved) {
+      // A saved report is downloaded as the JSON that was saved (the engine has not scanned it in this tab).
+      const btn = el("button", { type: "button", class: "btn secondary small" }, "JSON");
+      btn.addEventListener("click", () => {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
+        const a = el("a", {});
+        a.href = url;
+        a.download = "agentguard-report.json";
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      });
+      return el("div", { class: "downloads" }, el("span", { class: "label" }, "Download"), btn);
+    }
     const formats = [["json", "JSON", "application/json", "json"], ["sarif", "SARIF", "application/sarif+json", "sarif"],
       ["html", "HTML report", "text/html", "html"], ["markdown", "Markdown", "text/markdown", "md"], ["cyclonedx", "CycloneDX", "application/vnd.cyclonedx+json", "cdx.json"]];
     const row = el("div", { class: "downloads" }, el("span", { class: "label" }, "Download"));

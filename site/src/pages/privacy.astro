@@ -1,11 +1,24 @@
 ---
 import Base from "../layouts/Base.astro";
+import { auth } from "../data/auth";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const scanEnabled = import.meta.env.PUBLIC_FEATURE_SCAN === "1";
 ---
 <Base title="Privacy">
   <h1>Privacy</h1>
-  <p>This website is static. It sets no cookies, runs no analytics, and loads nothing from third parties. The hosting provider keeps standard access logs under its own policy.</p>
+  <p>This website is static. It sets no cookies, runs no analytics, and loads nothing from third parties{auth.enabled ? " unless you sign in" : ""}. The hosting provider keeps standard access logs under its own policy.</p>
+  {auth.enabled && (
+    <>
+      <h2>Signing in (optional)</h2>
+      <p>You can use every scanner feature without an account. If you sign in with Google, the sign-in is handled by Supabase (our database and authentication provider) and Google, under their own privacy policies. Agent Guard then keeps:</p>
+      <ul>
+        <li>your account: the name and email address Google shares, a user id, and when you signed in;</li>
+        <li>the scan reports you choose to save with <strong>Save to My scans</strong>: the verdict, findings and the evidence snippets in them. The files you scanned are never uploaded. Saved reports can be read only by your account, and deleting one removes it at once;</li>
+        <li>in this browser, your session (an access and a refresh token) in local storage, or in session storage if you untick "Keep me signed in". Signing out removes it. No cookies are set.</li>
+      </ul>
+      <p>Until you choose to sign in, this site sends nothing to Supabase. To have your account and everything saved with it deleted, contact the maintainers through the <a href={`${base}/security/`}>security page</a>.</p>
+    </>
+  )}
   {scanEnabled && (
     <>
       <h2>Web scanner</h2>
@@ -16,7 +29,7 @@ const scanEnabled = import.meta.env.PUBLIC_FEATURE_SCAN === "1";
         <li>maintainer responses attached to reports, until the report is deleted or the maintainer removes them;</li>
         <li>the status of each job, for 24 hours;</li>
         <li>rate-limit counters keyed by a salted hash of your network address, never the address itself, which expire within a day;</li>
-        <li>standard operational logs. There are no accounts and no analytics.</li>
+        <li>standard operational logs. The server has no accounts and no analytics.</li>
       </ul>
       <p>Before a request is sent, your browser does a short computation as a bot check. It runs on your device; no third-party service is involved and nothing about you is sent except the answer.</p>
       <p>If you submit a remote MCP server URL, the server contacts that URL (and the OAuth metadata documents it points to) as an unauthenticated, read-only client. The query string of the URL is discarded before anything is sent or stored.</p>
