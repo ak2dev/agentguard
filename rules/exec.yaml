@@ -1,0 +1,544 @@
+# Detection entries for the EXEC family (catalogue: rules/catalog/exec.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-EXEC-001
+    aliases: [AG-SKL-SE-002]
+    version: 3
+    description: A remote script is piped straight into a shell (curl | sh, iwr | iex) or run by a Windows binary that executes remote code (mshta, regsvr32 /i, rundll32, msiexec /i), from a host that is not a known vendor installer.
+    why: Pipe-to-shell executes whatever the server returns at that moment, with no integrity check and no review.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:curl|wget|fetch)\b[^\n|]{0,300}https?://[^\n|]*\|\s*(?:sudo\s+)?(?:-E\s+)?(?:ba|z|k|da)?sh\b
+        - |-
+          \b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^\n|]*\|\s*(?:iex|Invoke-Expression)\b
+        - |-
+          \b(?:iex|Invoke-Expression)\s*\(?\s*(?:\(\s*)?(?:New-Object\s+(?:System\.)?Net\.WebClient\)?\.DownloadString|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)
+        - |-
+          \b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b[^)]*https?://
+        - |-
+          \b(?:python3?|node|perl|ruby)\s+(?:-c\s+)?["']?(?:<\(|\$\()\s*(?:curl|wget)\b
+        - |-
+          \bsource\s+<\(\s*(?:curl|wget)\b
+        # Windows binaries that fetch and run remote code (LOLBAS: Mshta, Regsvr32, Rundll32, Msiexec).
+        - |-
+          \bmshta(?:\.exe)?\s+["']?(?:https?|vbscript|javascript):
+        - |-
+          \bregsvr32(?:\.exe)?\b[^\n]*\s/i:\s*["']?https?://
+        - |-
+          \brundll32(?:\.exe)?\b[^\n]*(?:javascript:|\burl\.dll\b[^\n]*https?://|\bmshtml\b[^\n]*RunHTMLApplication)
+        - |-
+          \bmsiexec(?:\.exe)?\b[^\n]*\s/(?:i|package)\s+["']?https?://
+      unless:
+        - |-
+          (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
+      window: 0
+    remediation: Replace pipe-to-shell with a pinned package from an official registry, or download a versioned artifact and verify its checksum/signature before running it.
+
+
+  - id: AG-EXEC-001
+    variant: binary-yara
+    aliases: [AG-SKL-BND-005]
+    version: 1
+    title: Bundled binary embeds a download-and-execute command
+    description: A bundled binary or data file contains a pipe-to-shell command, an encoded PowerShell command, a PowerShell download cradle, or a Gatekeeper quarantine removal.
+    why: Commands hidden in a binary run with the binary and stay invisible to text rules that catch the same commands in SKILL.md or scripts.
+    severity: high
+    confidence: medium
+    applies_to: [binary]
+    match: {type: yara, rule_file: rules/yara/bundled-stager.yar}
+    remediation: Do not run the binary. Ask the publisher for source, and install any dependency it fetches from an official, pinned source instead.
+    references: ["https://cwe.mitre.org/data/definitions/494.html"]
+
+
+  - id: AG-EXEC-001
+    variant: vendor-installer
+    aliases: [AG-SKL-SE-008]
+    lane: evidence
+    version: 2
+    title: Pipe-to-shell from an allowlisted vendor installer
+    description: A vendor's official installer script is piped into a shell.
+    why: Common and usually legitimate, but it still executes unpinned remote code with no integrity check. Reported for visibility.
+    severity: low
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:curl|wget|fetch)\b[^\n|]{0,300}https?://[^\n|]*\|\s*(?:sudo\s+)?(?:-E\s+)?(?:ba|z|k|da)?sh\b
+        - |-
+          \b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^\n|]*\|\s*(?:iex|Invoke-Expression)\b
+      require:
+        - |-
+          (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
+      window: 0
+    remediation: Prefer a package manager with pinned versions, or verify the installer checksum before running it.
+
+
+  - id: AG-EXEC-002
+    variant: encoded-command
+    aliases: [AG-SKL-SE-005]
+    lane: block
+    version: 2
+    title: Encoded command execution
+    description: A command decodes base64/base85/hex or compressed content and executes it (PowerShell -EncodedCommand, base64 -d | sh, FromBase64String | iex, eval(atob(...)), os.system/subprocess/exec on base64.b85decode, bytes.fromhex or zlib.decompress output, including XOR-wrapped decodes).
+    why: Encoding the command hides what runs from the user and the reviewer; legitimate setup steps have no reason to do this.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:e|en|enc|enco|encod|encode|encoded|encodedcommand|ec)\s+[A-Za-z0-9+/=]{16,}
+        - |-
+          \bbase64\s+(?:-d|--decode|-D)\b[^\n]*\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b
+        - |-
+          \becho\s+["']?[A-Za-z0-9+/=]{16,}["']?\s*\|\s*base64\s+(?:-d|--decode|-D)\s*(?:\|\s*(?:ba|z)?sh|>\s*\S+\s*(?:&&|;)\s*(?:chmod|bash|sh|\./))
+        - |-
+          \bxxd\s+-r\s+-p\b[^\n]*\|\s*(?:ba|z)?sh\b
+        - |-
+          FromBase64String[^\n]*\|\s*(?:iex|Invoke-Expression)|(?:iex|Invoke-Expression)[^\n]*FromBase64String
+        - |-
+          \b(?:exec|eval)\s*\(\s*(?:base64\.b64decode|codecs\.decode|bytes\.fromhex|zlib\.decompress|__import__\(\s*["']base64)
+        - |-
+          \beval\s*\(\s*(?:atob|Buffer\.from)\s*\(
+        # Process/exec sinks fed by a decoder on the same line, e.g. os.system(bytes(b ^ k for b in base64.b85decode(d)).decode())
+        # (scanner-bypass obfuscation reported by Trail of Bits and CSA, June 2026).
+        - |-
+          \b(?:os\.(?:system|popen|exec[lv]p?e?)|subprocess\.(?:run|call|Popen|check_output|check_call|getoutput|getstatusoutput)|exec|eval)\s*\([^\n]{0,200}?\b(?:base64\.(?:b64|b32|b16|b85|a85|urlsafe_b64|standard_b64)decode|codecs\.decode|bytes\.fromhex|binascii\.(?:a2b_base64|unhexlify)|(?:zlib|gzip|bz2|lzma)\.decompress|marshal\.loads)\s*\(
+    remediation: Remove encoded execution. If a command is needed, write it in plain text so users and reviewers can read it.
+
+
+  - id: AG-EXEC-002
+    variant: obfuscated-exec
+    aliases: [AG-CODE-023]
+    lane: block
+    version: 1
+    title: Obfuscated execution
+    description: Code executes decoded, decompressed or character-code-built content (eval(atob(…)), exec(base64.b64decode(…)), long hex escape strings).
+    why: Legitimate code has no reason to hide what it executes; this is a hallmark of malicious packages.
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove the obfuscated code path.
+
+
+  - id: AG-EXEC-003
+    aliases: [AG-SKL-SE-010]
+    version: 1
+    description: A file is downloaded to a path and that path is then run or made executable — in the same file, or in another script or code block of the same skill (a download-and-execute split across files).
+    why: Splitting the download and the execution across scripts hides a staged payload from reviewers and from rules that look at one line or one file. Running a downloaded file executes whatever the host serves at that moment.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: analyzer
+      analyzer: skill.staged
+      params:
+        # Same vendor installers as AG-SKL-SE-002/008: reported at LOW.
+        allow_hosts: |-
+          (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
+    remediation: Do not download and run code from a skill. Depend on a pinned package from an official registry, or ship the code in the skill where it can be reviewed. If a download is unavoidable, pin a versioned URL and verify its checksum or signature before running it.
+
+  - id: AG-EXEC-003
+    variant: download-run-command
+    aliases: [AG-SKL-SE-001]
+    version: 1
+    title: Instructions to download and run a binary
+    description: Setup text downloads an executable (or script) and runs it.
+    why: '"Prerequisites" that download and run a binary are the most common delivery step in malicious-skill campaigns.'
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:curl|wget|iwr|Invoke-WebRequest|certutil(?:\.exe)?\s+-urlcache)\b[^\n]{0,200}(?:\s-o\s|\s-O\s|--output|-OutFile|\s>\s*\S)[^\n]{0,200}(?:&&|;|\|\|)\s*(?:sudo\s+)?(?:chmod\s+\+x|\./|start\s|Start-Process|open\s|bash\s|sh\s|\.\\)
+        - |-
+          https?://[^\s)>\]"']+\.(?:exe|msi|dmg|pkg|appimage|scr|bat|cmd|vbs|jar|run)\b
+      require:
+        - |-
+          \b(?:run|execute|launch|open|double[- ]click|install|chmod|start)\b
+      window: 3
+    remediation: Do not ask users or agents to download and run binaries. Depend on packages from official registries with pinned versions and verified signatures.
+
+
+  - id: AG-EXEC-003
+    variant: native-binary
+    aliases: [AG-CODE-028]
+    version: 1
+    title: Native binary downloaded or referenced at run time
+    description: Code downloads or references a native executable/library by URL.
+    why: Runtime binaries are unreviewable and unpinned.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Ship reviewed source or depend on a signed, pinned package.
+
+
+  - id: AG-EXEC-004
+    aliases: [AG-SKL-SE-011]
+    version: 1
+    description: A command or script connects out to a remote host and attaches a shell to the connection (bash /dev/tcp, nc -e, mkfifo | sh | nc, socat exec, socket + dup2 + shell, PowerShell TCPClient + iex).
+    why: A reverse shell hands an attacker interactive control of the machine, bypassing inbound firewalls. No legitimate skill needs one.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          [<>]&\s*/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b|\bexec\s+\d+<>\s*/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b|/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b[^\n]{0,20}(?:0>&1|<&\s*\d|>&\s*\d)
+        - |-
+          \b(?:nc|ncat|netcat)(?:\.exe)?\b[^\n]{0,80}\s-(?:e|c)\s+["']?(?:/bin/|/usr/bin/)?(?:(?:ba|z|k|da)?sh|cmd(?:\.exe)?|powershell(?:\.exe)?)\b
+        - |-
+          \bmkfifo\b[^\n]{0,80}\|\s*(?:/bin/)?(?:ba|z|da)?sh\s+-i\b[^\n]{0,80}\|\s*(?:nc|ncat|netcat|openssl\s+s_client|telnet)\b
+        - |-
+          \bsocat\b[^\n]*\b(?:exec|system):[^\n]*\b(?:tcp|ssl|openssl)[46]?(?:-connect)?:|\bsocat\b[^\n]*\b(?:tcp|ssl|openssl)[46]?(?:-connect)?:[^\n]*\b(?:exec|system):
+        - |-
+          \bos\.dup2\s*\(\s*\w+\.fileno\(\)
+        - |-
+          \bperl\b[^\n]*\buse\s+Socket\b[^\n]*\bexec\b
+        - |-
+          \bNew-Object\s+(?:System\.)?Net\.Sockets\.TCPClient\s*\([^\n]*(?:\biex\b|Invoke-Expression)
+      require:
+        # Python/Ruby socket forms: the connection and the shell are in the same few lines.
+        - |-
+          /dev/(?:tcp|udp)/|\b(?:nc|ncat|netcat|socat|perl|TCPClient)\b|\.connect\s*\([^\n]*\)[\s\S]{0,400}?(?:pty\.spawn|subprocess\.(?:call|Popen|run)\s*\(\s*\[?\s*["'](?:/bin/)?(?:ba|z)?sh|os\.exec\w*\s*\(\s*["'](?:/bin/)?(?:ba|z)?sh)|(?:pty\.spawn|subprocess\.(?:call|Popen|run)\s*\(\s*\[?\s*["'](?:/bin/)?(?:ba|z)?sh)[\s\S]{0,400}?\.connect\s*\(
+      unless:
+        - |-
+          (?<![./@\w])(?:detects?|detection|flag(?:s|ged)?|alert|block(?:s|ed)?|example|such as|e\.g\.|for instance|cheat ?sheet|signatures?|patterns?|red[- ]?team|ctf)\b(?!\.\w|/)
+      window: 6
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the reverse shell. If the skill needs remote access, document an authenticated, user-initiated mechanism instead.
+
+
+  - id: AG-EXEC-004
+    variant: mcp-command
+    aliases: [AG-MCP-CFG-025]
+    version: 1
+    title: Server command opens a reverse shell
+    description: The server command connects out to a remote host and attaches a shell to the connection (bash /dev/tcp, nc -e, mkfifo | sh | nc, socat exec, PowerShell TCPClient + iex).
+    why: Launching the "server" hands an attacker interactive control of the machine every time the client starts.
+    confidence: high
+    applies_to: [client_config]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [command, decoded]
+      patterns:
+        - |-
+          [<>]&\s*/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b|\bexec\s+\d+<>\s*/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b|/dev/(?:tcp|udp)/[\w.-]+/\d{1,5}\b[^\n]{0,20}(?:0>&1|<&\s*\d|>&\s*\d)
+        - |-
+          \b(?:nc|ncat|netcat)(?:\.exe)?\b[^\n]{0,80}\s-(?:e|c)\s+["']?(?:/bin/|/usr/bin/)?(?:(?:ba|z|k|da)?sh|cmd(?:\.exe)?|powershell(?:\.exe)?)\b
+        - |-
+          \bmkfifo\b[^\n]{0,80}\|\s*(?:/bin/)?(?:ba|z|da)?sh\s+-i\b[^\n]{0,80}\|\s*(?:nc|ncat|netcat|openssl\s+s_client|telnet)\b
+        - |-
+          \bsocat\b[^\n]*\b(?:exec|system):[^\n]*\b(?:tcp|ssl|openssl)[46]?(?:-connect)?:|\bsocat\b[^\n]*\b(?:tcp|ssl|openssl)[46]?(?:-connect)?:[^\n]*\b(?:exec|system):
+        - |-
+          \bos\.dup2\s*\([^\n]*\.connect\s*\(|\.connect\s*\([^\n]*\bos\.dup2\s*\(
+        - |-
+          \bNew-Object\s+(?:System\.)?Net\.Sockets\.TCPClient\s*\([^\n]*(?:\biex\b|Invoke-Expression)
+      window: 0
+    remediation: Remove the server entry and investigate how it got there; rotate credentials reachable from this machine.
+
+
+  - id: AG-EXEC-005
+    aliases: [AG-SKL-EXEC-003]
+    version: 1
+    description: A dynamic-injection or hook command downloads content or reads credential files.
+    why: This runs automatically when the skill loads, so it is equivalent to executing remote code or stealing credentials on use.
+    confidence: high
+    applies_to: [skill_md, instruction_md]
+    aivss: {threat: poc}
+    match: {type: analyzer, analyzer: skill.exec}
+    remediation: Remove network access and credential reads from injected and hook commands.
+
+  - id: AG-EXEC-005
+    variant: any-command
+    aliases: [AG-SKL-EXEC-001]
+    lane: evidence
+    version: 1
+    title: Dynamic context injection runs a shell command at invocation
+    description: The skill uses Claude Code dynamic context injection (!`cmd` or a ```! block), which runs a shell command before the model sees the skill.
+    why: These commands run as part of loading the skill, outside the model's normal tool-approval flow; the command itself is analyzed separately.
+    severity: medium
+    confidence: high
+    applies_to: [skill_md, instruction_md]
+    match: {type: analyzer, analyzer: skill.exec}
+    remediation: Keep injected commands read-only and local (e.g. git status). Never fetch from the network or read secrets in them.
+    references: ["https://code.claude.com/docs/en/skills"]
+
+
+  - id: AG-EXEC-006
+    variant: install-hook
+    aliases: [AG-CODE-024]
+    version: 1
+    title: Install-time hook
+    description: npm lifecycle scripts (preinstall/install/postinstall/prepare) or custom setup.py commands run code at install time. Network or inline-code hooks escalate to high.
+    why: Install hooks run before any review of the running server and are a common supply-chain vector.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove install hooks, or keep them to local build steps with no network access.
+
+
+  - id: AG-EXEC-014
+    aliases: [AG-SKL-SE-007]
+    version: 2
+    description: Removes macOS quarantine, disables Gatekeeper/SIP, adds Microsoft Defender exclusions or disables real-time protection. Removing quarantine from a binary under a package manager's prefix (`$(brew --prefix)`, /opt/homebrew, /usr/local/Cellar, linuxbrew) is reported at MEDIUM instead of CRITICAL.
+    why: Disabling OS protections is a hallmark of malware installers, not of agent skills. Clearing quarantine on a package-manager-installed binary (a vendor tap shipping an unnotarized CLI) still skips Gatekeeper, so it is reported, but it is not the download-and-unquarantine lure that CRITICAL is reserved for; the trust decision there is the tap itself.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bxattr\s+(?:-[a-z]*d[a-z]*\s+)?(?:-r\s+)?com\.apple\.quarantine\b|\bxattr\s+-[a-z]*c[a-z]*r?\s+\S
+        - |-
+          \bspctl\s+--(?:master|global)-disable\b|\bcsrutil\s+disable\b
+        - |-
+          \bdefaults\s+write\s+com\.apple\.LaunchServices\s+LSQuarantine\s+-bool\s+(?:NO|false)\b
+        - |-
+          \bAdd-MpPreference\b[^\n]*-Exclusion(?:Path|Process|Extension|IpAddress)\b
+        - |-
+          \bSet-MpPreference\b[^\n]*-Disable(?:RealtimeMonitoring|IOAVProtection|BehaviorMonitoring|ScriptScanning)\s+\$?(?:true|1)\b
+      window: 0
+      downgrade:
+        - severity: medium
+          patterns:
+            - |-
+              \bxattr\s+(?:-[a-z]+\s+)*(?:com\.apple\.quarantine\s+)?["']?(?:\$\(brew\s+--prefix[^)\n]*\)|/opt/homebrew/|/usr/local/(?:Cellar|Caskroom|opt)/|/home/linuxbrew/\.linuxbrew/)
+    remediation: Remove steps that weaken OS protections. Distribute signed, notarized software instead.
+
+
+  - id: AG-EXEC-016
+    version: 1
+    description: A file in a plugin's `bin/` directory has the name of a common command (`git`, `npm`, `python`, `curl`, …).
+    why: Claude Code adds a plugin's `bin/` to the Bash tool's `PATH`. A file named like a common command can run in place of the real program every time the agent uses it.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Do not install the plugin. Executables in `bin/` should have names of their own.
+
+  - id: AG-EXEC-017
+    version: 1
+    description: A component that is loaded into the agent's own process - a workflow script, a mod, or a native plugin's entry file - runs commands or makes network requests.
+    why: In-process code is not sandboxed and is not shown for approval. What it executes or sends happens with the agent's full access.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the file line by line before enabling the plugin, or remove the component.
+
+  - id: AG-EXEC-018
+    version: 1
+    description: An LSP server or monitor entry launches a shell command string, inline code, or a command that downloads or decodes content, instead of a server program.
+    why: These entries start with the session and stay running. One that is really a shell one-liner is a background process under a harmless label.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Do not install the plugin. An LSP or monitor entry should name a program and its arguments.
+
+  - id: AG-EXEC-019
+    version: 1
+    description: A helper-command setting (`headersHelper`, a marketplace `command` source, an auth or API-key helper) holds a shell pipeline, inline code, or a command that fetches or decodes content.
+    why: Helper commands run automatically and repeatedly, in the path of credentials. A helper should be one reviewed program, not arbitrary shell.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Replace the helper with a single program you have reviewed, or supply the value another way.
+
+# ---- added: exec_regex ----
+  - id: AG-EXEC-008
+    version: 1
+    description: Instructions or code fetch and run a package at run time with no version - `npx -y pkg`, `uvx pkg`, `pipx run pkg`, `pnpm dlx pkg`, or `pip install` / `npm install` started from a script.
+    why: Whatever the registry serves under that name at that moment is run on the user's machine. A later release, or a takeover of the name, changes what the skill does without the skill changing.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bnpx\s+(?:(?:-q|--quiet)\s+)*(?:-y|--yes)\s+(?:(?:-q|--quiet)\s+)*(?!-)(?:@[\w.-]+/)?[\w.-]+(?!@\d)(?![\w.@/-])
+        # `uvx <package>` where a command starts (start of a line, after a prompt, a quote or a shell
+        # operator), so that "for uvx installations" in a sentence is not read as a command.
+        - |-
+          (?:(?<=^[ \t]*(?:[$>#][ \t]+)?)|(?<=[`"'|;&(][ \t]*))uvx\s+(?!--from\b)(?!-)[\w.-]+(?!@\d|==)(?![\w.@=-])
+        - |-
+          \b(?:pipx\s+run|bunx|pnpm\s+dlx|yarn\s+dlx)\s+(?!-)(?:@[\w.-]+/)?[\w.-]+(?!@\d|==)(?![\w.@/=-])
+        # Not an install of a file that ships with the package (a wheel or archive on disk).
+        - |-
+          (?:subprocess\.\w+|os\.system|os\.popen|execSync|spawnSync|child_process\.exec\w*)\([^\n]*\b(?:pip3?\s+install|-m\s+pip\s+install|npm\s+(?:i|install)\s+(?:-g\s+)?[@\w]|gem\s+install|cargo\s+install)\b(?![^\n]*(?:==|@\d|-r\s|requirements|\.whl\b|\.tar\.gz\b|\.tgz\b))
+        - |-
+          ["']install["']\s*,\s*(?:["'](?!-)[A-Za-z0-9_.\-\[\]]+["']\s*,\s*){0,8}["'](?!-)[A-Za-z0-9_.\-\[\]]+(?<!\.whl|\.gz|\.tgz|\.txt)["']\s*[\])]
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    fix_action: pin-version
+    remediation: Name an exact version (`npx -y pkg@1.2.3`, `uvx pkg==1.2.3`), or list the dependency in a lockfile that ships with the package.
+
+  - id: AG-EXEC-008
+    variant: command-variable
+    version: 1
+    title: Install command built in a variable and run
+    description: Code stores an install command that names a package without a version (`cmd = "pip install pkg"`) and passes that variable to a process runner on another line.
+    why: The package is fetched and installed when the code runs, so what the registry serves under that name at that moment decides what executes. Splitting the command from the call hides it from a reader looking for `subprocess.run("pip install ...")`.
+    match: {type: analyzer, analyzer: code}
+    remediation: Declare the dependency in the package manifest with an exact version and remove the run-time install.
+
+  - id: AG-EXEC-009
+    version: 1
+    description: A command or code loads a library into other processes or writes into their memory - `LD_PRELOAD`, `DYLD_INSERT_LIBRARIES`, `/etc/ld.so.preload`, `ptrace` attach, `WriteProcessMemory`, `CreateRemoteThread`, interpreter preload variables.
+    why: Code injected this way runs inside another program with that program's access, and outside anything the agent's permission prompts cover.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:LD_PRELOAD|LD_AUDIT|DYLD_INSERT_LIBRARIES)\s*=\s*["']?[^\s"']
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?)\s*/etc/ld\.so\.preload\b
+        - |-
+          \bptrace\(\s*PTRACE_(?:ATTACH|SEIZE|POKETEXT|POKEDATA)\b|\bprocess_vm_writev\b|\b(?:WriteProcessMemory|CreateRemoteThread(?:Ex)?|VirtualAllocEx|NtCreateThreadEx|QueueUserAPC|RtlCreateUserThread)\b
+        - |-
+          \b(?:PYTHONSTARTUP|PERL5OPT)\s*=\s*\S|\bRUBYOPT\s*=\s*["']?-r|\bJAVA_TOOL_OPTIONS\s*=\s*["']?-javaagent|\bNODE_OPTIONS\s*=\s*["']?[^\n"']*--(?:require|import)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that injects code into other processes.
+
+  - id: AG-EXEC-010
+    version: 1
+    description: PowerShell started with an encoded command, with the execution policy bypassed, or with a hidden window; or a base64 string decoded and passed to `Invoke-Expression`.
+    why: These options hide what is run and switch off the checks PowerShell applies to scripts. They are the usual wrapper around a downloaded payload.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:e|ec|enc|enco|encod|encode|encoded|encodedc\w*)\s+["']?[A-Za-z0-9+/=]{16,}
+        - |-
+          \b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:ep|ex|exec|executionpolicy)\s+(?:bypass|unrestricted)\b
+        - |-
+          \b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:w|win|window|windowstyle)\s+(?:hidden|h)\b
+        - |-
+          \bSet-ExecutionPolicy\s+(?:-ExecutionPolicy\s+)?(?:Bypass|Unrestricted)\b
+        - |-
+          \b(?:iex|Invoke-Expression)\b[^\n]{0,80}\bFromBase64String\b|\bFromBase64String\b[^\n]{0,120}\|\s*(?:iex|Invoke-Expression)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+      # `-ExecutionPolicy Bypass -File <script>` with nothing else: the usual way to start an unsigned
+      # script that is shipped as a readable file (Windows refuses it otherwise). The script itself is
+      # scanned. An encoded command, a hidden window or a download on the same line is unchanged.
+      downgrade:
+        - severity: low
+          confidence: low
+          window: 0
+          patterns:
+            - |-
+              ^(?![^\n]*(?:\s-(?:e|ec|enc\w*)\s+["']?[A-Za-z0-9+/=]{16,}|\s-(?:w|win\w*)\s+(?:hidden|h)\b|https?://|\\\\|\b(?:iex|iwr|irm|Invoke-Expression|Invoke-WebRequest|Invoke-RestMethod|DownloadString|DownloadFile|FromBase64String)\b|%TEMP%|\$env:TEMP|AppData))[^\n]*\b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:ep|ex|exec|executionpolicy)\s+(?:bypass|unrestricted)\s+(?:-(?:NoProfile|NoLogo|NonInteractive|nop|noni)\s+)*-File\s+["']?[^\s"'|;&]+\.ps1\b
+    remediation: Remove it. Ship the script as a readable file and run it without bypass options.
+
+  - id: AG-EXEC-011
+    version: 1
+    description: A built-in system program is used to download, decode or run code - `certutil -urlcache` / `-decode`, `mshta` with a URL or script, `regsvr32 /i:http`, `rundll32` with script or `comsvcs.dll`, `bitsadmin /transfer`, `wmic process call create`, `msiexec /i http…`, `osascript` running shell or asking for a password.
+    why: These programs are trusted by the system and by security tools, so attackers use them to fetch and start a payload without bringing their own tool.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bcertutil(?:\.exe)?\s+[^\n]*-(?:urlcache|decode|decodehex)\b
+        - |-
+          \bmshta(?:\.exe)?\s+["']?(?:https?://|vbscript:|javascript:)
+        - |-
+          \bregsvr32(?:\.exe)?\s+[^\n]*(?:/i:https?://|scrobj\.dll)|\brundll32(?:\.exe)?\s+[^\n]*(?:javascript:|url\.dll,|comsvcs\.dll|shell32\.dll,\s*ShellExec_RunDLL)
+        - |-
+          \bbitsadmin(?:\.exe)?\s+[^\n]*/transfer\b|\bwmic\s+[^\n]*process\s+call\s+create\b|\bmsiexec(?:\.exe)?\s+[^\n]*/i\s+["']?https?://
+        - |-
+          \bosascript\s+-e\s+["'][^\n]*(?:do\s+shell\s+script|hidden\s+answer|display\s+dialog[^\n]*password|keystroke)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Use the package manager or a reviewed script instead of system binaries that fetch or decode code.
+
+  - id: AG-EXEC-012
+    version: 1
+    description: A command tries to gain higher privileges - a password piped to `sudo -S`, a setuid bit, a sudoers entry or `NOPASSWD`, adding a user to an administrative group, a UAC bypass registry key, `pkexec`, `setcap`, `Start-Process -Verb RunAs`.
+    why: With root or administrator rights, everything else the component does is no longer limited to the user's own files and settings.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \|\s*sudo\s+-S\b|\bsudo\s+-S\s+\S
+        - |-
+          \bchmod\s+(?:[ugo]*[ug][ugo]*\+s|[0-7]?[4267][0-7]{3})\s+\S
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?)\s*/etc/sudoers(?:\.d/\S+)?|\bNOPASSWD\s*:\s*ALL\b
+        - |-
+          \busermod\s+[^\n]*-a?G\s+(?:sudo|wheel|admin|root|docker)\b|\bgpasswd\s+-a\s+\S+\s+(?:sudo|wheel|docker)\b|\bnet\s+localgroup\s+administrators\s+\S+\s+/add\b
+        - |-
+          HKCU\\Software\\Classes\\ms-settings\\shell\\open\\command|\b(?:fodhelper|eventvwr|sdclt|computerdefaults)(?:\.exe)?\b[^\n]{0,80}\b(?:bypass|uac|ms-settings)\b
+        - |-
+          \bpkexec\s+\S|\bsetcap\s+cap_\w+[^\n]*\+ep\b|\bStart-Process\b[^\n]*-Verb\s+RunAs\b|\b(?:useradd|adduser)\s+[^\n]*-u\s*0\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run)\b
+      window: 0
+    remediation: Remove the elevation. If one step truly needs it, have the user run that step by hand.
+
+  - id: AG-EXEC-013
+    version: 1
+    description: A command reaches out of a container or sandbox - `nsenter -t 1`, `docker run --privileged` or with the host root or Docker socket mounted, `chroot /host`, writes to `core_pattern` or a cgroup `release_agent`, mounting host devices, `dangerouslyDisableSandbox`.
+    why: The container or sandbox is what limits the damage of a bad command. Code that leaves it acts on the host.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bnsenter\s+[^\n]*(?:-t\s*1\b|--target[=\s]+1\b)
+        - |-
+          \bdocker\s+run\s+[^\n]*(?:--privileged\b|--pid[=\s]host\b|-v\s+/:/\S*|--mount\s+[^\n]*source=/,|-v\s+/var/run/docker\.sock)
+        - |-
+          \bchroot\s+/(?:host|mnt/host|proc/1/root)\b|/proc/1/root/|/proc/sys/kernel/core_pattern\b|\brelease_agent\b
+        - |-
+          \bmount\s+[^\n]*(?:-t\s+cgroup\b|/dev/(?:sd|nvme|vd)\w+\s+/mnt)
+        - |-
+          \bdangerouslyDisableSandbox\b["']?\s*[:=]\s*true\b|\bsandbox-exec\b[^\n]*\(allow\s+default\)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run)\b
+      window: 0
+    remediation: Remove it. Work inside the container or sandbox the agent was given.
+
+# ---- added: shipped_exec ----
+  - id: AG-EXEC-007
+    version: 1
+    description: "Instructions, a configured command (hook, task, lifecycle step) or a script run an executable file that is shipped in the package: an ELF, Windows PE, Mach-O or WebAssembly file."
+    why: A compiled file cannot be reviewed the way a script can. The scanner and the reviewer see what starts it and not what it does, which is why droppers ship their payload this way.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Ask for the source and a reproducible build, or replace the executable with a script. Run it only in a sandbox until then.
+
+  - id: AG-EXEC-015
+    version: 1
+    description: "A Gemini CLI custom command (`.gemini/commands/*.toml`) whose prompt template runs a risky shell block through `!{…}` (network transfer, pipe to a shell, decoding, deletion, credential paths), or injects a file through `@{…}` that lies outside the project, is a credential file, or is chosen by the command's arguments."
+    why: These blocks run when the command is used and their output goes straight into the prompt. A shell block is code execution under the user's account; a file block can pull any readable file into the model's context.
+    match: {type: analyzer, analyzer: shipped}
+    remediation: Remove the block, or reduce it to a fixed read-only command and a fixed file inside the project.
+    references: ["https://geminicli.com/docs/cli/custom-commands"]

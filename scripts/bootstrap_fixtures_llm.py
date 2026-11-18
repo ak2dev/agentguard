@@ -41,15 +41,15 @@ MANIP = {"manipulation": True, "techniques": ["concealment"], "confidence": "hig
 NO_MANIP = {**MANIP, "manipulation": False, "techniques": [], "explanation": "Ordinary task instructions."}
 
 CASES = {
-    ("AG-LLM-001", "positive", "judge-mismatch"): [result("mismatch", CID, "csv-tool/scripts/stats.py", MISMATCH)],
-    ("AG-LLM-001", "negative", "judge-consistent"): [result("mismatch", CID, "csv-tool/scripts/stats.py", NO_MISMATCH)],
-    ("AG-LLM-002", "positive", "judge-manipulation"): [result("manipulation", CID, "csv-tool/SKILL.md", MANIP)],
-    ("AG-LLM-002", "negative", "judge-clean"): [result("manipulation", CID, "csv-tool/SKILL.md", NO_MANIP)],
+    ("AG-META-004/judge", "positive", "judge-mismatch"): [result("mismatch", CID, "csv-tool/scripts/stats.py", MISMATCH)],
+    ("AG-META-004/judge", "negative", "judge-consistent"): [result("mismatch", CID, "csv-tool/scripts/stats.py", NO_MISMATCH)],
+    ("AG-INJ-012/judge", "positive", "judge-manipulation"): [result("manipulation", CID, "csv-tool/SKILL.md", MANIP)],
+    ("AG-INJ-012/judge", "negative", "judge-clean"): [result("manipulation", CID, "csv-tool/SKILL.md", NO_MANIP)],
 }
 
 
 def main() -> None:
-    for r in ("AG-LLM-001", "AG-LLM-002"):
+    for r in ("AG-META-004/judge", "AG-INJ-012/judge"):
         shutil.rmtree(FIX / r, ignore_errors=True)
     for (rule, side, case), results in CASES.items():
         base = FIX / rule / side / case

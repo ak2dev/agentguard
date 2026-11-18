@@ -17,3 +17,14 @@ site/public/engine/
 site/src/data/engine.json
 site/test-results/
 site/playwright-report/
+
+# Rule fixtures and the benchmark corpus are data: commit every file in them, whatever its name
+# (a fixture may need a dist/ folder or a .pyc file to show what a rule catches).
+!fixtures/**/dist/
+!fixtures/**/build/
+!fixtures/**/__pycache__/
+!fixtures/**/*.pyc
+!bench/corpus/**/dist/
+!bench/corpus/**/build/
+!bench/corpus/**/__pycache__/
+!bench/corpus/**/*.pyc

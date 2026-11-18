@@ -1,0 +1,37 @@
+{
+  "remote_probes": [
+    {
+      "server_name": "acme",
+      "url": "https://mcp.acme.example.invalid/mcp",
+      "config_path": "claude_desktop_config.json",
+      "status_unauth": 200,
+      "tls_version": "TLSv1.3",
+      "protocol_version": "2026-07-28",
+      "unauthenticated_list": true,
+      "tools": [
+        {
+          "name": "list_reports",
+          "description": "list_reports tool.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "readOnlyHint": true
+          }
+        },
+        {
+          "name": "get_report",
+          "description": "get_report tool.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "readOnlyHint": true
+          }
+        }
+      ]
+    }
+  ]
+}

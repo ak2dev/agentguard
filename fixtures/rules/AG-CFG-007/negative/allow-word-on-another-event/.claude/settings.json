@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'allow notifications from the build'"
+          }
+        ]
+      }
+    ]
+  }
+}

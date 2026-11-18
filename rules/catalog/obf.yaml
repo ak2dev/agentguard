@@ -1,0 +1,39 @@
+family: OBF
+name: Hidden and obfuscated content
+about: >-
+  All text-bearing files. Decoded content is re-scanned by every other family and reported at the original line.
+defaults: {category: malice, lane: evidence, confidence: high, engine: text-integrity}
+mappings:
+  owasp-ast-1.0: [AST04, AST08]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI01]
+  owasp-llm-2026: ["LLM01:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: [CWE-506]
+  skilltrustbench: [T01, T04]
+rules:
+  - [AG-OBF-001, C, A, "Unicode tag characters (U+E0000–E007F)", {lane: block}]
+  - [AG-OBF-002, H, A, "Zero-width characters inside words or commands", {confidence: medium}]
+  - [AG-OBF-003, H, A, "Bidirectional override or isolate controls", {lane: block, mappings: {cwe: [CWE-451]}}]
+  - [AG-OBF-004, H, A, "Confusable character in a command, URL, package or tool name", {lane: block, mappings: {cwe: [CWE-1007]}}]
+  - [AG-OBF-005, M, G, "Mixed-script identifier", {confidence: medium, mappings: {cwe: [CWE-1007]}}]
+  - [AG-OBF-006, H, A, "Variation selectors or invisible separators carrying data", {lane: block}]
+  - [AG-OBF-007, M, A, "HTML comment containing instructions", {confidence: medium}]
+  - [AG-OBF-008, M, A, "Hidden Markdown or HTML (link titles, unused reference links, collapsed blocks, zero-size or white text)", {confidence: medium}]
+  - [AG-OBF-009, M, A, "ANSI or terminal escape sequences"]
+  - [AG-OBF-010, H, X, "Encoded blob (base64, hex, base32, URL-encoding) that decodes to instructions or code", {lane: block}]
+  - [AG-OBF-011, H, X, "Two or more nested encoding layers", {lane: block}]
+  - [AG-OBF-012, M, G, "High-entropy blob with no visible purpose", {lane: hunt, confidence: low}]
+  - [AG-OBF-013, C, X, "Decoder stub next to an opaque data file (self-extracting pattern)", {lane: block}]
+  - [AG-OBF-014, H, X, "Sensitive token assembled from fragments (`chr()`, `getattr`, string concatenation, variable splicing)", {confidence: medium, engine: code}]
+  - [AG-OBF-015, M, G, "Alias or variable indirection used to disguise a command", {lane: hunt, confidence: medium, engine: code}]
+  - [AG-OBF-016, M, G, "One statement split across lines or files", {lane: hunt, confidence: low, engine: code}]
+  - [AG-OBF-017, M, A, "Content pushed far below or to the right of the visible area", {confidence: medium}]
+  - [AG-OBF-018, H, X, "Compressed or encrypted archive embedded in a text or data file", {confidence: medium}]
+  - [AG-OBF-019, M, G, "Minified or packed script in a skill or plugin", {lane: hunt, confidence: medium, engine: code}]
+  - [AG-OBF-020, H, X, "Compiled bytecode without matching source, or source that does not match", {lane: block}]
+  - [AG-OBF-021, H, X, "File content does not match its extension, or polyglot file", {lane: block}]
+  - [AG-OBF-022, H, X, "Data appended after a file's end marker", {lane: block}]
+  - [AG-OBF-023, M, A, "Text whose meaning changes under Unicode normalisation", {confidence: medium}]
+  - [AG-OBF-024, M, A, "Instructions in YAML comments or unused frontmatter keys", {confidence: medium}]
+  - [AG-OBF-025, H, X, "Encrypted payload with the key supplied through the instructions", {lane: block}]

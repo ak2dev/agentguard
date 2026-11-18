@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "repo-search": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "rg --json \"${input:query}\" ${workspaceFolder} | node ./search-server.js"
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Run the tests before committing.'"
+          }
+        ]
+      }
+    ]
+  }
+}

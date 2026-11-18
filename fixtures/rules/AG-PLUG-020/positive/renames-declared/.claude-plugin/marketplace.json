@@ -1,0 +1,15 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt2",
+      "source": "./plugins/fmt2"
+    }
+  ],
+  "renames": {
+    "fmt": "fmt2"
+  }
+}

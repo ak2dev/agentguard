@@ -1,5 +1,5 @@
 """Rules over opt-in network results (pure: they read recorded data from
-ScanOptions, never the network). AG-AUTH-* and AG-SC-020..023."""
+ScanOptions, never the network): remote-endpoint posture (AG-CONN-*) and supply-chain facts (AG-SUPPLY-*)."""
 
 from __future__ import annotations
 
@@ -31,7 +31,12 @@ class AuthAnalyzer:
     id: ClassVar[str] = "auth"
     requires: ClassVar[frozenset[str]] = frozenset({"network"})
     network_feature: ClassVar[str] = "auth_checks"
-    rules: ClassVar[tuple[str, ...]] = tuple(f"AG-AUTH-{i:03d}" for i in range(1, 12))
+    rules: ClassVar[tuple[str, ...]] = (
+        "AG-CONN-001", "AG-CONN-002/answers-unauthenticated", "AG-CONN-003/prm-missing",
+        "AG-CONN-003/prm-resource-mismatch", "AG-CONN-003/as-metadata", "AG-CONN-003/metadata-redirect",
+        "AG-CONN-004/no-pkce", "AG-CONN-004/no-iss", "AG-CONN-004/dcr-only", "AG-CONN-004/no-resource-indicators",
+        "AG-CONN-016",
+    )
 
     def run(self, ctx: Context) -> None:
         for probe in sorted(ctx.options.remote_probes, key=lambda p: (p.server_name, p.url)):
@@ -45,50 +50,50 @@ class AuthAnalyzer:
 
             if not probe.reachable:
                 if probe.tls_error:
-                    emit("AG-AUTH-009", f"TLS verification failed for '{probe.server_name}': {probe.tls_error[:160]}")
+                    emit("AG-CONN-001", f"TLS verification failed for '{probe.server_name}': {probe.tls_error[:160]}")
                 continue
             if probe.tls_version and probe.tls_version in ("TLSv1", "TLSv1.1", "SSLv3"):
-                emit("AG-AUTH-009", f"'{probe.server_name}' negotiated {probe.tls_version}.", probe.tls_version)
+                emit("AG-CONN-001", f"'{probe.server_name}' negotiated {probe.tls_version}.", probe.tls_version)
             if probe.unauthenticated_list:
-                emit("AG-AUTH-001", f"'{probe.server_name}' answered discovery/listing without authentication "
+                emit("AG-CONN-002/answers-unauthenticated", f"'{probe.server_name}' answered discovery/listing without authentication "
                                     f"(protocol {probe.protocol_version or 'unknown'}).")
             ver = probe.protocol_version
             if ver and ver not in CURRENT_OK:
-                emit("AG-AUTH-010", f"'{probe.server_name}' advertises protocol version {ver}"
+                emit("AG-CONN-016", f"'{probe.server_name}' advertises protocol version {ver}"
                                     + (" (not a recognized version)." if ver not in KNOWN_VERSIONS else " (older than 2025-06-18)."), ver)
             if comp is not None and ver:
                 comp.metadata["protocol_version"] = ver
             for hop in probe.insecure_redirects[:3]:
-                emit("AG-AUTH-011", f"Authorization metadata for '{probe.server_name}' redirected to {hop}.", hop)
+                emit("AG-CONN-003/metadata-redirect", f"Authorization metadata for '{probe.server_name}' redirected to {hop}.", hop)
             needs_auth = probe.status_unauth in (401, 403)
             if needs_auth and probe.prm is None:
-                emit("AG-AUTH-002", f"'{probe.server_name}' requires authorization but publishes no RFC 9728 Protected Resource Metadata.",
+                emit("AG-CONN-003/prm-missing", f"'{probe.server_name}' requires authorization but publishes no RFC 9728 Protected Resource Metadata.",
                      probe.www_authenticate or "")
             if probe.prm is not None:
                 res = probe.prm.get("resource")
                 if not res:
-                    emit("AG-AUTH-008", f"Protected Resource Metadata for '{probe.server_name}' has no 'resource' identifier "
+                    emit("AG-CONN-004/no-resource-indicators", f"Protected Resource Metadata for '{probe.server_name}' has no 'resource' identifier "
                                         "(clients cannot bind tokens to this audience).")
                 elif _norm_resource(str(res)) != _norm_resource(probe.url) and not _norm_resource(probe.url).startswith(_norm_resource(str(res))):
-                    emit("AG-AUTH-003", f"Protected Resource Metadata 'resource' ({res}) does not match the server URL ({probe.url}).", str(res))
+                    emit("AG-CONN-003/prm-resource-mismatch", f"Protected Resource Metadata 'resource' ({res}) does not match the server URL ({probe.url}).", str(res))
                 servers = probe.prm.get("authorization_servers") or []
                 if not servers:
-                    emit("AG-AUTH-004", f"Protected Resource Metadata for '{probe.server_name}' lists no authorization servers.")
+                    emit("AG-CONN-003/as-metadata", f"Protected Resource Metadata for '{probe.server_name}' lists no authorization servers.")
                 for issuer in servers:
                     md = probe.as_metadata.get(issuer)
                     if md is None:
-                        emit("AG-AUTH-004", f"Authorization server metadata for {issuer} could not be retrieved.", issuer)
+                        emit("AG-CONN-003/as-metadata", f"Authorization server metadata for {issuer} could not be retrieved.", issuer)
                         continue
                     if str(md.get("issuer", "")).rstrip("/") != str(issuer).rstrip("/"):
-                        emit("AG-AUTH-004", f"Authorization server issuer mismatch: metadata says {md.get('issuer')!r}, expected {issuer!r}.", issuer)
+                        emit("AG-CONN-003/as-metadata", f"Authorization server issuer mismatch: metadata says {md.get('issuer')!r}, expected {issuer!r}.", issuer)
                     methods = md.get("code_challenge_methods_supported") or []
                     if "S256" not in methods:
-                        emit("AG-AUTH-005", f"Authorization server {issuer} does not advertise PKCE S256 "
+                        emit("AG-CONN-004/no-pkce", f"Authorization server {issuer} does not advertise PKCE S256 "
                                             f"(code_challenge_methods_supported={methods}).", issuer)
                     if md.get("authorization_response_iss_parameter_supported") is not True:
-                        emit("AG-AUTH-006", f"Authorization server {issuer} does not advertise RFC 9207 'iss' in authorization responses.", issuer)
+                        emit("AG-CONN-004/no-iss", f"Authorization server {issuer} does not advertise RFC 9207 'iss' in authorization responses.", issuer)
                     if md.get("registration_endpoint") and not md.get("client_id_metadata_document_supported"):
-                        emit("AG-AUTH-007", f"Authorization server {issuer} offers only Dynamic Client Registration "
+                        emit("AG-CONN-004/dcr-only", f"Authorization server {issuer} offers only Dynamic Client Registration "
                                             "(deprecated in MCP 2026-07-28) and no Client ID Metadata Documents.", issuer)
 
 
@@ -112,7 +117,7 @@ class _FactsAnalyzer:
 class ProvenanceAnalyzer(_FactsAnalyzer):
     id: ClassVar[str] = "supply.provenance"
     network_feature: ClassVar[str] = "provenance"
-    rules: ClassVar[tuple[str, ...]] = ("AG-SC-020", "AG-SC-021")
+    rules: ClassVar[tuple[str, ...]] = ("AG-SUPPLY-013", "AG-SUPPLY-014")
 
     def run(self, ctx: Context) -> None:
         for f in ctx.options.package_facts:
@@ -120,17 +125,17 @@ class ProvenanceAnalyzer(_FactsAnalyzer):
             span = comp.server.config_span if comp and comp.server else Span(path=f"{f.ecosystem}:{f.name}")
             cid = comp.id if comp else []
             if f.provenance_mismatch:
-                ctx.emit("AG-SC-021", component_ids=cid, span=span, snippet=f"{f.name}@{f.version}", match=f"{f.name}@{f.version}",
+                ctx.emit("AG-SUPPLY-014", component_ids=cid, span=span, snippet=f"{f.name}@{f.version}", match=f"{f.name}@{f.version}",
                          kind=EvidenceKind.intel, message=f"{f.ecosystem} package {f.name}@{f.version}: {f.provenance_detail}.")
             elif f.provenance == "absent":
-                ctx.emit("AG-SC-020", component_ids=cid, span=span, snippet=f"{f.name}@{f.version}", match=f"{f.name}@{f.version}",
+                ctx.emit("AG-SUPPLY-013", component_ids=cid, span=span, snippet=f"{f.name}@{f.version}", match=f"{f.name}@{f.version}",
                          kind=EvidenceKind.intel, message=f"{f.ecosystem} package {f.name}@{f.version} has no provenance attestation.")
 
 
 class OsvAnalyzer(_FactsAnalyzer):
     id: ClassVar[str] = "supply.osv"
     network_feature: ClassVar[str] = "osv"
-    rules: ClassVar[tuple[str, ...]] = ("AG-SC-022",)
+    rules: ClassVar[tuple[str, ...]] = ("AG-SUPPLY-001",)
     _SEV = {"critical": Severity.critical, "high": Severity.high, "medium": Severity.medium, "low": Severity.low}
 
     def run(self, ctx: Context) -> None:
@@ -139,7 +144,7 @@ class OsvAnalyzer(_FactsAnalyzer):
             span = comp.server.config_span if comp and comp.server else Span(path=f"{f.ecosystem}:{f.name}")
             for v in f.vulns:
                 sev = self._SEV.get(v.severity, Severity.medium)
-                ctx.emit("AG-SC-022", component_ids=comp.id if comp else [], span=span, snippet=f"{f.name}@{f.version}: {v.id}",
+                ctx.emit("AG-SUPPLY-001", component_ids=comp.id if comp else [], span=span, snippet=f"{f.name}@{f.version}: {v.id}",
                          match=f"{f.name}@{f.version}:{v.id}", kind=EvidenceKind.intel, severity=sev,
                          confidence=Confidence.high if v.severity != "unknown" else Confidence.medium,
                          message=f"{f.name}@{f.version} is affected by {v.id}" + (f": {v.summary}" if v.summary else "."))
@@ -148,7 +153,7 @@ class OsvAnalyzer(_FactsAnalyzer):
 class PackageAgeAnalyzer(_FactsAnalyzer):
     id: ClassVar[str] = "supply.age"
     network_feature: ClassVar[str] = "registry"
-    rules: ClassVar[tuple[str, ...]] = ("AG-SC-023",)
+    rules: ClassVar[tuple[str, ...]] = ("AG-SUPPLY-015/new-package",)
     THRESHOLD_DAYS = 30
 
     def run(self, ctx: Context) -> None:
@@ -160,7 +165,7 @@ class PackageAgeAnalyzer(_FactsAnalyzer):
             if age < self.THRESHOLD_DAYS:
                 comp = self._component_for(ctx, f.ecosystem, f.name)
                 span = comp.server.config_span if comp and comp.server else Span(path=f"{f.ecosystem}:{f.name}")
-                ctx.emit("AG-SC-023", component_ids=comp.id if comp else [], span=span, snippet=f"{f.name} created {f.created}",
+                ctx.emit("AG-SUPPLY-015/new-package", component_ids=comp.id if comp else [], span=span, snippet=f"{f.name} created {f.created}",
                          match=f"{f.name}:age", kind=EvidenceKind.intel,
                          message=f"{f.ecosystem} package {f.name} was first published {age} day(s) ago ({f.created}).")
 
@@ -175,8 +180,8 @@ class HijackableAnalyzer:
     id: ClassVar[str] = "supply.hijack"
     requires: ClassVar[frozenset[str]] = frozenset({"network"})
     network_feature: ClassVar[str] = "hijackable"
-    rules: ClassVar[tuple[str, ...]] = ("AG-SC-026", "AG-SC-027", "AG-SC-028")
-    _RULE = {"github_owner": "AG-SC-026", "npm": "AG-SC-027", "pypi": "AG-SC-027", "domain": "AG-SC-028"}
+    rules: ClassVar[tuple[str, ...]] = ("AG-SUPPLY-015/repojacking", "AG-SUPPLY-004", "AG-SUPPLY-012/unregistered")
+    _RULE = {"github_owner": "AG-SUPPLY-015/repojacking", "npm": "AG-SUPPLY-004", "pypi": "AG-SUPPLY-004", "domain": "AG-SUPPLY-012/unregistered"}
     _CLAIMABLE = {"missing", "unpublished", "unregistered", "expired", "unclaimed"}
 
     def run(self, ctx: Context) -> None:

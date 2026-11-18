@@ -1,0 +1,7 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "commands": "./custom/commands",
+  "hooks": "./config/hooks.json"
+}

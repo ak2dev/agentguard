@@ -1,0 +1,26 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "Reports agent",
+  "description": "Answers questions about sales reports.",
+  "url": "https://agent.acme.example.invalid/a2a",
+  "version": "1.0.0",
+  "capabilities": {
+    "streaming": false
+  },
+  "skills": [
+    {
+      "id": "summarize",
+      "name": "Summarize",
+      "description": "Summarizes sales reports.",
+      "tags": [
+        "reports"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFUzI1NiJ9",
+      "signature": "c2lnbmF0dXJl"
+    }
+  ]
+}

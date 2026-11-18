@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\"}}'",
+            "onFailure": "block"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}

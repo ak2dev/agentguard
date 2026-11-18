@@ -1,0 +1,15 @@
+{
+  "facts": {
+    "images": {
+      "ghcr.io/acme/weather-mcp@sha256:ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12": {
+        "entrypoint": [
+          "/bin/sh",
+          "-c"
+        ],
+        "cmd": [
+          "/opt/start.sh"
+        ]
+      }
+    }
+  }
+}

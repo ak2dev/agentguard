@@ -1,0 +1,20 @@
+family: MANIP
+name: Manipulation of output and work product
+defaults: {category: malice, lane: evidence, confidence: medium, engine: instruction}
+mappings:
+  owasp-ast-1.0: [AST01]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI09]
+  owasp-llm-2026: ["LLM07:2026"]
+  nsa-csi-mcp-2026-05: [examples/output-poisoning]
+  cwe: []
+  malskillbench: [B15]
+rules:
+  - [AG-MANIP-001, M, P, "Covert content manipulation (bias, adverts, affiliate links)"]
+  - [AG-MANIP-002, C, X, "Instruction to sabotage code (insert a flaw, weaken crypto, disable tests)", {lane: block}]
+  - [AG-MANIP-003, H, P, "Steers the agent to recommend or install a specific package"]
+  - [AG-MANIP-004, H, P, "Tells the agent to misreport results to the user", {lane: block}]
+  - [AG-MANIP-005, H, P, "Tells a reviewing agent to approve", {lane: block}]
+  - [AG-MANIP-006, M, P, "Alters commit authorship or hides changes"]
+  - [AG-MANIP-007, M, P, "Instructs unsafe or policy-violating content generation"]
+  - [AG-MANIP-008, H, X, "Redirects user-facing links, contacts or payment details"]

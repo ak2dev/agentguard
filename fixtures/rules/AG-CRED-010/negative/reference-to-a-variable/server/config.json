@@ -1,0 +1,6 @@
+{
+  "oauth": {
+    "client_id": "csv-tool",
+    "client_secret": "${OAUTH_CLIENT_SECRET}"
+  }
+}

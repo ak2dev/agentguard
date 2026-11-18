@@ -76,6 +76,22 @@ class ComponentKind(StrEnum):
     mcp_server = "mcp_server"
     mcp_client_config = "mcp_client_config"
     package = "package"
+    # Added with the 23-family catalogue (spec/ecosystems.md).
+    plugin = "plugin"
+    marketplace = "marketplace"
+    settings = "settings"            # agent settings / permission / policy files
+    hook = "hook"                    # standalone hook definition files
+    ci_workflow = "ci_workflow"
+    workspace = "workspace"          # editor tasks, dev containers, direnv, git hooks
+    container = "container"          # Dockerfile / compose / image reference
+    connector = "connector"          # OpenAPI action descriptor, A2A agent card
+    bundle = "bundle"                # MCPB bundle manifest
+    repository = "repository"        # everything else in the scanned tree
+
+    @property
+    def spec_type(self) -> str:
+        """The `type` shown in reports and lock entries (kebab-case)."""
+        return self.value.replace("_", "-")
 
 
 class ArtifactRole(StrEnum):
@@ -94,6 +110,29 @@ class ArtifactRole(StrEnum):
     binary = "binary"
     archive = "archive"
     other = "other"
+    # Added with the 23-family catalogue.
+    settings = "settings"
+    hook_config = "hook_config"
+    plugin_manifest = "plugin_manifest"
+    marketplace_manifest = "marketplace_manifest"
+    bundle_manifest = "bundle_manifest"
+    command_md = "command_md"
+    workflow = "workflow"
+    workspace_config = "workspace_config"
+    dockerfile = "dockerfile"
+    compose = "compose"
+    descriptor = "descriptor"
+    env_file = "env_file"
+    image = "image"
+    document = "document"
+    notebook = "notebook"
+    html = "html"
+    media = "media"
+    # Files of the catch-all `repository` component: accounted for and checked for hidden content,
+    # secrets and coverage, but not read as agent instructions or agent-run code unless an
+    # agent-facing file imports, runs or names them (then they are promoted to script / reference).
+    repo_code = "repo_code"
+    repo_doc = "repo_doc"
 
 
 class Transport(StrEnum):
@@ -113,6 +152,18 @@ class CapLabel(StrEnum):
     credential_access = "credential_access"
     persistence = "persistence"
     auto_approved = "auto_approved"
+    # Capability set used for the risk tier and least-privilege analysis.
+    fs_read = "fs_read"
+    fs_write_workspace = "fs_write_workspace"
+    fs_write_outside = "fs_write_outside"
+    shell = "shell"
+    financial = "financial"
+    host_elevated = "host_elevated"
+
+    @property
+    def spec_name(self) -> str:
+        """Capability name as written in reports, lock entries and policy."""
+        return _CAP_NAMES.get(self.value, self.value.replace("_", "-"))
 
 
 TRIFECTA = (
@@ -122,11 +173,20 @@ TRIFECTA = (
 )
 
 
+_CAP_NAMES = {
+    "reads_private_data": "sensitive-data",
+    "ingests_untrusted_content": "untrusted-content",
+    "external_egress": "network-egress",
+    "financial": "financial-execution",
+}
+
+
 class FindingSource(StrEnum):
     deterministic = "deterministic"
     llm = "llm"
     intel = "intel"
     policy = "policy"
+    dynamic = "dynamic"
 
 
 class EvidenceKind(StrEnum):
@@ -142,3 +202,74 @@ class EvidenceKind(StrEnum):
     llm = "llm"
     policy = "policy"
     loader = "loader"
+    media = "media"
+    flow = "flow"
+    dynamic = "dynamic"
+    live = "live"
+
+
+class Category(StrEnum):
+    """What a finding is about. The three are never mixed into one list."""
+
+    malice = "malice"
+    vulnerability = "vulnerability"
+    hygiene = "hygiene"
+
+
+class Lane(StrEnum):
+    """How much a rule may decide alone (spec/rules.md, "Lanes")."""
+
+    block = "block"        # high precision; can produce a BLOCK verdict alone
+    evidence = "evidence"  # counts towards a verdict only when corroborated
+    hunt = "hunt"          # advisory; off in the balanced policy, on in strict
+
+
+class FixKind(StrEnum):
+    auto = "auto"          # A: safe deterministic edit
+    patch = "patch"        # P: proposed patch, kept only after a clean re-scan
+    guidance = "guidance"  # G: remediation text
+    remove = "remove"      # X: do not install, or remove
+    none = "none"
+
+
+class RuleStatus(StrEnum):
+    planned = "planned"            # in the catalogue, no detector yet
+    experimental = "experimental"
+    stable = "stable"              # at least five positive and five negative fixtures
+    deprecated = "deprecated"
+
+
+class Verdict(StrEnum):
+    allow = "ALLOW"
+    review = "REVIEW"
+    block = "BLOCK"
+
+    @property
+    def rank(self) -> int:
+        return {"ALLOW": 0, "REVIEW": 1, "BLOCK": 2}[self.value]
+
+
+class RiskTier(StrEnum):
+    """Assigned from capabilities, independently of findings."""
+
+    L0 = "L0"  # only adds instructions
+    L1 = "L1"  # writes files inside the workspace; no shell, no network
+    L2 = "L2"  # shell, network or credentials
+    L3 = "L3"  # persistent or system-level changes, financial, destructive, elevated
+
+    @property
+    def rank(self) -> int:
+        return int(self.value[1])
+
+
+FAMILIES: tuple[str, ...] = (
+    "INJ", "OBF", "MM", "EXF", "CRED", "EXEC", "PERSIST", "IMPACT", "MANIP", "PRIV", "CFG", "PLUG",
+    "MCP", "VULN", "SUPPLY", "META", "FLOW", "CI", "WS", "IMG", "CONN", "EVADE", "HYG",
+)
+# Scanner-status families outside the 450-rule catalogue (policy outcomes).
+SYSTEM_FAMILIES: tuple[str, ...] = ("POL",)
+
+ENGINES: tuple[str, ...] = (
+    "text-integrity", "instruction", "code", "config", "supply", "intel", "media", "image",
+    "flow", "privilege", "triage", "judge", "dynamic", "live", "coverage", "policy",
+)

@@ -1,0 +1,12 @@
+{
+  "facts": {
+    "vendored": {
+      "csv-tool/vendor/tabkit": {
+        "upstream": "tabkit@1.0.0",
+        "changed": [
+          "core.js"
+        ]
+      }
+    }
+  }
+}

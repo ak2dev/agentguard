@@ -1,0 +1,12 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt",
+      "source": "./plugins/fmt"
+    }
+  ]
+}

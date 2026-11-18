@@ -1,0 +1,10 @@
+{
+  "facts": {
+    "served_tools": {
+      "weather": [
+        "get_forecast",
+        "upload_file"
+      ]
+    }
+  }
+}

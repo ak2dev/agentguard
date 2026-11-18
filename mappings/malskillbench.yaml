@@ -1,0 +1,23 @@
+framework: malskillbench
+name: MalSkillBench behaviours
+version: "2026-06"
+source: https://github.com/lxyeternal/MalSkillBench
+notes: >-
+  Behaviour names as listed in the repository README. The benchmark is for academic research use only; it is
+  used here for evaluation only and its samples (live malware) are opened only inside the sandbox.
+items:
+  - {id: B1, title: Exfiltration}
+  - {id: B2, title: Credential theft}
+  - {id: B3, title: Remote code execution}
+  - {id: B4, title: Malware delivery}
+  - {id: B5, title: Persistence}
+  - {id: B6, title: Reverse shell}
+  - {id: B7, title: Ransomware}
+  - {id: B8, title: Resource abuse}
+  - {id: B9, title: Privilege escalation}
+  - {id: B10, title: Role hijack}
+  - {id: B11, title: Safety bypass}
+  - {id: B12, title: Instruction override}
+  - {id: B13, title: Prompt leak}
+  - {id: B14, title: Goal hijack}
+  - {id: B15, title: Content manipulation}

@@ -1,0 +1,35 @@
+family: EVADE
+name: Evasion, scanner targeting and coverage
+about: >-
+  A coverage rule (blocks_allow, marked ‡ in the specification) prevents an ALLOW verdict: what could not be
+  analysed is reported, never skipped silently.
+defaults: {category: malice, lane: evidence, confidence: medium, engine: coverage}
+mappings:
+  owasp-ast-1.0: [AST08]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: []
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-EVADE-001, H, G, "File larger than analysis limits; bytes not scanned", {blocks_allow: true, category: vulnerability, lane: block, confidence: high}]
+  - [AG-EVADE-002, M, G, "File that should parse does not", {blocks_allow: true, category: vulnerability, lane: block, confidence: high}]
+  - [AG-EVADE-003, H, G, "Opaque binary that cannot be analysed", {blocks_allow: true, category: vulnerability, lane: block, confidence: high}]
+  - [AG-EVADE-004, C, X, "Archive bomb, excessive nesting, path traversal or symlink in an archive", {blocks_allow: true, lane: block, confidence: high, mappings: {cwe: [CWE-409, CWE-22]}}]
+  - [AG-EVADE-005, H, X, "Symlink leaves the package root", {blocks_allow: true, lane: block, confidence: high, mappings: {cwe: [CWE-59]}}]
+  - [AG-EVADE-006, H, X, "Content in locations scanners commonly skip (`.git/`, `build/`, `docs/`, hidden directories)"]
+  - [AG-EVADE-007, H, X, "Script stored under a harmless extension and referenced for execution", {lane: block}]
+  - [AG-EVADE-008, H, X, "Text addressed to scanners, reviewers or automated judges", {lane: block, engine: instruction}]
+  - [AG-EVADE-009, H, X, "Sandbox, VM or CI detection logic", {engine: code}]
+  - [AG-EVADE-010, H, X, "Behaviour gated on date, elapsed time or use count", {engine: code}]
+  - [AG-EVADE-011, H, X, "Behaviour gated on hostname, user, locale or location", {engine: code}]
+  - [AG-EVADE-012, H, X, "Instructions point to a file that is not in the package (created at run time)"]
+  - [AG-EVADE-013, M, A, "Padding that pushes content past common scanner windows", {engine: text-integrity}]
+  - [AG-EVADE-014, M, G, "Harmless cover page that links to a second workflow file", {lane: hunt, confidence: low, engine: instruction}]
+  - [AG-EVADE-015, H, X, "Remote content differs between fetches or by client", {lane: block, engine: live}]
+  - [AG-EVADE-016, M, G, "Model-based analysis incomplete (budget, timeout, refusal)", {blocks_allow: true, category: vulnerability, lane: block, confidence: high, engine: judge}]
+  - [AG-EVADE-017, L, G, "Dynamic analysis did not reach all paths", {category: vulnerability, confidence: high, engine: dynamic}]
+  - [AG-EVADE-018, M, G, "Submodule, LFS object or external content not fetched", {blocks_allow: true, category: vulnerability, lane: block, confidence: high}]
+  - [AG-EVADE-019, M, G, "Code path that cannot be resolved statically (computed import or require)", {category: vulnerability, lane: hunt, engine: code}]
+  - [AG-EVADE-020, H, X, "Anti-debugging or anti-tracing checks", {engine: code}]
+  - [AG-EVADE-021, M, G, "Share of content analysed is below the policy threshold", {blocks_allow: true, category: vulnerability, lane: block, confidence: high}]

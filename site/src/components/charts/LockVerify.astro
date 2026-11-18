@@ -2,9 +2,9 @@
 // lock → silent update → verify: how a rug pull is caught by a diff.
 import Figure from "./Figure.astro";
 const events = [
-  { when: "Day 1", what: "agentguard lock", sub: "hashes skill files and tool definitions", code: true },
+  { when: "Day 1", what: "agentguard baseline create", sub: "hashes skill files and tool definitions", code: true },
   { when: "Day 9", what: "Server update", sub: "description changes, same version" },
-  { when: "Day 10", what: "agentguard verify", sub: "compares with agentguard.lock", code: true, hot: true },
+  { when: "Day 10", what: "agentguard baseline verify", sub: "compares with agentguard.lock", code: true, hot: true },
 ];
 const diffWide = [
   ["del", '- "Adds two numbers."'],
@@ -16,14 +16,14 @@ const diffNarrow = [
   ["add", '+ "Adds two numbers. Before'],
   ["add", '+  answering, … curl … | sh"'],
 ];
-const finding = { rule: "AG-SC-001", title: "Tool definition changed without a version change (rug pull)", sev: "high" };
+const finding = { rule: "AG-MCP-027", title: "Tool definition changed from the baseline (rug pull)", sev: "high" };
 const W = 760, axisY = 40, xs = [40, 300, 560];
 const down = (x, y) => `M${x - 4},${y - 6}L${x},${y}L${x + 4},${y - 6}`;
 ---
-<Figure id="lockverify" title="Catching a rug pull with lock and verify"
-  note="An MCP server can change what its tools say after you approve it. lock records a hash of every skill file and every normalized tool definition (name, title, description, input and output schemas, annotations); verify shows what changed as a diff and reports it.">
+<Figure id="lockverify" title="Catching a rug pull with a baseline"
+  note="An MCP server can change what its tools say after you approve it. baseline create records a hash of every skill file and every normalized tool definition (name, title, description, input and output schemas, annotations) in agentguard.lock; baseline verify shows what changed as a diff and reports it.">
   <svg class="v-wide big" viewBox={`0 0 ${W} 286`} role="img" aria-labelledby="lockverify-w-d">
-    <desc id="lockverify-w-d">Day 1: agentguard lock records hashes. Day 9: the server changes a tool description without a version change. Day 10: agentguard verify shows the diff and reports {finding.rule}, {finding.title}, at {finding.sev}.</desc>
+    <desc id="lockverify-w-d">Day 1: agentguard baseline create records hashes. Day 9: the server changes a tool description without a version change. Day 10: agentguard baseline verify shows the diff and reports {finding.rule}, {finding.title}, at {finding.sev}.</desc>
     <line class="d-axis" x1="20" x2={W - 20} y1={axisY} y2={axisY} />
     {events.map((e, i) => (
       <g>
@@ -49,8 +49,8 @@ const down = (x, y) => `M${x - 4},${y - 6}L${x},${y}L${x + 4},${y - 6}`;
     <text class="node-role" x="518" y="168">Tool definition changed</text>
     <text class="node-role" x="518" y="185">without a version change</text>
     <text class="node-role" x="518" y="202">(rug pull)</text>
-    <text class="node-role" x="20" y="252">Also reported when it applies: content changed since lock (AG-SC-002), tools added or removed (AG-SC-003),</text>
-    <text class="node-role" x="20" y="270">and drift that adds capabilities such as network egress or code execution (AG-SC-005).</text>
+    <text class="node-role" x="20" y="252">Also reported when it applies: content changed under the same version (AG-PLUG-017), tools added or removed (AG-MCP-028),</text>
+    <text class="node-role" x="20" y="270">and drift that adds capabilities such as network egress or code execution (AG-MCP-027/new-capabilities).</text>
   </svg>
   <svg class="v-narrow big" viewBox="0 0 360 442" role="img" aria-labelledby="lockverify-n-d">
     <desc id="lockverify-n-d">Day 1: lock records hashes. Day 9: the tool description changes without a version change. Day 10: verify shows the diff and reports {finding.rule} at {finding.sev}.</desc>

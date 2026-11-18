@@ -1,0 +1,17 @@
+framework: skilltrustbench
+name: SkillTrustBench threat categories
+version: "v1.1"
+source: https://huggingface.co/datasets/cuhk-zhuque/SkillTrustBench
+notes: >-
+  Category names as listed on the dataset card. The benchmark is CC BY-NC-SA 4.0; it is used here for
+  evaluation only and its samples are not redistributed in this repository.
+items:
+  - {id: T01, title: Instruction hijacking}
+  - {id: T02, title: Memory poisoning}
+  - {id: T03, title: Remote payloads}
+  - {id: T04, title: Embedded malicious code}
+  - {id: T05, title: Unauthorised access}
+  - {id: T06, title: Persistence}
+  - {id: T07, title: Tool hijacking}
+  - {id: T08, title: Insecure dependencies}
+  - {id: T09, title: Insecure coding}

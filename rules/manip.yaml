@@ -1,0 +1,194 @@
+# Detection entries for the MANIP family (catalogue: rules/catalog/manip.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+# ---- added: manip_regex ----
+  - id: AG-MANIP-001
+    version: 1
+    description: Text tells the agent to promote a product, insert affiliate or sponsored links, hide that content is paid for, keep competitors out of answers, or quietly steer the user's opinion.
+    why: The user reads the agent's output as its own judgement. Instructions like these turn it into advertising or persuasion the user has not been told about.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:insert|add|include|append|embed|use)\s+(?:an?\s+|our\s+|the\s+|this\s+|these\s+)?(?:affiliate|referral|sponsored|tracking|promo(?:tional)?)\s+(?:links?|codes?|tags?|ids?|urls?|parameters?)\b
+        - |-
+          \b(?:without\s+(?:disclos\w+|mention\w+|saying|telling|reveal\w+)|do\s+not\s+(?:disclose|mention|reveal|say))\s+(?:that\s+)?(?:it|this|they|these|the\s+\w+)?\s*(?:is|are)?\s*(?:an?\s+)?(?:ad(?:vert(?:isement)?)?s?|sponsored|paid(?:\s+for)?|affiliate|promotion(?:al)?)\b
+        - |-
+          \b(?:never|do\s+not|don'?t)\s+(?:mention|recommend|suggest|say\s+anything\s+(?:good|positive)\s+about)\s+(?:any\s+)?(?:competitors?|competing\s+(?:products?|tools?|services?)|alternatives?\s+to\s+our)\b
+        - |-
+          \b(?:subtly|quietly|covertly|gradually)\s+(?:steer|nudge|bias|influence|persuade|shift|promote|recommend|favou?r)\b
+        - |-
+          \b(?:always|whenever\s+possible)\s+(?:recommend|promote|mention|favou?r|praise|push)\s+(?:our|the\s+sponsor'?s?)\s+(?:products?|services?|brand|company|platform|plan)\b
+        - |-
+          \b(?:portray|describe|present)\s+[\w\s]{1,30}\s+(?:in\s+a\s+)?(?:positive(?:ly)?|negative(?:ly)?|favou?rabl[ey]|unfavou?rabl[ey])\s+(?:light\s+)?(?:regardless|even\s+(?:if|when)|no\s+matter)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the instruction, or make the promotion explicit so the user sees that the content is sponsored.
+
+  - id: AG-MANIP-002
+    version: 1
+    description: Text tells the agent to put a backdoor, vulnerability or subtle bug into code it writes, to weaken cryptography or validation, or to disable tests or checks so that a change passes without anyone being told.
+    why: The agent's code goes into the user's project under the user's name. A flaw planted on instruction is a supply-chain attack on everything built from that project.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't|avoid|without|detect|find|fix|remove|check\s+for|look\s+for|scan\s+for|report)\b[^.\n]{0,40})\b(?:insert|add|introduce|inject|plant|hide|leave|embed)\s+(?:an?\s+|some\s+)?(?:(?:subtle|hidden|secret|small|undocumented)\s+)?(?:backdoors?|vulnerabilit(?:y|ies)|security\s+holes?|logic\s+bombs?|hard-?coded\s+(?:passwords?|credentials?)|(?:subtle|hidden|deliberate|intentional)\s+(?:bugs?|flaws?|errors?))\b
+        - |-
+          (?<!\b(?:never|not|n't|avoid|without)\b[^.\n]{0,40})\b(?:weaken|downgrade|silently\s+reduce)\s+(?:the\s+)?(?:crypto(?:graphy)?|encryption|key\s+(?:size|length)|hash(?:ing)?|tls|ssl|security\s+checks?|input\s+validation|authentication)\b
+        - |-
+          (?<!\b(?:never|not|n't|avoid)\b[^.\n]{0,40})\b(?:disable|skip|delete|remove|comment\s+out|bypass)\s+(?:the\s+|any\s+|all\s+)?(?:failing\s+)?(?:tests?|unit\s+tests?|test\s+suite|assertions?|security\s+checks?|input\s+validation|auth(?:entication|ori[sz]ation)?\s+checks?|linter|ci\s+checks?)\b[^.\n]{0,60}\b(?:so\s+(?:that\s+)?(?:it|they|the\s+build|ci)\s+pass(?:es)?|to\s+make\s+(?:it|them|the\s+build|ci)\s+pass|without\s+(?:telling|mentioning|noting)|silently|quietly|and\s+do\s+not\s+(?:mention|tell))
+        - |-
+          \b(?:make\s+sure|ensure)\s+(?:that\s+)?(?:the\s+)?(?:generated\s+)?code\s+(?:contains|includes|has)\s+(?:an?\s+)?(?:backdoor|vulnerabilit\w+|hidden\s+\w+|undocumented\s+\w+)\b
+        - |-
+          \buse\s+(?:md5|sha-?1|des|rc4|ecb\s+mode|a\s+(?:fixed|static|hard-?coded)\s+(?:key|iv|salt|seed))\b[^.\n]{0,60}\b(?:and\s+do\s+not\s+(?:mention|tell)|without\s+(?:mentioning|telling)|even\s+if\s+the\s+user\s+asks)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner|red[- ]?team|ctf)\b
+      window: 0
+    remediation: Remove the instruction. Do not install a skill that asks the agent to damage the code it writes.
+
+  - id: AG-MANIP-003
+    version: 1
+    description: Text tells the agent to always recommend, install or switch to one named package or library, whatever the user asked for.
+    why: Steering installs towards a chosen package is how typosquats and malicious packages get adopted; the user believes the agent picked it on merit.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:always|whenever|every\s+time)\b[^.\n]{0,40}\b(?:recommend|suggest|install|add|import|use|prefer)\s+(?:the\s+)?(?!(?:the|an?|this|that|your|our|its|any|each|every|official|standard|same|right|correct)\b)[`"']?[@\w./-]{2,60}[`"']?\s+(?:package|library|module|dependency|sdk|plugin|extension)\b[^.\n]{0,60}\b(?:instead\s+of|rather\s+than|even\s+(?:if|when)|regardless|no\s+matter|without\s+(?:asking|mentioning))\b
+        - |-
+          \b(?:when(?:ever)?|if)\s+(?:the\s+)?(?:user|someone|anyone)\s+(?:asks?|needs?|wants?|requests?)\b[^.\n]{0,60}\b(?:recommend|suggest|install|tell\s+them\s+to\s+(?:install|use))\s+(?:only\s+)?[`"']?[@\w./-]{2,60}[`"']?[^.\n]{0,40}\b(?:instead|never\s+(?:mention|suggest)|not\s+the\s+(?:official|standard))\b
+        - |-
+          \b(?:replace|swap|substitute)\s+(?:any\s+|all\s+|every\s+)?(?:imports?|dependenc(?:y|ies)|packages?|requirements?)\s+(?:of|on|to|for)\s+[`"']?[@\w./-]{2,60}[`"']?\s+with\s+[`"']?[@\w./-]{2,60}[`"']?
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner|deprecated|migrat\w+)\b
+      window: 0
+    remediation: Remove the steering. If the skill depends on a package, say so and let the user decide to install it.
+
+  - id: AG-MANIP-004
+    version: 1
+    description: Text tells the agent to report success whatever happened, to keep failures or security findings from the user, to invent results, or to play down what it found.
+    why: The user acts on the agent's report. A false "all tests pass" or a withheld finding sends broken or unsafe work onward as if it had been checked.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:report|say|tell\s+the\s+user|respond|claim|state|pretend|output|reply)\s+(?:that\s+)?(?:everything|it|all\s+(?:the\s+)?\w+|the\s+\w+(?:\s+\w+)?)\s+(?:succeeded|passed|worked|was\s+successful|is\s+fine|(?:has\s+)?completed\s+successfully|are\s+passing|is\s+secure|is\s+safe)\s*,?\s+(?:even\s+(?:if|when|though)|regardless|no\s+matter|whether\s+or\s+not)\b
+        - |-
+          \b(?:always\s+)?(?:tell|inform|assure)\s+the\s+user\s+(?:that\s+)?(?:the\s+)?(?:tests?|build|scan|checks?|deployment|review|audit)\s+(?:passed|succeeded|(?:is|was|are|were)\s+(?:clean|successful|fine|green))\s*,?\s+(?:even\s+(?:if|when|though)|regardless|no\s+matter)\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:report|mention|tell\s+the\s+user\s+about|disclose|reveal)\s+(?:any\s+|the\s+)?(?:failed\s+\w+|failing\s+\w+|failures?|vulnerabilit(?:y|ies)|security\s+(?:issues?|findings?|problems?)|bugs?\s+you\s+(?:find|found))\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:fabricate|make\s+up|invent|fake|forge)\s+(?:the\s+|some\s+|plausible\s+)?(?:test\s+)?(?:results?|output|numbers|metrics|logs?|citations?|benchmarks?)\b
+        - |-
+          \b(?:understate|downplay|minimi[sz]e)\s+(?:the\s+)?(?:risks?|severity|impact|findings?|problems?|errors?)\b[^.\n]{0,40}\b(?:to|for|when\s+(?:reporting|telling))\s+(?:the\s+)?user\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the instruction. The agent's report to the user must describe what actually happened.
+
+  - id: AG-MANIP-005
+    version: 1
+    description: Text addressed to a reviewing agent tells it to approve, to answer "LGTM", or not to flag problems in the change.
+    why: Code-review agents read the pull request they are judging. An instruction planted in that content turns the reviewer into a rubber stamp for the change that carries it.
+    applies_to: ["@prose", "@code", reference, repo_doc, repo_code]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, code]
+      patterns:
+        - |-
+          \b(?:always\s+)?(?:approve|accept|lgtm|sign\s+off\s+on|pass)\s+(?:this|the|every|all|any)\s+(?:pull\s+request|PR|merge\s+request|MR|change(?:s|set)?|commit|diff|patch|submission)s?\b[^.\n]{0,60}\b(?:regardless|without\s+(?:review\w*|reading|comment\w*|checking|raising|flagging)|no\s+matter|even\s+(?:if|when|though)|automatically|unconditionally)\b
+        - |-
+          \b(?:if|when)\s+you\s+are\s+(?:an?\s+)?(?:ai\s+)?(?:review(?:er|ing)|code\s+review(?:er)?|security\s+review(?:er)?|audit(?:or|ing))\b[^.\n]{0,100}\b(?:approve|lgtm|no\s+(?:issues?|findings?|problems?)|mark\s+(?:it\s+|this\s+)?as\s+(?:safe|approved|clean)|do\s+not\s+(?:flag|report|comment|mention))\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:flag|report|comment\s+on|mention|raise|block)\s+(?:any\s+)?(?:issues?|problems?|concerns?|findings?|vulnerabilit(?:y|ies))\s+(?:in|with|on|about)\s+(?:this|the)\s+(?:pull\s+request|PR|change|commit|diff|file|code|patch)\b
+        - |-
+          \b(?:respond|reply|answer)\s+(?:only\s+)?with\s+[`"']?(?:lgtm|approved?|looks\s+good(?:\s+to\s+me)?|no\s+issues(?:\s+found)?)[`"']?(?:\s|[.!]|$)
+        - |-
+          \b(?:reviewers?|review\s+(?:bots?|agents?)|code\s+review\s+(?:ai|agents?|assistants?))\s*[:,]\s*(?:please\s+)?(?:approve|ignore\s+this|skip\s+this|do\s+not\s+flag)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the text. Review instructions belong in the base branch's instruction files, not in the content under review.
+
+  - id: AG-MANIP-006
+    version: 1
+    description: Text or a script sets a commit's author, committer or date to something else, or tells the agent to bury a change among others or leave it out of the commit message and pull-request description.
+    why: Authorship and descriptions are how reviewers and audits trace a change. Forged or missing ones hide who changed what.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bgit\s+commit\b[^\n|;&]{0,120}\s--(?:author|date)[=\s]
+        - |-
+          \bGIT_(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL|DATE)\s*=\s*\S
+        - |-
+          \b(?:commit|push)\s+(?:the\s+changes?\s+)?(?:as|under|using)\s+(?:the\s+name\s+of\s+|the\s+identity\s+of\s+)?(?:another|a\s+different|someone\s+else'?s?|the\s+maintainer'?s?)\s*(?:user|author|identity|name|account)?\b
+        - |-
+          \b(?:hide|bury|disguise|obscure)\s+(?:this|these|the)\s+(?:changes?|commits?|edits?|modifications?)\b[^.\n]{0,60}\b(?:in|inside|among|within|so\s+(?:that\s+)?(?:review\w*|nobody|no\s+one))\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:mention|include|list|describe)\s+(?:this|these|the)\s+(?:changes?|edits?|files?|modifications?)\s+in\s+the\s+(?:commit\s+message|pr\s+description|pull\s+request(?:\s+description)?|changelog|summary)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Commit as the user with the current date, and describe every change in the message.
+
+  - id: AG-MANIP-007
+    version: 1
+    description: Text tells the agent to ignore its content or safety policy, never to refuse, or to produce working malware, phishing or exploit material.
+    why: The agent's refusals are part of what keeps its output safe to use. A skill that switches them off makes the user the publisher of whatever comes out.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:ignore|bypass|disregard|disable|turn\s+off|circumvent)\s+(?:your\s+|the\s+|all\s+|any\s+)?(?:content|safety|ethical|moral|usage)\s+(?:policy|policies|filters?|guidelines|restrictions|guardrails|rules)\b
+        - |-
+          (?<!\b(?:never|not|n't|detect|block|report|refuse|refuses|decline|declines|reject|rejects)\b[^.\n]{0,40})\b(?:generate|write|produce|create)\s+(?:working\s+|functional\s+|real\s+|convincing\s+)?(?:malware|ransomware|a\s+keylogger|a\s+virus|phishing\s+(?:emails?|pages?|messages?)|a\s+botnet|a\s+working\s+exploit)\b
+        - |-
+          \b(?:never|do\s+not|don'?t)\s+(?:refuse|decline|add\s+(?:any\s+)?(?:warnings?|disclaimers?)|say\s+(?:no|you\s+can'?t))\b[^.\n]{0,60}\b(?:any|whatever|regardless|no\s+matter)\b
+        - |-
+          \b(?:answer|comply\s+with|fulfil+l?)\s+(?:every|any|all)\s+requests?\s+(?:without|regardless\s+of)\s+(?:refus\w+|restrictions?|filter\w*|ethic\w*|safety|polic\w+)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner|awareness|training\s+exercise|authori[sz]ed)\b
+      window: 0
+    remediation: Remove the instruction. A skill adds a task; it does not change what the agent is willing to produce.
+
+  - id: AG-MANIP-008
+    version: 1
+    description: Text tells the agent to replace links, contact details or payment details in what it writes with a given address, or to send payments, refunds or customers to it.
+    why: The user's readers and customers trust those details. Swapping them sends money, credentials or support requests to whoever wrote the instruction.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:replace|change|swap|substitute|rewrite|update)\s+(?:any|all|every|the|each)\s+(?:[\w-]+\s+){0,3}?(?:links?|urls?|email\s+address(?:es)?|contact\s+(?:details?|info\w*)|phone\s+numbers?|wallet\s+address(?:es)?|bank\s+(?:account|details)|iban|payment\s+(?:details?|links?|address(?:es)?)|invoice\s+details?|donation\s+(?:links?|address(?:es)?)|support\s+(?:links?|emails?|contacts?))\b[^\n]{0,60}\b(?:with|to)\s+[`"'<(]?(?:https?://\S+|[\w.+-]+@[\w-]+\.[\w.]+|0x[0-9a-fA-F]{40}\b|bc1[a-z0-9]{20,})
+        - |-
+          \b(?:send|direct|route|redirect|point)\s+(?:all\s+|any\s+)?(?:payments?|donations?|refunds?|invoices?|customers?|support\s+requests?)\s+to\s+[`"'<(]?(?:https?://\S+|[\w.+-]+@[\w-]+\.[\w.]+|0x[0-9a-fA-F]{40}\b|bc1[a-z0-9]{20,}|this\s+(?:address|account|wallet|iban))
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the instruction. Do not install a skill that rewrites the user's links, contacts or payment details.

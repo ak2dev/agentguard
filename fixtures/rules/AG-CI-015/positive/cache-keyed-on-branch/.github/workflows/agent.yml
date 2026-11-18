@@ -1,0 +1,18 @@
+name: agent
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/cache@0123456789abcdef0123456789abcdef01234567
+        with:
+          path: .context
+          key: ctx-${{ github.head_ref }}
+      - uses: anthropics/claude-code-action@0123456789abcdef0123456789abcdef01234567
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Summarize the change."

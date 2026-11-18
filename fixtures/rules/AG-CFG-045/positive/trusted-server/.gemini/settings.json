@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "files": {
+      "command": "node",
+      "args": [
+        "server.js"
+      ],
+      "trust": true
+    }
+  }
+}

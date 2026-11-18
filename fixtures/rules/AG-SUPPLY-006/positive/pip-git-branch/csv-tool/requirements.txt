@@ -1,0 +1,1 @@
+csvkit @ git+https://github.com/example-org/csvkit.git@main

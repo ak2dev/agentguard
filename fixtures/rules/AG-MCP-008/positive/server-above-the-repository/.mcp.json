@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "notes": {
+      "command": "python3",
+      "args": [
+        "../../shared/notes_server.py"
+      ]
+    }
+  }
+}

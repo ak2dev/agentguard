@@ -1,0 +1,14 @@
+name: ci
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env: &env
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - run: echo test
+  lint:
+    runs-on: ubuntu-latest
+    env: *env
+    steps:
+      - run: echo lint

@@ -1,4 +1,4 @@
-"""Every rule must have at least one positive and one negative fixture, and
+"""Every detector must have at least one positive and one negative fixture, and
 each fixture must behave as labelled. CI fails otherwise."""
 
 from __future__ import annotations
@@ -10,31 +10,36 @@ import pytest
 from agentguard.core.analyzers import registry
 from agentguard.core.engine import scan
 from agentguard.core.models import AnalyzerMatch
-from agentguard.core.models.enums import Severity
+from agentguard.core.models.enums import FAMILIES, RuleStatus, Severity
 from agentguard.core.rules.pack import RulePack
 
-from fixture_harness import FIXTURES, iter_cases, load_case, missing_native
+from fixture_harness import detector_dir, iter_cases, load_case, missing_native
 
 PACK = RulePack.default()
-RULE_IDS = sorted(PACK.rules)
+DETECTOR_KEYS = sorted(PACK.detectors)
 # Optional native analyzers CI installs and therefore must not be skipped.
 REQUIRED_NATIVE = {a for a in os.environ.get("AG_REQUIRE_NATIVE", "").split(",") if a}
+STABLE_MIN_FIXTURES = 5
 
 
-@pytest.mark.parametrize("rule_id", RULE_IDS)
-def test_rule_has_fixtures(rule_id):
+def _cases(key: str, side: str) -> list:
+    d = detector_dir(key) / side
+    return [p for p in d.iterdir() if p.is_dir()] if d.is_dir() else []
+
+
+@pytest.mark.parametrize("key", DETECTOR_KEYS)
+def test_detector_has_fixtures(key):
     for side in ("positive", "negative"):
-        d = FIXTURES / rule_id / side
-        assert d.is_dir() and any(p.is_dir() for p in d.iterdir()), f"{rule_id}: missing {side} fixture"
+        assert _cases(key, side), f"{key}: missing {side} fixture"
 
 
 @pytest.mark.parametrize(
-    "rule_id,side,case_dir",
-    iter_cases(RULE_IDS),
+    "key,side,case_dir",
+    iter_cases(DETECTOR_KEYS),
     ids=lambda v: v if isinstance(v, str) else v.name,
 )
-def test_fixture(rule_id, side, case_dir, monkeypatch):
-    case = load_case(rule_id, side, case_dir)
+def test_fixture(key, side, case_dir, monkeypatch):
+    case = load_case(key, side, case_dir)
     missing = missing_native(case)
     if missing:
         if REQUIRED_NATIVE & set(missing):
@@ -49,39 +54,69 @@ def test_fixture(rule_id, side, case_dir, monkeypatch):
 
         monkeypatch.setattr(cls, "run", boom)
     report = scan(case.tree, case.options, PACK)
-    fired = {f.rule_id for f in [*report.findings, *report.suppressed_findings]}
+    everything = [*report.findings, *report.suppressed_findings]
+    fired = {f.key for f in everything}
     if side == "positive":
-        assert rule_id in fired, f"{case.id}: expected {rule_id}; fired {sorted(fired)}"
+        assert key in fired, f"{case.id}: expected {key}; fired {sorted(fired)}"
+        if case.config.get("verdict"):
+            assert report.verdict.value == case.config["verdict"], f"{case.id}: verdict {report.verdict.value}: {report.verdict_reasons}"
     elif case.config.get("max_severity"):
         # A mention the rule reports at a lower severity (e.g. a quoted pattern in a
         # reference doc): it may fire, but never above max_severity.
         cap = Severity(case.config["max_severity"])
-        over = [f for f in [*report.findings, *report.suppressed_findings] if f.rule_id == rule_id and f.severity.rank > cap.rank]
-        assert not over, f"{case.id}: {rule_id} fired above {cap.value}: " + "; ".join(
+        over = [f for f in everything if f.key == key and f.severity.rank > cap.rank]
+        assert not over, f"{case.id}: {key} fired above {cap.value}: " + "; ".join(
             f"{f.severity.value}: {f.message}" for f in over)
     else:
-        assert rule_id not in fired, f"{case.id}: {rule_id} fired on a negative fixture: " + "; ".join(
-            f.message for f in report.findings if f.rule_id == rule_id
+        assert key not in fired, f"{case.id}: {key} fired on a negative fixture: " + "; ".join(
+            f.message for f in report.findings if f.key == key
         )
+    for f in everything:
+        assert f.location is not None or f.id.startswith(("AG-POL-", "AG-EVADE-", "AG-FLOW-")) or not f.component_ids, \
+            f"{case.id}: {f.key} has no location"
 
 
 def test_analyzer_rule_consistency():
     stages = {c.id: c for c in registry.all_stages()}
-    for rule in PACK.rules.values():
-        if isinstance(rule.match, AnalyzerMatch):
-            if rule.match.analyzer == "engine":
+    for det in PACK.detectors.values():
+        if isinstance(det.match, AnalyzerMatch):
+            if det.match.analyzer == "engine":
                 continue
-            assert rule.match.analyzer in stages, f"{rule.id}: unknown analyzer {rule.match.analyzer}"
-            assert rule.id in stages[rule.match.analyzer].rules, f"{rule.id} not declared by {rule.match.analyzer}"
+            assert det.match.analyzer in stages, f"{det.key}: unknown analyzer {det.match.analyzer}"
+            assert det.key in stages[det.match.analyzer].rules, f"{det.key} not declared by {det.match.analyzer}"
     for cls in stages.values():
-        for rid in cls.rules:
-            assert rid in PACK.rules, f"{cls.id} declares unknown rule {rid}"
+        for key in cls.rules:
+            assert key in PACK.detectors, f"{cls.id} declares unknown rule {key}"
 
 
 def test_every_rule_is_mapped():
     for rule in PACK.rules.values():
-        # The NSA CSI column has been reviewed for every rule: a list of its items, or [] when
-        # the CSI (which covers MCP only) has nothing on what the rule detects. null = unreviewed.
-        assert PACK.crosswalk[rule.id].get("nsa-csi-mcp-2026-05") is not None, f"{rule.id}: NSA CSI mapping not reviewed"
         for m in rule.mappings:
             assert m.id or m.todo
+        if rule.family in FAMILIES and rule.implemented:
+            assert any(m.id for m in rule.mappings) or rule.family == "HYG", f"{rule.id}: no standards mapping"
+
+
+def test_catalogue_is_the_specification():
+    """23 families and 450 rules; anything else is marked as an extension."""
+    core = [r for r in PACK.rules.values() if not r.extension]
+    assert len(core) == 450
+    assert {r.family for r in core} == set(FAMILIES)
+    assert all(r.id.split("-")[1] == r.family for r in PACK.rules.values())
+
+
+def test_stable_rules_have_five_and_five():
+    for rule in PACK.rules.values():
+        if rule.status != RuleStatus.stable:
+            continue
+        keys = [d.key for d in PACK.detectors.values() if d.rule_id == rule.id]
+        pos = sum(len(_cases(k, "positive")) for k in keys)
+        neg = sum(len(_cases(k, "negative")) for k in keys)
+        assert pos >= STABLE_MIN_FIXTURES and neg >= STABLE_MIN_FIXTURES, \
+            f"{rule.id} is marked stable with {pos} positive / {neg} negative fixtures"
+
+
+def test_aliases_resolve():
+    for alias, key in PACK.aliases.items():
+        assert PACK.resolve_key(alias) == key
+        assert PACK.rule(alias).id == key.split("/")[0]

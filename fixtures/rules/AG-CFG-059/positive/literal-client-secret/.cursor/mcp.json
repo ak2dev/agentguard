@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "crm": {
+      "url": "https://mcp.example.invalid/mcp",
+      "auth": {
+        "CLIENT_ID": "crm",
+        "CLIENT_SECRET": "t7Qk2ZxR9mV4wN8pL1sD6fH3"
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from ..artifacts import ArtifactText, TextUnit
-from ..models import Capability, Evidence, FlowPath, ScanOptions, Span
+from ..models import Capability, Evidence, FlowPath, ScanOptions, Span, TraceStep
 from ..models.enums import CapLabel, Confidence, EvidenceKind, FindingSource, Severity
 from ..redact import RedactedText
 from ..textutil import sha256_hex
@@ -25,14 +25,14 @@ if TYPE_CHECKING:
 class Analyzer(Protocol):
     id: ClassVar[str]
     requires: ClassVar[frozenset[str]]
-    rules: ClassVar[tuple[str, ...]]  # rule ids this analyzer may emit
+    rules: ClassVar[tuple[str, ...]]  # detector keys ("AG-X-001" or "AG-X-001/variant") this analyzer may emit
 
     def run(self, ctx: Context) -> None: ...
 
 
 @dataclass
 class RawFinding:
-    rule_id: str
+    rule_id: str               # the detector key as emitted: "AG-X-001" or "AG-X-001/variant"
     component_ids: list[str]
     primary: Span | None
     evidence: list[Evidence]
@@ -45,6 +45,19 @@ class RawFinding:
     related: list[Span] = field(default_factory=list)
     flow: FlowPath | None = None
     source: FindingSource = FindingSource.deterministic
+    engine: str = ""           # analyzer id that produced it
+    trace: list[TraceStep] = field(default_factory=list)
+    decoded: str = ""          # hidden or encoded payload, decoded (shown in the report, redacted)
+    fix_patch: str | None = None
+
+    @property
+    def rid(self) -> str:
+        """The catalogue rule id (without the variant)."""
+        return self.rule_id.partition("/")[0]
+
+    @property
+    def variant(self) -> str | None:
+        return self.rule_id.partition("/")[2] or None
 
 
 class EmitError(RuntimeError):
@@ -84,8 +97,11 @@ class Context:
         return None
 
     def rule_enabled(self, rule_id: str) -> bool:
-        rule = self.pack.rules.get(rule_id)
-        return bool(rule and rule.enabled)
+        det = self.pack.detectors.get(rule_id)
+        if det is None or not det.enabled:
+            return False
+        selected = self.options.rule_filter
+        return selected is None or det.rule_id in selected
 
     # -- output -------------------------------------------------------------
     def emit(
@@ -109,6 +125,9 @@ class Context:
         extra_evidence: list[Evidence] | None = None,
         flow: FlowPath | None = None,
         source: FindingSource = FindingSource.deterministic,
+        trace: list[TraceStep] | None = None,
+        decoded: str = "",
+        engine: str | None = None,
     ) -> None:
         if self.allowed_rules and rule_id not in self.allowed_rules:
             raise EmitError(f"analyzer {self.current!r} emitted undeclared rule {rule_id}")
@@ -122,6 +141,7 @@ class Context:
             detail=detail,
             hidden=hidden,
             decode_path=[*([hidden_kind] if hidden_kind else []), *decode_path],
+            engine=self.current,
         )
         key_material = match if match is not None else snippet
         match_key = sha256_hex(f"{key_material}")[:16]
@@ -140,6 +160,9 @@ class Context:
                 related=list(related or []),
                 flow=flow,
                 source=source,
+                engine=engine or self.current,
+                trace=list(trace or []),
+                decoded=decoded,
             )
         )
 

@@ -1,0 +1,336 @@
+# Detection entries for the VULN family (catalogue: rules/catalog/vuln.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+  - id: AG-VULN-001
+    aliases: [AG-CODE-001]
+    version: 2
+    description: A tool handler passes a model-controlled parameter into a shell (exec, shell=True, os.system, spawn with shell:true). The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Any prompt injection that reaches the model becomes arbitrary command execution on the host — the most common MCP CVE class.
+    confidence: high
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: code}
+    remediation: Do not build shell strings. Call the program directly with an argument array, validate the argument against an allowlist, and never set shell=True.
+    references: ["https://cwe.mitre.org/data/definitions/78.html"]
+
+
+  - id: AG-VULN-001
+    variant: eval
+    aliases: [AG-CODE-003]
+    version: 2
+    title: Tool parameter reaches eval/exec
+    description: A model-controlled parameter is evaluated as code (eval, exec, compile, new Function, vm.run*). The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Direct code execution from model output.
+    confidence: high
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove dynamic evaluation; parse structured input instead.
+
+
+  - id: AG-VULN-001
+    variant: process-argument
+    aliases: [AG-CODE-002]
+    lane: evidence
+    version: 2
+    title: Tool parameter passed as a process argument
+    description: A model-controlled parameter becomes an argument of a spawned process (no shell). The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Argument injection (e.g. a value starting with "--") can change what the program does.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Validate the value, reject leading dashes, and insert "--" before positional arguments.
+
+
+  - id: AG-VULN-002
+    aliases: [AG-CODE-005]
+    version: 3
+    description: A model-controlled parameter is used to read, write or delete files without evidence of containment checks. The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Path traversal lets injected instructions read secrets or overwrite files outside the intended directory.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Resolve the path and verify it stays inside an allowed root (Path.resolve().is_relative_to(root)).
+
+
+  - id: AG-VULN-003
+    aliases: [AG-CODE-006]
+    version: 2
+    description: A model-controlled value determines the scheme/host of an outbound HTTP request. The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: SSRF reaches internal services and cloud metadata endpoints from the server's network position.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Allowlist hosts, block private/link-local ranges after DNS resolution, and pin the resolved IP.
+
+
+  - id: AG-VULN-004
+    aliases: [AG-CODE-007]
+    version: 2
+    description: A model-controlled value is interpolated into an SQL string that is executed. The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: SQL injection through tool calls exposes or destroys data.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Use parameterized queries.
+
+
+  - id: AG-VULN-005
+    aliases: [AG-CODE-004]
+    version: 2
+    description: A model-controlled value is deserialized with pickle, marshal, unsafe YAML or similar. The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Unsafe deserialization executes code embedded in the data.
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Use JSON or yaml.safe_load.
+
+
+  - id: AG-VULN-007
+    aliases: [AG-CODE-008]
+    version: 2
+    description: A model-controlled value is used as template source (Jinja2 Template, from_string, render_template_string, ejs/handlebars compile). The parameter is also followed into helper functions of the same server (same file, relative, sibling or package imports, and methods through self), up to three helpers deep; installed packages are not followed.
+    why: Server-side template injection usually leads to code execution.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Render fixed templates and pass user input only as data.
+
+  - id: AG-VULN-011
+    variant: predictable-task-id
+    aliases: [AG-MCP-SPEC-001]
+    version: 1
+    title: Predictable task IDs
+    description: Server code builds a task ID from a timestamp, a counter, `Math.random()`, Python's `random` module, `uuid1()` or a list length, next to MCP Tasks code (`ttlMs`, `pollIntervalMs`, a task store, `tasks/get`, `input_required` or a `"task"` resultType) within 15 lines. A line that also uses a cryptographic generator (`randomUUID`, `randomBytes`, `secrets`, `uuid4`, `nanoid`) is not reported.
+    why: The Tasks extension (io.modelcontextprotocol/tasks, 2026-07-28) lets servers use task IDs as bearer tokens for stored state and says they MUST be generated with enough entropy that a third party cannot enumerate or guess them; the 2025-11-25 tasks utility required cryptographically secure IDs wherever tasks are not bound to an authorization context. A guessable ID lets anyone poll another caller's task and read its result, or cancel it.
+    confidence: medium
+    applies_to: [source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        # Assignment to taskId / task_id from a predictable source on the same line.
+        - |-
+          ^(?![^\n]*(?:randomUUID|randomBytes|getRandomValues|secrets\.|uuid4|uuidv4|\bv4\(|nanoid|token_urlsafe|token_hex|\bulid))[^\n]*?\btask_?id\b["']?\s*(?:[:=]|=>)\s*[^\n;]{0,80}?(?:\bDate\.now\(\)|\bnew\s+Date\(\)\.getTime\(\)|\bperformance\.now\(\)|\bMath\.random\(\)|\+\+\s*[A-Za-z_$][\w$.]*|[A-Za-z_$][\w$.]*\s*\+\+|\btime\.time(?:_ns)?\(\)|\bdatetime\.(?:now|utcnow)\(\)|\brandom\.(?:random|randint|randrange|choice|choices|getrandbits)\(|\buuid\.uuid1\(\)|\buuid1\(\)|\bnext\(\s*[A-Za-z_][\w.]*\s*\)|\bitertools\.count\(|\blen\([^)\n]*\)\s*\+\s*1|\.(?:length|size)\s*\+\s*1|\bself\._?(?:counter|next_?id|seq)\b)
+        # "task-" + counter / timestamp in a template, concatenation or f-string.
+        - |-
+          ^(?![^\n]*(?:randomUUID|randomBytes|getRandomValues|secrets\.|uuid4|uuidv4|\bv4\(|nanoid|token_urlsafe|token_hex|\bulid))[^\n]*?[`'"]task[-_:.]?(?:\$\{|["']\s*\+\s*)\s*(?:Date\.now\(\)|new\s+Date\(\)\.getTime\(\)|Math\.random\(\)|performance\.now\(\)|\+\+|[A-Za-z_$][\w$.]*\s*\+\+|[A-Za-z_$][\w$.]*\.(?:length|size)\b)
+        - |-
+          ^(?![^\n]*(?:secrets\.|uuid4|token_urlsafe|token_hex))[^\n]*?\bf["']task[-_:.]?\{\s*(?:int\(\s*)?(?:time\.time(?:_ns)?\(\)|next\(|len\(|self\._?(?:counter|next_?id|seq)\b|random\.|datetime\.)
+      require:
+        - |-
+          \b(?:ttlMs|ttl_ms|pollIntervalMs|poll_interval_ms|pollInterval|CreateTaskResult|TaskStore|taskStore|task_store)\b|tasks/(?:get|update|cancel|result|list)|["']input_required["']|io\.modelcontextprotocol/tasks|resultType["']?\s*:\s*["']task["']
+      window: 15
+    remediation: Generate task IDs with a cryptographic generator (`crypto.randomUUID()`, `secrets.token_urlsafe()`, `uuid.uuid4()`), and check on every tasks/get, tasks/update and tasks/cancel that the caller may access the task.
+    references: ["https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#security-considerations"]
+
+# ---- added: vuln_regex ----
+  - id: AG-VULN-006
+    version: 1
+    description: A tool or script argument decides which file is written - it reaches `open(…, "w")`, `write_text`, `writeFile` or a write stream as the path, with no check that the path stays inside an allowed directory.
+    why: A caller, or text injected into the agent, can overwrite any file the process can reach, including shell start-up files, SSH keys and agent settings.
+    confidence: high
+    applies_to: [script, source_code]
+    match: {type: analyzer, analyzer: code}
+    remediation: Resolve the path, check it is inside the intended directory (`Path.resolve().is_relative_to(base)`), and refuse anything else.
+
+  - id: AG-VULN-008
+    version: 1
+    description: XML from outside is parsed with a parser that resolves external entities or DTDs - `lxml` with default or permissive options, `xml.sax`, `xml.dom`, `resolve_entities=True`, `noent`, `LIBXML_NOENT`.
+    why: An XML document can then read local files, make requests from the server (XXE) or exhaust memory with nested entities.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \b(?:lxml\.)?etree\.(?:parse|fromstring|XML|iterparse)\(|\bfrom\s+lxml\s+import\s+etree\b
+        - |-
+          \bXMLParser\([^)\n]*(?:resolve_entities\s*=\s*True|load_dtd\s*=\s*True|no_network\s*=\s*False|huge_tree\s*=\s*True)
+        - |-
+          \bxml\.sax\.(?:make_parser|parse|parseString)\(|\bxml\.dom\.(?:minidom|pulldom)\.parse(?:String)?\(|\bminidom\.parse(?:String)?\(
+        - |-
+          \bnoent\s*:\s*true\b|\bLIBXML_NOENT\b|\blibxml_disable_entity_loader\(\s*false\s*\)|Nokogiri::XML\([^)\n]*NOENT
+      unless:
+        - |-
+          \b(?:defusedxml|resolve_entities\s*=\s*False|forbid_dtd|forbid_entities)\b
+      window: 40
+    remediation: Parse untrusted XML with `defusedxml`, or turn off entity resolution, DTD loading and network access on the parser.
+
+  - id: AG-VULN-009
+    version: 1
+    description: A temporary file is created with a predictable name or an unsafe call - `tempfile.mktemp`, `os.tempnam`, `mktemp -u`, a fixed path under `/tmp`.
+    why: Another local user or process can create that path first, as a link or with its own content, and have this code read or overwrite the wrong file.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \btempfile\.mktemp\(|\bos\.(?:tempnam|tmpnam)\(|\bmktemp\s+-u\b
+        - |-
+          \bopen\(\s*["']/tmp/[\w.-]+["']\s*,\s*["'][wax]|\b(?:writeFile|writeFileSync|createWriteStream)\(\s*["'`]/tmp/[\w.-]+["'`]
+        - |-
+          (?<![<>=&\d])>\s*/tmp/[\w-]+\.(?:sh|py|json|txt|log|pid|sock|tmp)\b
+      window: 0
+    remediation: Use `tempfile.mkstemp` / `NamedTemporaryFile` / `mkdtemp` (or `mktemp` without `-u`), which create the file atomically with a random name and owner-only permissions.
+
+  - id: AG-VULN-010
+    version: 1
+    description: "TLS certificate checking is switched off - `verify=False`, an unverified SSL context, `rejectUnauthorized: false`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `InsecureSkipVerify: true`, `curl -k`, `wget --no-check-certificate`, `git config http.sslVerify false`."
+    why: Anyone on the network path can read and change the traffic, including the credentials sent with it and the code or instructions that come back.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bverify\s*=\s*False\b|\bssl\._create_unverified_context\b|\bcheck_hostname\s*=\s*False\b|\bssl\.CERT_NONE\b|\bverify_mode\s*=\s*(?:ssl\.)?CERT_NONE\b
+        - |-
+          \brejectUnauthorized\s*:\s*false\b|\bNODE_TLS_REJECT_UNAUTHORIZED["']?\s*\]?\s*=\s*["']?0|\bInsecureSkipVerify\s*:\s*true\b|\bstrict-ssl\s*=?\s*false\b
+        - |-
+          \b(?:curl|wget)\b[^\n|;&]*\s(?:-k\b|--insecure\b|--no-check-certificate\b)
+        - |-
+          \bPYTHONHTTPSVERIFY\s*=\s*0\b|\bGIT_SSL_NO_VERIFY\s*=\s*(?:1|true)\b|\bhttp\.sslVerify\s+false\b|-SkipCertificateCheck\b|VERIFY_NONE\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never|do\s+not|don'?t)\b
+      window: 0
+    fix_action: enable-tls-verification
+    remediation: Remove the option. If the server uses a private certificate authority, add that CA to the trust store instead.
+
+  - id: AG-VULN-012
+    version: 1
+    description: JavaScript merges or assigns properties from outside input onto an object without filtering keys - `obj["__proto__"]`, a deep merge of a request body or parsed JSON, a recursive copy loop with no key check.
+    why: A key named `__proto__`, `constructor` or `prototype` changes the prototype shared by every object, which can flip security checks or lead to code execution.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \[\s*["']__proto__["']\s*\]\s*=|\.__proto__\s*=(?!=)
+        - |-
+          \b(?:_|lodash)\.(?:merge|mergeWith|defaultsDeep|set|setWith)\(\s*[^,\n]+,\s*(?:req\.(?:body|query|params)|JSON\.parse\(|args\b|input\b|params\b|request\.\w+)
+        - |-
+          \bfor\s*\(\s*(?:const|let|var)\s+(\w+)\s+in\s+\w+\s*\)\s*\{?[^}]{0,200}?\[\s*\1\s*\]\s*=\s*[^;\n]*\[\s*\1\s*\]
+      unless:
+        - |-
+          \b(?:__proto__|constructor|prototype)["']\s*(?:===?|!==?|\)|,)|hasOwnProperty|Object\.hasOwn|Object\.create\(null\)
+      window: 8
+    remediation: Skip the keys `__proto__`, `constructor` and `prototype`, copy only own properties, or build the target with `Object.create(null)` / a `Map`.
+
+  - id: AG-VULN-013
+    version: 1
+    description: A regular expression has a quantified group that itself ends in a quantifier (`(a+)+`, `(.*)*`, `(\w+\s?)+`), which can take exponential time on crafted input.
+    why: One long, specially shaped string in a tool argument makes the match run for minutes and blocks the server or the agent's tool call.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          (?:\bre\.(?:compile|match|search|fullmatch|sub|findall|split)\(\s*r?["'][^"'\n]*|\bnew\s+RegExp\(\s*["'`][^"'`\n]*|=\s*/[^/\n]*)\((?:[^()\n\\]|\\.)*[+*]\)[+*]
+      window: 0
+    remediation: Rewrite the pattern so that no quantified group contains another unbounded quantifier, limit the input length, or use a linear-time engine (RE2).
+
+  - id: AG-VULN-015
+    version: 1
+    description: An archive is unpacked without checking where each member lands - `tar.extractall()` with no `filter`, `shutil.unpack_archive`, or a loop that joins member names onto a directory and writes them.
+    why: A member named `../../.ssh/authorized_keys`, or a link pointing outside, writes anywhere the process can (the "zip slip" flaw).
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \b\w*tar\w*\.extractall\((?![^)\n]*\bfilter\s*=)|\bshutil\.unpack_archive\((?![^)\n]*\bfilter\s*=)
+        - |-
+          \bfor\s+\w+\s+in\s+\w+\.(?:namelist|getmembers|infolist|getnames)\(\)[\s\S]{0,240}?\bopen\(\s*os\.path\.join\([^)\n]*\)\s*,\s*["']w
+        - |-
+          \bentry\.(?:path|fileName|name)\b[\s\S]{0,240}?\b(?:createWriteStream|writeFile(?:Sync)?)\(\s*path\.join\(
+      unless:
+        - |-
+          \b(?:commonpath|realpath|is_relative_to|startswith\(|startsWith\(|safe_extract|data_filter|filter\s*=|path\.normalize|\.\.)\b
+      window: 6
+    remediation: On Python 3.12 or later pass `filter="data"`; otherwise resolve each member's target and skip any that leaves the destination or is a link.
+
+  - id: AG-VULN-016
+    version: 1
+    description: A redirect target or callback URL is taken straight from the request - `redirect(request.args["next"])`, `res.redirect(req.query.url)` - with no allow-list.
+    why: A crafted link sends the user, and any authorization code or token on the redirect, to an attacker's site that looks like part of the service.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \b(?:redirect|RedirectResponse|HttpResponseRedirect|res\.redirect|Response\.redirect|reply\.redirect)\(\s*(?:request\.(?:args|GET|query_params|form|params)(?:\.get\(|\[)|req\.(?:query|body|params)\.\w+|params\[|args\[)
+        - |-
+          \b(?:redirect_uri|callback_url|return_url|return_to|next_url)\s*=\s*(?:request\.(?:args|GET|query_params|form)(?:\.get\(|\[)|req\.(?:query|body)\.\w+)[^\n]*\n(?:[^\n]*\n){0,6}?[^\n]*\b(?:redirect|RedirectResponse|res\.redirect)\(\s*(?:redirect_uri|callback_url|return_url|return_to|next_url)\b
+      unless:
+        - |-
+          \b(?:allow(?:ed)?_?(?:hosts?|list|redirects?)|url_has_allowed_host|is_safe_url|startswith\(\s*["']/|validate\w*|whitelist|same[-_]?origin|registered_redirect)\b
+      window: 8
+    remediation: Accept only relative paths or exact URLs from a registered allow-list.
+
+  - id: AG-VULN-017
+    version: 1
+    description: A log or print statement includes the value of a key, token, password or secret, or dumps request headers or the environment.
+    why: Logs are kept, shipped and read far more widely than the secret store. A token in a log is a token anyone with log access can use.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \b(?:print|console\.(?:log|info|debug|warn|error)|logger?\.(?:info|debug|warning|warn|error|log|exception)|logging\.(?:info|debug|warning|error))\s*\(\s*f["'][^"'\n]*\{[^}\n]*(?:api_?key|password|passwd|secret|token|private_?key|authorization)[^}\n]*\}
+        - |-
+          \b(?:print|console\.(?:log|info|debug|warn|error)|logger?\.(?:info|debug|warning|warn|error|log|exception)|logging\.(?:info|debug|warning|error))\s*\([^\n]*(?:,|\+|%)\s*\(?(?:\w+\.)*\w*(?:api_?key|apikey|password|passwd|secret|access_?token|auth_?token|private_?key)\w*\s*\)?\s*\)
+        - |-
+          \b(?:console\.(?:log|info|debug|warn|error)|logger?\.(?:info|debug|warn|error|log))\s*\(\s*`[^`\n]*\$\{[^}\n]*(?:apiKey|api_key|password|secret|token|privateKey|authorization)[^}\n]*\}
+        - |-
+          \b(?:print|console\.(?:log|debug)|logger?\.(?:info|debug)|logging\.(?:info|debug))\s*\(\s*(?:[^\n,]*,\s*)?(?:os\.environ|process\.env|request\.headers|req\.headers|dict\(os\.environ\))\s*\)
+      unless:
+        - |-
+          \[\s*:\s*\d|\[-\d\s*:\]|\bredact\w*|\bmask\w*|\*{3,}|\blen\(|\bbool\(|is\s+not\s+None|!!
+      window: 0
+    remediation: Log that a credential is present, or its last four characters, never the value.
+
+  - id: AG-VULN-018
+    version: 1
+    description: Code checks a file (`os.path.exists`, `os.access`, `fs.existsSync`) and then acts on the same path in a separate step.
+    why: Between the check and the use another process can swap the file or replace it with a link, so the action lands on a different file from the one that was checked.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \bif\s+(?:not\s+)?os\.(?:path\.(?:exists|isfile|isdir)|access)\(\s*(\w+)\b[^\n]*:\s*\n(?:[^\n]*\n){0,2}?[^\n]*\b(?:open|os\.remove|os\.unlink|os\.rename|os\.chmod|shutil\.\w+)\(\s*\1\b
+        - |-
+          \bif\s*\(\s*!?\s*fs\.existsSync\(\s*(\w+)\s*\)\s*\)\s*\{?\s*\n?[^\n]*\bfs\.(?:writeFileSync|unlinkSync|readFileSync|renameSync|chmodSync|rmSync)\(\s*\1\b
+      window: 0
+    remediation: "Open the file directly and handle the error (`try: open(...)`), or use flags such as `O_EXCL` / `O_NOFOLLOW`, instead of checking first."
+
+  - id: AG-VULN-019
+    version: 1
+    description: The code ships with an insecure default - debug mode on, authentication or CSRF protection off, a wildcard host allow-list, a default password or signing secret.
+    why: Whoever runs the server as shipped gets it without the protection, and usually never changes the default.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          \bapp\.run\([^)\n]*\bdebug\s*=\s*True\b|^\s*DEBUG\s*=\s*True\b
+        - |-
+          \b(?:auth_enabled|require_auth|auth_required|AUTH_REQUIRED|AUTH_ENABLED|verify_token|csrf_enabled|CSRF_ENABLED|WTF_CSRF_ENABLED)\s*[:=]\s*(?:False|false|0)\b|\bDANGEROUSLY_OMIT_AUTH\s*=\s*["']?(?:1|true)
+        - |-
+          ^\s*ALLOWED_HOSTS\s*=\s*\[\s*["']\*["']\s*\]
+        - |-
+          \b(?:password|secret_key|SECRET_KEY|jwt_secret|JWT_SECRET|admin_password|ADMIN_PASSWORD)\s*[:=]\s*["'](?:admin|password|changeme|change-me|secret|default|123456|test|letmein)["']
+      window: 0
+    fix_action: secure-default
+    remediation: Ship with debug off and authentication on, read secrets from the environment, and fail to start when a required secret is missing.
+
+# ---- added: vuln014 ----
+  - id: AG-VULN-014
+    version: 1
+    description: "The server declares an input schema for its tools and does not enforce it: a JavaScript low-level `CallToolRequestSchema` handler uses `request.params.arguments` without validating them, or a Python server turns validation off with `call_tool(validate_input=False)`."
+    why: Types, required fields and limits in the schema are then documentation only. The handler receives whatever the caller sends, and every assumption it makes about its input can be broken.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Validate the arguments against the declared schema before using them (zod, ajv, or the high-level server API, which does it for you).

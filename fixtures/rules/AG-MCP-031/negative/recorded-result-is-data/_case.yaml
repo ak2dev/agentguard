@@ -1,0 +1,12 @@
+{
+  "facts": {
+    "tool_results": {
+      "notes": [
+        {
+          "tool": "get_note",
+          "text": "Note 12: buy milk."
+        }
+      ]
+    }
+  }
+}

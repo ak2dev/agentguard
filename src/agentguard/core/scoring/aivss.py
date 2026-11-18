@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ..models import Component, Finding, RuleDef, Score
+from ..models import Component, Detector, Finding, Score
 from ..models.enums import CapLabel, Confidence, Severity
 
 THREAT = {"attacked": 1.0, "poc": 0.97, "unreported": 0.5}
@@ -46,14 +46,14 @@ class Scorer(Protocol):
     name: str
     version: str
 
-    def score(self, finding: Finding, rule: RuleDef, components: list[Component]) -> Score: ...
+    def score(self, finding: Finding, rule: Detector, components: list[Component]) -> Score: ...
 
 
 class AivssV08Scorer:
     name = "aivss"
     version = "0.8"
 
-    def score(self, finding: Finding, rule: RuleDef, components: list[Component]) -> Score:
+    def score(self, finding: Finding, rule: Detector, components: list[Component]) -> Score:
         if finding.severity == Severity.info:
             return Score(scorer=self.name, scorer_version=self.version, value=0.0, vector="",
                          components={"cvss_base": 0.0, "cvss_base_source": 0.0})

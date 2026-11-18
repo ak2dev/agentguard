@@ -1,0 +1,13 @@
+{
+  "lock_version": 2,
+  "artifacts": [
+    {
+      "id": "mcp:acme",
+      "type": "mcp-server",
+      "name": "acme",
+      "tools": {
+        "get_report": "3ea32b9f139bee2fbc4612f9154d88c0784f8112a9712b5bdf2bb4f61220b2c3"
+      }
+    }
+  ]
+}

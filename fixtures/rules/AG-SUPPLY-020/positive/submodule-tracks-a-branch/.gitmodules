@@ -1,0 +1,4 @@
+[submodule "vendor/parser"]
+	path = vendor/parser
+	url = https://github.com/example-org/parser.git
+	branch = main

@@ -1,0 +1,1 @@
+{ tools: { profile: "full" }, agents: { defaults: { sandbox: { mode: "non-main" } } } }

@@ -1,0 +1,1 @@
+{ skills: { entries: { "image-gen": { enabled: true, apiKey: "${IMAGE_GEN_KEY}" } } } }

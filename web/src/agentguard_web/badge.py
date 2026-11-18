@@ -18,7 +18,7 @@ _PAD = 10
 
 
 def _short_ref(report: Report) -> str:
-    t = report.target
+    t = report.target.ref
     resolved = str(getattr(t, "resolved", "") or "")
     kind = getattr(getattr(t, "kind", None), "value", "")
     if kind in ("github", "gist"):

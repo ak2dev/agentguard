@@ -1,0 +1,8 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "dependencies": [
+    "shared-config"
+  ]
+}

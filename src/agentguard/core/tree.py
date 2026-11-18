@@ -85,6 +85,11 @@ class ArtifactTree:
     display_root: str = ""
     # Some inputs carry out-of-band metadata (e.g. discovered config scope).
     hints: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Running byte count for the limit check in `add` (summing every blob per file is quadratic on large trees).
+    _bytes: int = field(default=0, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        self._bytes = sum(b.size for b in self.files.values())
 
     # -- construction -------------------------------------------------------
     def add(self, path: str, data: bytes, limits: LoadLimits) -> bool:
@@ -96,13 +101,15 @@ class ArtifactTree:
                 LimitEvent(kind="too_large", path=path, detail=f"{len(data)} bytes > {limits.max_file_bytes}")
             )
             return False
-        if self.total_bytes + len(data) > limits.max_total_bytes:
+        if self._bytes + len(data) > limits.max_total_bytes:
             self.limit_events.append(LimitEvent(kind="total_bytes_exceeded", path=path))
             return False
         if path.count("/") >= limits.max_depth:
             self.limit_events.append(LimitEvent(kind="too_deep", path=path))
             return False
+        previous = self.files.get(path)
         self.files[path] = FileBlob.of(path, data)
+        self._bytes += len(data) - (previous.size if previous is not None else 0)
         return True
 
     @classmethod

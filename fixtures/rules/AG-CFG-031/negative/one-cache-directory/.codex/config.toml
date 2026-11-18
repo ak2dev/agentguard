@@ -1,0 +1,3 @@
+[sandbox_workspace_write]
+network_access = false
+writable_roots = ["./.cache"]

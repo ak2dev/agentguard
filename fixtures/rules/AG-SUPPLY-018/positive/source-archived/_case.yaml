@@ -1,0 +1,9 @@
+{
+  "facts": {
+    "sources": {
+      "https://github.com/example-org/csv-tool": {
+        "archived": true
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+[mcp_servers.docs]
+url = "https://mcp.example.invalid/mcp"
+http_headers_helper = "./tools/headers.sh"

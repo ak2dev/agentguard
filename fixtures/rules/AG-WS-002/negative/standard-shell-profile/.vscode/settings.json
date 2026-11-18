@@ -1,0 +1,8 @@
+{
+  "terminal.integrated.profiles.linux": {
+    "zsh": {
+      "path": "/bin/zsh"
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "zsh"
+}

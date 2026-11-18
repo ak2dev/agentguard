@@ -13,6 +13,7 @@ The single exception is the hardened ``git`` invocation used by PR mode
 from __future__ import annotations
 
 import contextlib
+import subprocess
 import sys
 import threading
 from collections.abc import Iterator, Sequence
@@ -38,12 +39,24 @@ class ExecutionBlocked(RuntimeError):
     pass
 
 
+def _same_command(seen: object, allowed: Sequence[str]) -> bool:
+    """Whether the command about to start is exactly the permitted one. On Windows `subprocess` has already
+    joined the arguments into one command line when it raises the audit event, so the permitted list is
+    joined the same way and the two strings must be equal."""
+    if isinstance(seen, str):
+        return seen == subprocess.list2cmdline(list(allowed))
+    try:
+        return list(seen) == list(allowed)          # type: ignore[call-overload]
+    except TypeError:
+        return False
+
+
 def _hook(event: str, args: tuple) -> None:
     if event not in _BLOCKED_EVENTS:
         return
     allowed: Sequence[str] | None = getattr(_state, "allowed_argv", None)
     if allowed is not None:
-        if event == "subprocess.Popen" and len(args) > 1 and list(args[1]) == list(allowed):
+        if event == "subprocess.Popen" and len(args) > 1 and _same_command(args[1], allowed):
             _state.popen_ok = True
             return
         if event in ("_winapi.CreateProcess", "os.posix_spawn") and getattr(_state, "popen_ok", False):

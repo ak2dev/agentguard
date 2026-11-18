@@ -1,0 +1,20 @@
+name: triage
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            Triage this issue and apply labels.
+            Title: ${{ github.event.issue.title }}
+            Body: ${{ github.event.issue.body }}
+          claude_args: --allowedTools Bash
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

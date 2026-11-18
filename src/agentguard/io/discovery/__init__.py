@@ -73,6 +73,7 @@ def discover(
     limits: LoadLimits | None = None,
     home: Path | None = None,
     locations: list[Location] | None = None,
+    extra_projects: list[Path] | None = None,
 ) -> Discovery:
     limits = limits or LoadLimits()
     home = home or Path.home()
@@ -101,20 +102,34 @@ def discover(
             if exists and vpath not in seen:
                 seen.add(vpath)
                 load(loc.path, vpath, {"client": loc.client, "scope": loc.scope})
-    if project is not None:
-        root = project.resolve()
-        for rel, client, kind, verified in PROJECT_PATTERNS:
+    def load_project(root: Path, prefix: str) -> None:
+        """The agent-facing files of one project directory; ``prefix`` keeps several projects apart."""
+        for rel, client, kind, verified, note in PROJECT_PATTERNS:
             p = root / rel
             exists = p.exists()
-            records.append(DiscoveryRecord(client, "project", kind, rel, exists, verified))
-            if exists and rel not in seen:
-                seen.add(rel)
-                load(p, rel, {"client": client, "scope": "project"})
+            vrel = f"{prefix}/{rel}" if prefix else rel
+            records.append(DiscoveryRecord(client, "project", kind, vrel, exists, verified, note))
+            if exists and vrel not in seen:
+                seen.add(vrel)
+                load(p, vrel, {"client": client, "scope": "project"})
         # Skills anywhere in the project (Codex/OpenClaw/custom layouts).
         for skill_md in _find_skill_files(root, set(limits.excluded_dirs), limits.max_depth):
             rel_dir = skill_md.parent.relative_to(root).as_posix()
-            if any(rel_dir == s or rel_dir.startswith(s + "/") for s in seen):
+            vdir = f"{prefix}/{rel_dir}" if prefix and rel_dir != "." else (prefix or rel_dir)
+            if any(vdir == s or vdir.startswith(s + "/") for s in seen):
                 continue
-            seen.add(rel_dir)
-            load(skill_md.parent, rel_dir, {"client": "generic", "scope": "project"})
+            seen.add(vdir)
+            load(skill_md.parent, vdir, {"client": "generic", "scope": "project"})
+
+    if project is not None:
+        load_project(project.resolve(), "")
+    here = project.resolve() if project is not None else None
+    for extra in extra_projects or []:
+        try:
+            root = extra.resolve()
+        except OSError:
+            continue
+        if root == here or not root.is_dir():
+            continue
+        load_project(root, _virtual(root, home))
     return Discovery(tree=tree, records=records)

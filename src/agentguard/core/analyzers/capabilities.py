@@ -1,6 +1,6 @@
 """Capability evidence (labels for the toxic-flow graph) from skills,
 instruction files and bundled scripts, plus the deterministic
-description/behavior mismatch rule (AG-SKL-MIS-001)."""
+description/behavior mismatch rule (AG-META-004)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from .heuristics import (
     finditer,
     search,
 )
+from .regex_rules import is_quoted
 
 # Content sources: unambiguous on their own, or a generic noun ("messages",
 # "issues", "PDFs") only when the skill acts on it ("summarize the issues",
@@ -60,7 +61,7 @@ _SECRET_WORDS = regex.compile(
 class CapabilityAnalyzer:
     id: ClassVar[str] = "capabilities"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-MIS-001",)
+    rules: ClassVar[tuple[str, ...]] = ("AG-META-004",)
 
     def run(self, ctx: Context) -> None:
         for at in ctx.texts():
@@ -68,6 +69,9 @@ class CapabilityAnalyzer:
             cid = at.artifact.component_id
             comp = ctx.inventory.components.get(cid)
             if comp is None or comp.kind == ComponentKind.mcp_client_config:
+                continue
+            # Files of the catch-all are not agent-run code or agent instructions: they carry no capability.
+            if role in (ArtifactRole.repo_code, ArtifactRole.repo_doc):
                 continue
             code = role in (ArtifactRole.script, ArtifactRole.source_code)
             for unit in at.units:
@@ -117,9 +121,11 @@ class CapabilityAnalyzer:
                 for m in finditer(DESTRUCTIVE, t)[:2]:
                     cap(CapLabel.destructive, m, "destructive operation")
                 if role in (ArtifactRole.skill_md, ArtifactRole.instruction_md) and unit.scope == "body":
-                    m = search(_UNTRUSTED_SOURCES, t)
-                    if m:
+                    for m in finditer(_UNTRUSTED_SOURCES, t)[:8]:
+                        if _not_the_agent(t, m):
+                            continue
                         cap(CapLabel.ingests_untrusted_content, m, "processes external/untrusted content", Confidence.medium)
+                        break
         self._mismatch(ctx)
 
     def _mismatch(self, ctx: Context) -> None:
@@ -142,7 +148,8 @@ class CapabilityAnalyzer:
                 if cap.label == CapLabel.external_egress and not search(_NETWORK_WORDS, declared):
                     issues.append(("makes network requests", cap))
                 elif (cap.label == CapLabel.credential_access
-                      and any(e.detail in _HARVEST_REASONS for e in cap.evidence)
+                      and any(e.detail in _HARVEST_REASONS and not _names_its_tool(str(e.snippet), declared)
+                              for e in cap.evidence)
                       and not search(_SECRET_WORDS, declared)):
                     issues.append(("reads credentials or dumps the environment", cap))
                 elif cap.label == CapLabel.persistence and not regex.search(
@@ -155,12 +162,43 @@ class CapabilityAnalyzer:
                 seen.add(what)
                 ev = next(e for e in cap.evidence  # type: ignore[attr-defined]
                           if e.location and _is_script(ctx, e.location.path))
-                ctx.emit("AG-SKL-MIS-001", component_ids=comp.id, span=ev.location, snippet=str(ev.snippet),
+                ctx.emit("AG-META-004", component_ids=comp.id, span=ev.location, snippet=str(ev.snippet),
                          match=f"{what}", kind=EvidenceKind.metadata,
                          message=f"Description (\"{desc[:80]}\") does not mention it, but a bundled script {what}.")
 
 
 _HARVEST_REASONS = {"dumps the environment", "reads a credential store"}
+
+# A tool's own configuration file, and the words by which a description names that tool. A skill that
+# says it lists Kubernetes contexts has declared that it reads the kube config; the same file read by a
+# "format my notes" skill has not. Key files and token stores are not here: naming SSH does not declare
+# reading a private key.
+_TOOL_CONFIG = (
+    (regex.compile(r"\.kube\b"), regex.compile(r"(?i)\b(?:kube(?:rnetes|ctl|config)?|k8s|helm)\b")),
+    (regex.compile(r"\.ssh[/\\]config\b"), regex.compile(r"(?i)\bssh\b")),
+    (regex.compile(r"\.aws[/\\]config\b"), regex.compile(r"(?i)\b(?:aws|amazon\s+web\s+services)\b")),
+    (regex.compile(r"\.docker[/\\]config\.json\b"), regex.compile(r"(?i)\bdocker\b")),
+    (regex.compile(r"\.config[/\\]gcloud\b"), regex.compile(r"(?i)\b(?:gcloud|google\s+cloud|gcp)\b")),
+)
+
+
+def _names_its_tool(line: str, declared: str) -> bool:
+    return any(path.search(line) and words.search(declared) for path, words in _TOOL_CONFIG)
+
+
+_USER_DOES_IT = regex.compile(r"(?i)\b(?:users?|you|they|them|customers?|people|someone)\s+(?:(?:to|can|could|should|must|will|may|might|then)\s+){0,2}$")
+
+
+def _not_the_agent(text: str, m: regex.Match[str]) -> bool:
+    """A phrase that reads like the skill taking in outside content but is not the agent doing so: a quoted
+    example ("Extract text from PDF" in a list of sample prompts), or something the user is asked to do
+    ("ask the user to open the URL")."""
+    start = text.rfind("\n", 0, m.start()) + 1
+    end = text.find("\n", m.end())
+    line = text[start: end if end >= 0 else len(text)]
+    if is_quoted(line, m.start() - start, m.end() - start):
+        return True
+    return bool(_USER_DOES_IT.search(text[max(start, m.start() - 60): m.start()]))
 
 
 def _is_script(ctx: Context, path: str) -> bool:

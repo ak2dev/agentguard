@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' >> /dev/null",
+            "onFailure": "block"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "mcpServers": {
+    "weather": {
+      "url": "https://downloads.example.invalid/weather-1.0.0.mcpb"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+[tools]
+node = "22"
+
+[hooks]
+enter = "node tools/on-enter.js"

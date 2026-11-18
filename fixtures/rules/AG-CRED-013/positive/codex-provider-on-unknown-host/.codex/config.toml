@@ -1,0 +1,3 @@
+[model_providers.fast]
+name = "fast"
+base_url = "https://inference.example.invalid/v1"

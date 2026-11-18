@@ -1,9 +1,45 @@
 # Agent Guard's own configuration (dogfooding). The fixtures and benchmark
 # corpus are deliberately malicious samples, so they are excluded here and
-# exercised by the test suite instead.
+# exercised by the test suite instead. So are the fixture definitions
+# (scripts/fixtures_catalog) and the site's generated rule catalogue
+# (site/src/data/generated), which quote those samples.
+#
+# The suppressions below cover the remaining files that hold a sample, a
+# detection pattern or a decoy on purpose. Each is limited to its path.
 version: 1
 fail_on: high
 exclude:
   - fixtures
   - bench
   - tests
+  - fixtures_catalog
+  - generated
+suppressions:
+  - path_glob: "scripts/bootstrap_fixtures_*.py"
+    reason: Fixture generators; the unsafe samples they write are the point of them.
+    expires: 2027-11-30
+  - path_glob: "scripts/make_sample_feed.py"
+    reason: Writes the synthetic sample indicator feed (a reserved .invalid domain and a documentation IP range).
+    expires: 2027-11-30
+  - path_glob: "intel/sample-feed.json"
+    reason: The synthetic sample indicator feed; its entries exist to be matched.
+    expires: 2027-11-30
+  - path_glob: "rules/*.yaml"
+    reason: Rule definitions describe and quote the text they detect.
+    expires: 2027-11-30
+  - rule_id: AG-CRED-001
+    path_glob: "src/agentguard/sandbox/honey.py"
+    reason: Decoy credentials planted in the sandbox; a decoy that leaves the container is how exfiltration is detected.
+    expires: 2027-11-30
+  - rule_id: AG-IMG-005
+    path_glob: "src/agentguard/sandbox/image/Dockerfile"
+    reason: The harness starts as root to route traffic to the sinkhole, then runs the target as uid 1000 with no capabilities.
+    expires: 2027-11-30
+  - rule_id: AG-OBF-010
+    path_glob: "src/agentguard/core/normalize/assembly.py"
+    reason: The de-obfuscation pass documents the evasion techniques it undoes, with examples.
+    expires: 2027-11-30
+  - rule_id: AG-OBF-012
+    path_glob: "src/agentguard/core/normalize/assembly.py"
+    reason: The de-obfuscation pass documents the evasion techniques it undoes, with examples.
+    expires: 2027-11-30

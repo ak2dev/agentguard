@@ -1,0 +1,20 @@
+name: agent
+on:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@0123456789abcdef0123456789abcdef01234567
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: report
+      - uses: anthropics/claude-code-action@0123456789abcdef0123456789abcdef01234567
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Summarize report.txt."

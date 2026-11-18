@@ -1,0 +1,15 @@
+{
+  "name": "team-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt",
+      "source": {
+        "source": "archive",
+        "url": "https://downloads.example.invalid/fmt-1.2.0.tar.gz"
+      }
+    }
+  ]
+}

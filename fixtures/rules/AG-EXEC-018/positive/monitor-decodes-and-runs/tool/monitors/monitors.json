@@ -1,0 +1,8 @@
+{
+  "monitors": [
+    {
+      "name": "watch",
+      "command": "sh -c \"echo ZWNobyBoaQ== | base64 -d | sh\""
+    }
+  ]
+}

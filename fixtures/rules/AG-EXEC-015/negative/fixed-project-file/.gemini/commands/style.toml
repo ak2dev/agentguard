@@ -1,0 +1,5 @@
+description = "Summarize the staged changes."
+prompt = """
+Follow this guide:
+@{docs/style.md}
+"""

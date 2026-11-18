@@ -103,11 +103,11 @@ def test_remote_mcp_server_is_probed_read_only_and_scanned():
     job = run_job(client, pipeline, body={"input": "https://mcp.example.invalid/mcp"})
     assert job["status"] == "done", job
     report = client.get(f"/api/reports/{job['report_key']}").json()
-    assert report["target"]["kind"] == "remote_mcp" and report["target"]["resolved"].startswith("sha256:")
+    assert report["target"]["kind"] == "remote_mcp" and report["target"]["commit"].startswith("sha256:")
     assert set(report["network_features_used"]) == {"live_metadata", "auth_checks"}
     assert report["network_hosts"] == ["mcp.example.invalid"]
-    rules = {f["rule_id"] for f in report["findings"]}
-    assert {"AG-MCP-META-002", "AG-MCP-META-003"} <= rules
+    rules = {f["id"] for f in report["findings"]}
+    assert {"AG-MCP-020", "AG-MCP-024"} <= rules
     methods = {m for s in servers for m in s.methods}
     assert "tools/call" not in methods and {"initialize", "tools/list"} <= methods
     # Within the cache window the same URL is served from the last report without probing again.
@@ -196,7 +196,7 @@ def test_rescan_with_same_rules_is_cached_and_with_new_rules_scans_again():
     # A report made with an older rule pack: rescanning produces a new report, and a diff.
     old = store.get(first["report_key"])
     doc = json.loads(old.report_json)
-    doc["rule_pack"]["digest"] = "0" * 64
+    doc["tool"]["rule_pack_digest"] = "0" * 64
     store.put(old.model_copy(update={"key": "c" * 32, "report_json": json.dumps(doc),
                                      "scanned_at": old.scanned_at.replace(year=2025)}))
     store._d.pop(first["report_key"])  # noqa: SLF001 - pretend only the old report exists

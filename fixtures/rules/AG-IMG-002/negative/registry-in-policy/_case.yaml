@@ -1,0 +1,9 @@
+{
+  "policy": {
+    "allow": {
+      "registries": [
+        "ghcr.io/acme"
+      ]
+    }
+  }
+}

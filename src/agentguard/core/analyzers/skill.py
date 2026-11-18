@@ -25,7 +25,7 @@ from .heuristics import (
 )
 
 SPEC_FIELDS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
-# Known platform extensions (Claude Code; see docs/sources.md). Others → AG-SKL-SPEC-005.
+# Known platform extensions (Claude Code; see docs/sources.md). Others → AG-META-006.
 PLATFORM_FIELDS = {
     "when_to_use", "argument-hint", "arguments", "disable-model-invocation", "user-invocable",
     "disallowed-tools", "model", "effort", "context", "agent", "background", "hooks", "paths", "shell",
@@ -60,7 +60,10 @@ def _fm_line(at: ArtifactText, key: str) -> str:
 class SkillSpecAnalyzer:
     id: ClassVar[str] = "skill.spec"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = tuple(f"AG-SKL-SPEC-00{i}" for i in range(1, 8))
+    rules: ClassVar[tuple[str, ...]] = (
+        "AG-META-005/missing-required", "AG-META-005/bad-name", "AG-META-005/dir-mismatch", "AG-META-005/over-length",
+        "AG-META-005/frontmatter-anomaly", "AG-META-006", "AG-INJ-023/markup",
+    )
 
     def run(self, ctx: Context) -> None:
         for at in _skill_md(ctx):
@@ -68,21 +71,21 @@ class SkillSpecAnalyzer:
             comp = ctx.inventory.components[cid]
             fm = at.fm
             if fm is None or not fm.has_frontmatter:
-                ctx.emit("AG-SKL-SPEC-001", component_ids=cid, span=Span(path=at.path), snippet=at.text[:120],
+                ctx.emit("AG-META-005/missing-required", component_ids=cid, span=Span(path=at.path), snippet=at.text[:120],
                          kind=EvidenceKind.schema, detail="SKILL.md has no YAML frontmatter",
                          message="SKILL.md has no YAML frontmatter, so required 'name' and 'description' are missing.")
                 if fm and fm.error:
-                    ctx.emit("AG-SKL-SPEC-007", component_ids=cid, span=Span(path=at.path), snippet="", match="unterminated",
+                    ctx.emit("AG-META-005/frontmatter-anomaly", component_ids=cid, span=Span(path=at.path), snippet="", match="unterminated",
                              kind=EvidenceKind.schema, detail=fm.error, message=f"Frontmatter anomaly: {fm.error}.")
                 continue
             if fm.error:
-                ctx.emit("AG-SKL-SPEC-007", component_ids=cid, span=_fm_span(at), snippet=fm.raw[:200], match=fm.error,
+                ctx.emit("AG-META-005/frontmatter-anomaly", component_ids=cid, span=_fm_span(at), snippet=fm.raw[:200], match=fm.error,
                          kind=EvidenceKind.schema, detail=fm.error, message=f"Frontmatter could not be loaded safely: {fm.error}.")
             for anomaly in fm.anomalies:
-                ctx.emit("AG-SKL-SPEC-007", component_ids=cid, span=Span(path=at.path), snippet="", match=anomaly,
+                ctx.emit("AG-META-005/frontmatter-anomaly", component_ids=cid, span=Span(path=at.path), snippet="", match=anomaly,
                          kind=EvidenceKind.schema, detail=anomaly, message=f"Frontmatter anomaly: {anomaly}.")
             for key, line in fm.duplicate_keys:
-                ctx.emit("AG-SKL-SPEC-007", component_ids=cid, span=Span(path=at.path, start_line=line + 1),
+                ctx.emit("AG-META-005/frontmatter-anomaly", component_ids=cid, span=Span(path=at.path, start_line=line + 1),
                          snippet=f"{key}: …", match=f"dup:{key}", kind=EvidenceKind.schema,
                          detail=f"duplicate key '{key}'",
                          message=f"Frontmatter key '{key}' appears more than once; most loaders keep the last value, "
@@ -91,46 +94,46 @@ class SkillSpecAnalyzer:
             for req in ("name", "description"):
                 v = data.get(req)
                 if not isinstance(v, str) or not v.strip():
-                    ctx.emit("AG-SKL-SPEC-001", component_ids=cid, span=_fm_span(at, req), snippet=_fm_line(at, req),
+                    ctx.emit("AG-META-005/missing-required", component_ids=cid, span=_fm_span(at, req), snippet=_fm_line(at, req),
                              match=req, kind=EvidenceKind.schema, detail=f"'{req}' missing or empty",
                              message=f"Required frontmatter field '{req}' is missing or empty.")
             name = data.get("name")
             if isinstance(name, str) and name:
                 if len(name) > 64 or not _NAME_RE.match(name):
-                    ctx.emit("AG-SKL-SPEC-002", component_ids=cid, span=_fm_span(at, "name"), snippet=_fm_line(at, "name"),
+                    ctx.emit("AG-META-005/bad-name", component_ids=cid, span=_fm_span(at, "name"), snippet=_fm_line(at, "name"),
                              match=name, kind=EvidenceKind.schema,
                              detail="1-64 chars of a-z, 0-9 and single hyphens, not starting/ending with '-'",
                              message=f"Skill name '{name[:64]}' does not follow the Agent Skills naming rules.")
                 parent = posixpath.basename(comp.root)
                 if parent and parent != name:
-                    ctx.emit("AG-SKL-SPEC-003", component_ids=cid, span=_fm_span(at, "name"), snippet=_fm_line(at, "name"),
+                    ctx.emit("AG-META-005/dir-mismatch", component_ids=cid, span=_fm_span(at, "name"), snippet=_fm_line(at, "name"),
                              match=f"{name}|{parent}", kind=EvidenceKind.schema,
                              message=f"Skill name '{name[:64]}' does not match its directory '{parent}'.")
             desc = data.get("description")
             if isinstance(desc, str) and len(desc) > 1024:
-                ctx.emit("AG-SKL-SPEC-004", component_ids=cid, span=_fm_span(at, "description"), snippet=desc[:160],
+                ctx.emit("AG-META-005/over-length", component_ids=cid, span=_fm_span(at, "description"), snippet=desc[:160],
                          match="description-length", kind=EvidenceKind.schema, detail=f"{len(desc)} characters (max 1024)",
                          message=f"Description is {len(desc)} characters; the spec allows at most 1024.")
             compat = data.get("compatibility")
             if isinstance(compat, str) and len(compat) > 500:
-                ctx.emit("AG-SKL-SPEC-004", component_ids=cid, span=_fm_span(at, "compatibility"), snippet=compat[:160],
+                ctx.emit("AG-META-005/over-length", component_ids=cid, span=_fm_span(at, "compatibility"), snippet=compat[:160],
                          match="compatibility-length", kind=EvidenceKind.schema, detail=f"{len(compat)} characters (max 500)",
                          message=f"'compatibility' is {len(compat)} characters; the spec allows at most 500.")
             for key in sorted(data):
                 if str(key) not in SPEC_FIELDS | PLATFORM_FIELDS:
-                    ctx.emit("AG-SKL-SPEC-005", component_ids=cid, span=_fm_span(at, str(key)), snippet=_fm_line(at, str(key)),
+                    ctx.emit("AG-META-006", component_ids=cid, span=_fm_span(at, str(key)), snippet=_fm_line(at, str(key)),
                              match=str(key), kind=EvidenceKind.schema,
                              message=f"Unexpected frontmatter key '{str(key)[:64]}' (not in the Agent Skills spec or a known platform extension).")
             meta = data.get("metadata")
             if meta is not None and (not isinstance(meta, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in meta.items())):
-                ctx.emit("AG-SKL-SPEC-007", component_ids=cid, span=_fm_span(at, "metadata"), snippet=_fm_line(at, "metadata"),
+                ctx.emit("AG-META-005/frontmatter-anomaly", component_ids=cid, span=_fm_span(at, "metadata"), snippet=_fm_line(at, "metadata"),
                          match="metadata-types", kind=EvidenceKind.schema,
                          message="'metadata' must map string keys to string values.")
             for key, value in data.items():
                 for text in _strings(value):
                     m = search(_MARKUP, normalize(text).text)
                     if m:
-                        ctx.emit("AG-SKL-SPEC-006", component_ids=cid, span=_fm_span(at, str(key)), snippet=text[:200],
+                        ctx.emit("AG-INJ-023/markup", component_ids=cid, span=_fm_span(at, str(key)), snippet=text[:200],
                                  match=m.group(0).lower(), kind=EvidenceKind.schema,
                                  message=f"Frontmatter field '{str(key)[:40]}' contains markup or role/control tokens; "
                                          "frontmatter is loaded into every session.")
@@ -186,7 +189,7 @@ class SkillExecAnalyzer:
 
     id: ClassVar[str] = "skill.exec"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-EXEC-001", "AG-SKL-EXEC-002", "AG-SKL-EXEC-003")
+    rules: ClassVar[tuple[str, ...]] = ("AG-EXEC-005/any-command", "AG-PRIV-004/registers-hooks", "AG-EXEC-005")
 
     def run(self, ctx: Context) -> None:
         from ..artifacts import TextUnit  # local import avoids a cycle
@@ -197,7 +200,7 @@ class SkillExecAnalyzer:
             for b in at.bang:
                 span = at.span(b.command_start, b.command_start + len(b.command))
                 readonly = bool(_READONLY_CMD.match(b.command.strip()))
-                ctx.emit("AG-SKL-EXEC-001", component_ids=cid, span=span, snippet=b.command, match=b.command,
+                ctx.emit("AG-EXEC-005/any-command", component_ids=cid, span=span, snippet=b.command, match=b.command,
                          kind=EvidenceKind.metadata, detail=f"{b.form} dynamic context injection",
                          severity=Severity.low if readonly else None,
                          message="Shell command runs when the skill is invoked, before the model sees the skill"
@@ -208,7 +211,7 @@ class SkillExecAnalyzer:
             data = at.fm.data if at.fm else None
             for cmd in hook_commands(data):
                 span = _fm_span(at, "hooks")
-                ctx.emit("AG-SKL-EXEC-002", component_ids=cid, span=span, snippet=cmd, match=cmd,
+                ctx.emit("AG-PRIV-004/registers-hooks", component_ids=cid, span=span, snippet=cmd, match=cmd,
                          kind=EvidenceKind.metadata, message="Skill registers a hook that runs a shell command for the rest of the session.")
                 self._dangerous(ctx, cid, span, cmd)
                 ctx.add_capability(cid, CapLabel.code_exec, confidence=Confidence.high, span=span, snippet=cmd,
@@ -224,13 +227,19 @@ class SkillExecAnalyzer:
         cred = search(CREDENTIAL_PATH, text)
         if fetch or cred:
             what = "fetches from the network" if fetch else "reads credential files"
-            ctx.emit("AG-SKL-EXEC-003", component_ids=cid, span=span, snippet=cmd, match=cmd,
+            ctx.emit("AG-EXEC-005", component_ids=cid, span=span, snippet=cmd, match=cmd,
                      kind=EvidenceKind.metadata, message=f"Command that runs at invocation {what}.")
 
 
+# An interpreter grant is unrestricted when it names no script (``Bash(python3:*)``) or passes code or a module on
+# the command line (``Bash(node -e:*)``, ``Bash(python3 -m:*)``); ``Bash(python3 scripts/run.py:*)`` runs one file.
+_INTERPRETER = (r"(?:sh|bash|zsh|dash|ksh|fish|python[23]?(?:\.\d+)?|py|node|nodejs|deno|bun|perl|ruby|php|pwsh|"
+                r"powershell|osascript|lua|cmd)(?:\.exe)?")
 _UNRESTRICTED_TOOL = regex.compile(
     r"^(?:\*|Bash|PowerShell|Shell|Bash\(\s*\*?\s*(?::\s*\*)?\s*\)|Bash\(\s*\*\s+\*\s*\)|"
-    r"Bash\(\s*(?:sh|bash|zsh|python3?|node|perl|ruby|pwsh|powershell|env|eval|sudo|xargs)\b[^)]*\))$",
+    r"Bash\(\s*(?:env|eval|exec|sudo|doas|su|xargs|nohup|nice|time|watch)\b[^)]*\)|"
+    rf"Bash\(\s*{_INTERPRETER}\s*(?::\s*\*|\*)?\s*\)|"
+    rf"Bash\(\s*{_INTERPRETER}\s+(?:-|/c\b|<)[^)]*\))$",
     regex.IGNORECASE,
 )
 _SIDE_EFFECT_TOOL = regex.compile(r"^(?:Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|WebFetch|Shell)\b", regex.IGNORECASE)
@@ -273,7 +282,7 @@ def parse_allowed_tools(value: Any) -> list[str]:
 class SkillPrivilegeAnalyzer:
     id: ClassVar[str] = "skill.privilege"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-PRIV-001", "AG-SKL-PRIV-002")
+    rules: ClassVar[tuple[str, ...]] = ("AG-PRIV-001", "AG-PRIV-002")
 
     def run(self, ctx: Context) -> None:
         for at in ctx.texts("skill_md", "instruction_md"):
@@ -286,20 +295,22 @@ class SkillPrivilegeAnalyzer:
             line = _fm_line(at, "allowed-tools")
             unrestricted = [t for t in tools if _UNRESTRICTED_TOOL.match(t)]
             if unrestricted:
-                ctx.emit("AG-SKL-PRIV-001", component_ids=cid, span=span, snippet=line, match=",".join(unrestricted),
+                ctx.emit("AG-PRIV-001", component_ids=cid, span=span, snippet=line, match=",".join(unrestricted),
                          kind=EvidenceKind.metadata,
                          message=f"allowed-tools pre-approves unrestricted shell ({', '.join(unrestricted[:3])}); "
                                  "commands run without a permission prompt.")
                 ctx.add_capability(cid, CapLabel.auto_approved, confidence=Confidence.high, span=span, snippet=line,
                                    reason="unrestricted shell pre-approved", kind=EvidenceKind.metadata)
-                ctx.add_capability(cid, CapLabel.code_exec, confidence=Confidence.medium, span=span, snippet=line,
-                                   reason="shell pre-approved", kind=EvidenceKind.metadata)
+                # What the grant allows, not what the skill was seen to do: declared, so the least-privilege
+                # proposal (engine J) is computed from behaviour and does not keep the grant it is meant to narrow.
+                ctx.add_capability(cid, CapLabel.code_exec, observed=False, declared=True, confidence=Confidence.medium,
+                                   span=span, snippet=line, reason="shell pre-approved", kind=EvidenceKind.metadata)
             desc = str(data.get("description") or "")
             web_purpose = bool(search(_WEB_PURPOSE, desc))
             side = [t for t in tools
                     if _SIDE_EFFECT_TOOL.match(t) and not (web_purpose and t.lower().startswith("webfetch"))]
             if side and search(_READONLY_PURPOSE, desc) and not search(_ACTIVE_PURPOSE, desc):
-                ctx.emit("AG-SKL-PRIV-002", component_ids=cid, span=span, snippet=line, match=",".join(side),
+                ctx.emit("AG-PRIV-002", component_ids=cid, span=span, snippet=line, match=",".join(side),
                          kind=EvidenceKind.metadata,
                          message=f"The description reads as read-only, but allowed-tools pre-approves {', '.join(side[:4])}.")
             for t in tools:
@@ -312,7 +323,7 @@ class SkillPrivilegeAnalyzer:
 class TyposquatAnalyzer:
     id: ClassVar[str] = "skill.typosquat"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-TYP-001", "AG-SKL-TYP-002")
+    rules: ClassVar[tuple[str, ...]] = ("AG-META-002", "AG-META-001/publisher-mismatch")
 
     def run(self, ctx: Context) -> None:
         popular: dict[str, str | None] = {}
@@ -331,13 +342,13 @@ class TyposquatAnalyzer:
             snippet = _fm_line(at, "name") if at else raw
             if folded in popular:
                 if folded != raw.lower():
-                    ctx.emit("AG-SKL-TYP-001", component_ids=comp.id, span=span, snippet=snippet, match=raw,
+                    ctx.emit("AG-META-002", component_ids=comp.id, span=span, snippet=snippet, match=raw,
                              kind=EvidenceKind.metadata, confidence=Confidence.high,
                              message=f"Skill name '{raw}' uses look-alike characters to imitate the popular skill '{folded}'.")
                     continue
                 expected = popular[folded]
                 if expected and comp.publisher and comp.publisher.lower() != expected.lower():
-                    ctx.emit("AG-SKL-TYP-002", component_ids=comp.id, span=span, snippet=snippet, match=raw,
+                    ctx.emit("AG-META-001/publisher-mismatch", component_ids=comp.id, span=span, snippet=snippet, match=raw,
                              kind=EvidenceKind.metadata,
                              message=f"Skill uses the popular name '{raw}' but declares publisher '{comp.publisher}' "
                                      f"(expected '{expected}').")
@@ -350,7 +361,7 @@ class TyposquatAnalyzer:
                 limit = 1 if len(name) <= 8 else 2
                 d = damerau_levenshtein(folded, name, cap=limit)
                 if 0 < d <= limit:
-                    ctx.emit("AG-SKL-TYP-001", component_ids=comp.id, span=span, snippet=snippet, match=raw,
+                    ctx.emit("AG-META-002", component_ids=comp.id, span=span, snippet=snippet, match=raw,
                              kind=EvidenceKind.metadata,
                              message=f"Skill name '{raw}' is {d} edit(s) away from the popular skill '{name}'.")
                     break
@@ -359,9 +370,9 @@ class TyposquatAnalyzer:
 class BundleAnalyzer:
     id: ClassVar[str] = "skill.bundle"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-BND-001", "AG-SKL-BND-002", "AG-SKL-BND-003", "AG-SKL-BND-006", "AG-SKL-BND-007")
+    rules: ClassVar[tuple[str, ...]] = ("AG-EVADE-003", "AG-OBF-018/bundled-archive", "AG-HYG-008/script", "AG-OBF-020", "AG-MM-010/embedded-executables")
 
-    # .pyc is handled by AG-SKL-BND-006 (a cache that matches its source is not a finding).
+    # .pyc is handled by AG-OBF-020 (a cache that matches its source is not a finding).
     _NATIVE_EXT = (".so", ".dll", ".dylib", ".exe", ".pyd", ".jar", ".class", ".node", ".wasm", ".bin", ".msi", ".app", ".scr")
     # Zip-based document formats: none of them has a reason to carry scripts or executables.
     _DOC_EXT = (".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".pptx", ".pptm", ".potx", ".potm",
@@ -394,7 +405,7 @@ class BundleAnalyzer:
             if recorded == actual:
                 return  # an ordinary cache of the reviewed source
             problem = f"was compiled from a different source ({recorded} bytes recorded, {posixpath.basename(src_path)} has {actual})"
-        ctx.emit("AG-SKL-BND-006", component_ids=comp.id, span=span, snippet=f"{art.path} ({art.size} bytes)",
+        ctx.emit("AG-OBF-020", component_ids=comp.id, span=span, snippet=f"{art.path} ({art.size} bytes)",
                  match=art.sha256, kind=EvidenceKind.metadata,
                  message=f"Python bytecode {posixpath.basename(art.path)} {problem}; Python would run it instead of the source.")
 
@@ -407,7 +418,7 @@ class BundleAnalyzer:
         hits = sorted({n for n in names if n.lower().endswith(self._EXEC_MEMBER_EXT)})
         if hits:
             shown = ", ".join(hits[:5]) + (f" and {len(hits) - 5} more" if len(hits) > 5 else "")
-            ctx.emit("AG-SKL-BND-007", component_ids=comp.id, span=span, snippet=f"{art.path}: {shown}",
+            ctx.emit("AG-MM-010/embedded-executables", component_ids=comp.id, span=span, snippet=f"{art.path}: {shown}",
                      match=art.sha256, kind=EvidenceKind.metadata,
                      message=f"Document {posixpath.basename(art.path)} contains {len(hits)} executable member(s): {shown}.")
 
@@ -415,7 +426,8 @@ class BundleAnalyzer:
         tree = ctx.inventory.tree
         for art in sorted(ctx.inventory.artifacts.values(), key=lambda a: a.path):
             comp = ctx.inventory.components.get(art.component_id)
-            if comp is None or comp.kind not in (ComponentKind.skill, ComponentKind.mcp_server):
+            if comp is None or comp.kind not in (ComponentKind.skill, ComponentKind.mcp_server, ComponentKind.plugin,
+                                                 ComponentKind.bundle):
                 continue
             blob = tree.files.get(art.path) if tree else None
             data = blob.data if blob else b""
@@ -424,18 +436,20 @@ class BundleAnalyzer:
             if art.path.lower().endswith(".pyc"):
                 self._check_pyc(ctx, comp, art, data, span)
                 continue
-            if art.role == ArtifactRole.archive and kind == "zip" and art.path.lower().endswith(self._DOC_EXT):
+            if art.role in (ArtifactRole.archive, ArtifactRole.document) and kind == "zip" and art.path.lower().endswith(self._DOC_EXT):
                 self._check_document(ctx, comp, art, data, span)
             if art.role == ArtifactRole.binary and (kind in EXECUTABLE_KINDS or art.path.lower().endswith(self._NATIVE_EXT)):
-                ctx.emit("AG-SKL-BND-001", component_ids=comp.id, span=span, snippet=f"{art.path} ({kind or 'binary'}, {art.size} bytes)",
+                ctx.emit("AG-EVADE-003", component_ids=comp.id, span=span, snippet=f"{art.path} ({kind or 'binary'}, {art.size} bytes)",
                          match=art.sha256, kind=EvidenceKind.metadata,
                          message=f"Bundle contains a compiled/native artifact ({kind or posixpath.splitext(art.path)[1]}) that cannot be reviewed as source.")
             elif art.role == ArtifactRole.archive:
                 encrypted = kind == "zip" and len(data) > 8 and (data[6] & 0x1) == 1
-                ctx.emit("AG-SKL-BND-002", component_ids=comp.id, span=span, snippet=f"{art.path} ({kind}, {art.size} bytes)",
+                ctx.emit("AG-OBF-018/bundled-archive", component_ids=comp.id, span=span, snippet=f"{art.path} ({kind}, {art.size} bytes)",
                          match=art.sha256, kind=EvidenceKind.metadata,
-                         severity=None if not encrypted else ctx.pack.rule("AG-SKL-BND-002").severity.bump(1),
-                         message="Bundle contains a password-protected archive." if encrypted else "Bundle contains an archive; its contents are not scanned.")
+                         severity=None if not encrypted else ctx.pack.detector("AG-OBF-018/bundled-archive").severity.bump(1),
+                         message="Bundle contains a password-protected archive." if encrypted
+                         else (f"Bundle contains an archive; its {ctx.inventory.unpacked[art.path]} member(s) were unpacked in memory and scanned."
+                               if art.path in ctx.inventory.unpacked else "Bundle contains an archive; its contents are not scanned."))
         for comp in ctx.inventory.of_kind(ComponentKind.skill):
             md = next((t for t in ctx.texts("skill_md") if t.artifact.component_id == comp.id), None)
             if md is None:
@@ -447,7 +461,7 @@ class BundleAnalyzer:
                 rel = at.path[len(comp.root) + 1 :] if comp.root else at.path
                 base = posixpath.basename(rel)
                 if base.startswith(".") or (rel not in refs and base not in refs):
-                    ctx.emit("AG-SKL-BND-003", component_ids=comp.id, span=Span(path=at.path), snippet=rel, match=rel,
+                    ctx.emit("AG-HYG-008/script", component_ids=comp.id, span=Span(path=at.path), snippet=rel, match=rel,
                              kind=EvidenceKind.metadata,
                              message=f"Script '{rel}' is {'a hidden dotfile' if base.startswith('.') else 'not referenced from SKILL.md'}.")
 

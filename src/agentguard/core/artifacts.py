@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from .models import Artifact, Span
 from .models.enums import ArtifactRole
+from .normalize.assembly import CONTINUATION, derived_lines
 from .normalize.decode import find_blobs
 from .normalize.paths import resolved_lines
 from .normalize.markdown import (
@@ -23,6 +24,7 @@ from .normalize.markdown import (
 )
 from .normalize.unicode import Normalized, normalize, tag_character_runs
 from .parsers.frontmatter import FrontmatterDoc, split_frontmatter
+from .scriptshape import PROGRAM_SNIFF_EXT, program_language
 from .textutil import LineIndex
 
 _BINARY_MAGIC = (
@@ -39,8 +41,17 @@ _BINARY_MAGIC = (
     (b"Rar!\x1a\x07", "rar"),
     (b"BZh", "bzip2"),
     (b"\xfd7zXZ\x00", "xz"),
+    (b"%PDF-", "pdf"),
+    (b"\x89PNG\r\n\x1a\n", "png"),
+    (b"\xff\xd8\xff", "jpeg"),
+    (b"GIF87a", "gif"),
+    (b"GIF89a", "gif"),
+    (b"II*\x00", "tiff"),
+    (b"MM\x00*", "tiff"),
+    (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", "ole"),
 )
-ARCHIVE_KINDS = {"zip", "gzip", "7z", "rar", "bzip2", "xz"}
+ARCHIVE_KINDS = {"zip", "gzip", "7z", "rar", "bzip2", "xz", "tar"}
+MEDIA_KINDS = {"pdf", "png", "jpeg", "gif", "webp", "tiff", "bmp", "ole"}
 EXECUTABLE_KINDS = {"elf", "pe", "macho", "macho-fat-or-java-class", "wasm"}
 _EXT_LANG = {
     ".py": "python", ".pyw": "python",
@@ -53,6 +64,7 @@ _EXT_LANG = {
 }
 _MD_EXT = (".md", ".mdc", ".markdown", ".mdx", ".txt")
 _FOLDED = "path joins folded into one path"
+_JOINED = "continued lines joined"
 
 
 def language_for(path: str, data: bytes | None = None) -> str | None:
@@ -68,6 +80,9 @@ def language_for(path: str, data: bytes | None = None) -> str | None:
             return "javascript"
         if any(s in first for s in ("sh", "bash", "zsh")):
             return "shell"
+    if data and lower.endswith(PROGRAM_SNIFF_EXT):
+        # A complete program kept under a data extension is still a program (`server.dat`).
+        return program_language(data)
     return None
 
 
@@ -77,6 +92,10 @@ def binary_kind(data: bytes) -> str | None:
             if kind == "pe" and len(data) < 64:
                 return None
             return kind
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "webp"
+    if len(data) > 262 and data[257:262] == b"ustar":
+        return "tar"
     if b"\x00" in data[:8192]:
         return "binary"
     return None
@@ -173,14 +192,28 @@ def _unit(at: ArtifactText, scope: str, text: str, base: int | None, **kw) -> Te
     )
 
 
+def _assembled(at: ArtifactText, text: str, base: int, scope: str) -> None:
+    """Views of lines that read differently once run-time assembly is undone (see ``normalize.assembly``).
+
+    A command that was only continued over several lines is added in the scope of its file, as one line.
+    A line whose folding reveals a command, path or URL is added as decoded content, so what it spells is
+    reported at the original line with the technique named."""
+    for s, e, line, how in derived_lines(text):
+        if how == (CONTINUATION,):
+            at.units.append(_unit(at, scope, line, None, anchor=(s + base, e + base), label=_JOINED))
+        else:
+            at.units.append(_unit(at, "decoded", line, None, anchor=(s + base, e + base), decode_path=how))
+
+
 def prepare(artifact: Artifact, data: bytes, *, max_decode_depth: int = 3, max_decoded: int = 1 << 20) -> ArtifactText | None:
     text, anomaly = decode_text(data)
     if text is None:
         return None
     at = ArtifactText(artifact=artifact, text=text, index=LineIndex(text), anomaly=anomaly)
     role = artifact.role
-    markdown = role in (ArtifactRole.skill_md, ArtifactRole.instruction_md) or (
-        role in (ArtifactRole.reference, ArtifactRole.asset, ArtifactRole.other) and is_markdown(artifact.path)
+    markdown = role in (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.command_md) or (
+        role in (ArtifactRole.reference, ArtifactRole.asset, ArtifactRole.other, ArtifactRole.repo_doc,
+                 ArtifactRole.hook_config, ArtifactRole.workflow) and is_markdown(artifact.path)
     )
     if markdown:
         fm = split_frontmatter(text)
@@ -214,16 +247,18 @@ def prepare(artifact: Artifact, data: bytes, *, max_decode_depth: int = 3, max_d
         at.units.append(_unit(at, "body", masked, base))
         for s, e, line in resolved_lines(masked):
             at.units.append(_unit(at, "resolved", line, None, anchor=(s + base, e + base), label=_FOLDED))
+        _assembled(at, masked, base, "body")
         for r in at.hidden:
             at.units.append(_unit(at, "hidden", r.text, r.text_start, hidden_kind=r.kind))
         for b in at.bang:
             at.units.append(_unit(at, "command", b.command, b.command_start, label=f"claude-{b.form}-injection"))
     else:
-        scope = "code" if role in (ArtifactRole.script, ArtifactRole.source_code) else "body"
+        scope = "code" if role in (ArtifactRole.script, ArtifactRole.source_code, ArtifactRole.repo_code) else "body"
         at.units.append(_unit(at, scope, text, 0))
         # Paths built from parts (path.join(os.homedir(), '.kube', 'config')) as one literal.
         for s, e, line in resolved_lines(text):
             at.units.append(_unit(at, "resolved", line, None, anchor=(s, e), label=_FOLDED))
+        _assembled(at, text, 0, scope)
 
     # Unicode tag-character payloads are invisible; decode and scan them as hidden text.
     for run in tag_character_runs(text):

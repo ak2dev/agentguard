@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./src/**)"
+    ]
+  },
+  "model": "claude-sonnet-5-5",
+  "cleanupPeriodDays": 20
+}

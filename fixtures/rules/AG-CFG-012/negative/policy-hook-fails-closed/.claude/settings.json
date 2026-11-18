@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./tools/check-command.sh",
+            "onFailure": "block"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}

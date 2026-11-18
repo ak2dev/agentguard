@@ -1,4 +1,4 @@
-"""Hidden-content detectors (AG-SKL-HID-*, and AG-MCP-META-001 for tool metadata)."""
+"""Hidden-content detectors (AG-OBF-*, and AG-MCP-020/hidden-unicode for tool metadata)."""
 
 from __future__ import annotations
 
@@ -23,8 +23,9 @@ class HiddenContentAnalyzer:
     id: ClassVar[str] = "text.hidden"
     requires: ClassVar[frozenset[str]] = frozenset()
     rules: ClassVar[tuple[str, ...]] = (
-        *(f"AG-SKL-HID-{i:03d}" for i in range(1, 11)),
-        "AG-MCP-META-001",
+        "AG-OBF-001", "AG-OBF-002", "AG-OBF-003", "AG-OBF-005", "AG-OBF-007", "AG-OBF-008/markdown",
+        "AG-OBF-008/html-css", "AG-OBF-010", "AG-OBF-012/decoded-blob", "AG-OBF-017",
+        "AG-MCP-020/hidden-unicode",
     )
 
     def run(self, ctx: Context) -> None:
@@ -42,7 +43,7 @@ class HiddenContentAnalyzer:
         tool = at.artifact.role.value in _TOOL_ROLES
         text = at.text
         for run in tag_character_runs(text):
-            rid = "AG-MCP-META-001" if tool else "AG-SKL-HID-001"
+            rid = "AG-MCP-020/hidden-unicode" if tool else "AG-OBF-001"
             ctx.emit(rid, component_ids=cid, span=at.span(run.start, run.end), snippet=at.line_text(run.start),
                      match=f"tag:{run.decoded}", kind=EvidenceKind.regex,
                      detail=f"decoded tag characters: {run.decoded[:120]!r}" if run.decoded else "tag characters",
@@ -54,7 +55,7 @@ class HiddenContentAnalyzer:
             if line in seen:
                 continue
             seen.add(line)
-            ctx.emit("AG-MCP-META-001" if tool else "AG-SKL-HID-002", component_ids=cid, span=at.span(hit.start),
+            ctx.emit("AG-MCP-020/hidden-unicode" if tool else "AG-OBF-003", component_ids=cid, span=at.span(hit.start),
                      snippet=at.line_text(hit.start), match=f"bidi:{line}:{at.line_text(hit.start)}",
                      message=f"Bidirectional control character {hit.kind} can make displayed text differ from what is processed.")
         seen.clear()
@@ -63,7 +64,7 @@ class HiddenContentAnalyzer:
             if line in seen:
                 continue
             seen.add(line)
-            ctx.emit("AG-MCP-META-001" if tool else "AG-SKL-HID-003", component_ids=cid, span=at.span(hit.start),
+            ctx.emit("AG-MCP-020/hidden-unicode" if tool else "AG-OBF-002", component_ids=cid, span=at.span(hit.start),
                      snippet=at.line_text(hit.start), match=f"zw:{at.line_text(hit.start)}",
                      message="Zero-width characters split words, which can evade keyword review and filters.")
         seen.clear()
@@ -73,7 +74,7 @@ class HiddenContentAnalyzer:
                 continue
             seen.add(line)
             word = text[hit.start : hit.end]
-            ctx.emit("AG-MCP-META-001" if tool else "AG-SKL-HID-004", component_ids=cid, span=at.span(hit.start, hit.end),
+            ctx.emit("AG-MCP-020/hidden-unicode" if tool else "AG-OBF-005", component_ids=cid, span=at.span(hit.start, hit.end),
                      snippet=at.line_text(hit.start), match=f"mixed:{word}",
                      message=f"Word mixes scripts ({hit.kind}), a homoglyph technique.")
 
@@ -89,7 +90,7 @@ class HiddenContentAnalyzer:
         if mixed_script_tokens(text):
             problems.append("mixed-script words")
         if problems:
-            ctx.emit("AG-MCP-META-001", component_ids=unit.component_id, span=unit.anchor_span, snippet=text[:200],
+            ctx.emit("AG-MCP-020/hidden-unicode", component_ids=unit.component_id, span=unit.anchor_span, snippet=text[:200],
                      match=f"{unit.label}:{','.join(problems)}", kind=EvidenceKind.metadata,
                      detail=unit.label, message=f"Hidden Unicode in {unit.label}: {', '.join(problems)}.")
 
@@ -101,21 +102,21 @@ class HiddenContentAnalyzer:
             span = at.span(r.text_start, r.text_start + len(r.text))
             if r.kind == "html-comment":
                 if search(AGENT_DIRECTED, content) or search(EXECUTABLE_CONTENT, content) and word_count(content) >= 3:
-                    ctx.emit("AG-SKL-HID-005", component_ids=cid, span=span, snippet=content, match=content,
+                    ctx.emit("AG-OBF-007", component_ids=cid, span=span, snippet=content, match=content,
                              message="HTML comment (invisible when rendered) contains agent-directed text.")
             elif r.kind == "after-whitespace":
                 line = at.line_text(r.start)
                 if "|" in line or at.in_code(r.start) or word_count(content) < 3:
                     continue
-                ctx.emit("AG-SKL-HID-006", component_ids=cid, span=span, snippet=content, match=content,
+                ctx.emit("AG-OBF-017", component_ids=cid, span=span, snippet=content, match=content,
                          message="Text is pushed off-screen by a long whitespace run.")
             elif r.kind in ("link-reference", "image-alt", "image-title", "link-title"):
                 if search(AGENT_DIRECTED, content):
-                    ctx.emit("AG-SKL-HID-007", component_ids=cid, span=span, snippet=content, match=content,
+                    ctx.emit("AG-OBF-008/markdown", component_ids=cid, span=span, snippet=content, match=content,
                              message=f"Agent-directed text in a {r.kind.replace('-', ' ')}, which readers rarely see.")
             elif r.kind == "css-hidden":
                 if word_count(content) >= 3:
-                    ctx.emit("AG-SKL-HID-010", component_ids=cid, span=span, snippet=content, match=content,
+                    ctx.emit("AG-OBF-008/html-css", component_ids=cid, span=span, snippet=content, match=content,
                              message="Text is hidden with HTML/CSS (display:none, zero size, invisible color or 'hidden').")
 
     # -- Encoded blobs ----------------------------------------------------------
@@ -127,18 +128,18 @@ class HiddenContentAnalyzer:
                 continue
             span = at.span(*unit.anchor)
             layers = " → ".join(unit.decode_path)
-            if unit.anchor not in reported:
-                reported.add(unit.anchor)
-                ctx.emit("AG-SKL-HID-008", component_ids=cid, span=span, snippet=unit.text[:200],
-                         match=f"blob:{at.text[unit.anchor[0]:unit.anchor[1]][:200]}", decode_path=unit.decode_path,
-                         detail=f"decoded via {layers}", message=f"Encoded blob ({layers}) decoded and rescanned.")
             # Percent-encoding inside a URL (an install badge's ?config=%7B...%7D) is
             # ordinary URL encoding: only instructions or commands in it count.
             in_url = unit.decode_path[:1] == ("percent",) and "://" in at.text[unit.anchor[0]:unit.anchor[1]]
+            if unit.anchor not in reported and not in_url:
+                reported.add(unit.anchor)
+                ctx.emit("AG-OBF-012/decoded-blob", component_ids=cid, span=span, snippet=unit.text[:200],
+                         match=f"blob:{at.text[unit.anchor[0]:unit.anchor[1]][:200]}", decode_path=unit.decode_path,
+                         detail=f"decoded via {layers}", message=f"Encoded blob ({layers}) decoded and rescanned.")
             m = search(AGENT_DIRECTED, unit.norm.text) or search(EXECUTABLE_COMMANDS if in_url else EXECUTABLE_CONTENT,
                                                                  unit.norm.text)
             if m:
-                ctx.emit("AG-SKL-HID-009", component_ids=cid, span=span, snippet=unit.text[:240],
+                ctx.emit("AG-OBF-010", component_ids=cid, span=span, snippet=unit.text[:240],
                          match=f"decoded:{unit.text[:200]}", decode_path=unit.decode_path,
                          detail=f"decoded via {layers}",
                          message=f"Encoded content ({layers}) decodes to instructions or executable content.")

@@ -1,0 +1,5 @@
+[mcp_servers.tracker]
+url = "https://mcp.example.invalid/mcp"
+[mcp_servers.tracker.oauth]
+client_id = "tracker"
+client_secret = "q8ZtR2mN7vK4xW1pL6sD9fH3"

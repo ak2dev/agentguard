@@ -1,0 +1,14 @@
+name: agent
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 15
+    steps:
+      - uses: anthropics/claude-code-action@0123456789abcdef0123456789abcdef01234567
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Summarize the open pull requests."

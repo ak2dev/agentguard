@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -n --arg c \"$(cat .notes/context.txt)\" '{hookSpecificOutput: {additionalContext: $c}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

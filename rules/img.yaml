@@ -1,0 +1,79 @@
+# Detection entries for the IMG family (catalogue: rules/catalog/img.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-IMG-001
+    aliases: [AG-MCP-CFG-010]
+    version: 1
+    description: The server image is referenced by tag (or implicitly :latest) instead of @sha256 digest.
+    why: Tags are mutable; the image that runs can change without any config change.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Reference the image by digest (image@sha256:…).
+
+# ---- added: img_rules ----
+  - id: AG-IMG-002
+    version: 1
+    description: "An image referenced by an MCP configuration, a Dockerfile, a compose file or a registry entry comes from a registry that the policy's `allow.registries` list does not include. The rule is silent when the policy lists no registries."
+    why: The organisation has decided where images may come from. An image from elsewhere has not been through that registry's controls.
+    match: {type: analyzer, analyzer: image}
+    remediation: Mirror the image into an allowed registry after reviewing it, or add the registry to the policy.
+
+  - id: AG-IMG-003
+    version: 1
+    description: "The recorded facts for an image say it has no signature, no build provenance or no SBOM. Needs the image to have been inspected (`oci://` targets, the deep profile)."
+    why: Without a signature or provenance nothing ties the image to a build of the source that was reviewed.
+    network: true
+    match: {type: analyzer, analyzer: image}
+    remediation: Use an image its publisher signs and attests, and verify the signature against the expected identity.
+
+  - id: AG-IMG-004
+    version: 1
+    description: Findings of other rule families are located inside the unpacked layers of an image. One finding per image summarises them, at the severity of the most severe.
+    why: An image is the server. What its layers contain is what runs, whatever the source repository shows.
+    network: true
+    match: {type: analyzer, analyzer: image}
+    remediation: Treat the findings listed for the image's files as findings on the server, and do not run the image until they are resolved.
+
+  - id: AG-IMG-005
+    version: 1
+    description: "The final stage of a Dockerfile has no `USER` instruction or sets root, a compose service is privileged, adds broad capabilities or runs as root, or a pulled image's configuration runs as root."
+    why: A server running as root in its container has more ways to affect the host when a container boundary is weak or a volume is mounted.
+    match: {type: analyzer, analyzer: image}
+    remediation: "Create an unprivileged user in the image and switch to it with `USER`; drop capabilities the server does not need."
+
+  - id: AG-IMG-006
+    version: 1
+    description: "An MCP configuration starts its image with `--entrypoint`, or a pulled image's entrypoint and command differ from what the Dockerfile in the scanned source declares."
+    why: The program that actually starts is not the one the image or its source documents, so reviewing the documented server says nothing about what runs.
+    match: {type: analyzer, analyzer: image}
+    remediation: Run the image with its own entrypoint, and build the image from the source you reviewed.
+
+  - id: AG-IMG-007
+    version: 1
+    description: The recorded package inventory of an image contains packages with known vulnerabilities. Severity is the highest among them.
+    why: The server runs with those packages. A vulnerable library in a network-facing or input-parsing path is reachable through the server's tools.
+    network: true
+    match: {type: analyzer, analyzer: image}
+    remediation: Rebuild on a patched base image and update the listed packages to their fixed versions.
+
+  - id: AG-IMG-008
+    version: 1
+    description: "A Dockerfile pipes a download into a shell or interpreter, uses `ADD` with a remote URL and no checksum, or passes a secret through `ARG` or a literal `ENV`; or a compose file passes a literal secret as a build argument."
+    why: What the download serves at build time ends up in the image unreviewed, and build arguments and environment values stay readable in the image's history.
+    match: {type: analyzer, analyzer: image}
+    remediation: "Download a pinned version and verify its checksum before running it, use `ADD --checksum=` or `COPY`, and pass secrets with build secrets (`RUN --mount=type=secret`)."
+
+  - id: AG-IMG-009
+    version: 1
+    description: "A Dockerfile copies a secret-looking file into a layer and removes it in a later instruction, or a pulled image's build history records a secret value."
+    why: Each instruction makes a layer. Removing a file later hides it from the final filesystem only; the earlier layer still holds it for anyone who pulls the image.
+    match: {type: analyzer, analyzer: image}
+    remediation: Never copy the secret in. Use a build secret mount or a multi-stage build that leaves it behind, and rotate anything already published.
+
+  - id: AG-IMG-010
+    version: 1
+    description: "An image name is one or two characters away from a widely used MCP server image, a registry entry's image is published under a different owner than the server's name, or the image's ownership label does not match the registry entry."
+    why: A lookalike or mislabelled image is how a different server is pulled in place of the one that was expected and reviewed.
+    match: {type: analyzer, analyzer: image}
+    remediation: Check the image name against the publisher's documentation and pull it by digest from the publisher's own namespace.

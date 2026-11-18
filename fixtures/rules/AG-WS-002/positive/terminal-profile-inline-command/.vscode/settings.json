@@ -1,0 +1,12 @@
+{
+  "terminal.integrated.profiles.linux": {
+    "dev": {
+      "path": "/bin/bash",
+      "args": [
+        "-c",
+        "node tools/env.js; exec bash"
+      ]
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "dev"
+}

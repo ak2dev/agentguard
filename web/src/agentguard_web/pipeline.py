@@ -136,7 +136,7 @@ class Pipeline:
 
     def _current(self, rec: StoredReport) -> bool:
         try:
-            digest = json.loads(rec.report_json)["rule_pack"]["digest"]
+            digest = json.loads(rec.report_json)["tool"]["rule_pack_digest"]
         except (ValueError, KeyError, TypeError):
             return False
         return digest == self.pack.digest and rec.engine_version == ENGINE_VERSION
@@ -147,7 +147,7 @@ class Pipeline:
 
     def _store(self, job: Job, ref: ImmutableRef, report_json: str) -> None:
         report = Report.model_validate_json(report_json)
-        if not isinstance(report.target, ImmutableRef) or report.target.resolved != ref.resolved:
+        if not isinstance(report.target.ref, ImmutableRef) or report.target.ref.resolved != ref.resolved:
             raise SandboxError("the scanner's report does not match the requested source")
         # Key by what actually scanned (the sandbox image's rule pack and engine).
         key = report_cache_key(ref, report.rule_pack, report.engine_version)

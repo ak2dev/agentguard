@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "docs": {
+      "type": "http",
+      "url": "https://mcp.example.invalid/mcp",
+      "headersHelper": "/usr/local/bin/docs-token"
+    }
+  }
+}

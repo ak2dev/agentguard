@@ -1,5 +1,39 @@
 {
   "$defs": {
+    "Adjudication": {
+      "description": "What the model adjudicator said about a finding. It may raise and add;\nit may lower by one level at most, and never a deterministic block-lane rule.",
+      "properties": {
+        "status": {
+          "default": "not_run",
+          "enum": [
+            "confirmed",
+            "doubted",
+            "dismissed",
+            "added",
+            "not_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "runs": {
+          "default": 0,
+          "title": "Runs",
+          "type": "integer"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
+          "type": "string"
+        },
+        "rationale": {
+          "default": "",
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "title": "Adjudication",
+      "type": "object"
+    },
     "AnalyzerRun": {
       "properties": {
         "id": {
@@ -93,10 +127,123 @@
         "ui_resource",
         "binary",
         "archive",
-        "other"
+        "other",
+        "settings",
+        "hook_config",
+        "plugin_manifest",
+        "marketplace_manifest",
+        "bundle_manifest",
+        "command_md",
+        "workflow",
+        "workspace_config",
+        "dockerfile",
+        "compose",
+        "descriptor",
+        "env_file",
+        "image",
+        "document",
+        "notebook",
+        "html",
+        "media",
+        "repo_code",
+        "repo_doc"
       ],
       "title": "ArtifactRole",
       "type": "string"
+    },
+    "ArtifactSummary": {
+      "description": "One scanned component, as the report lists it.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "ecosystem": {
+          "default": "",
+          "title": "Ecosystem",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "root": {
+          "default": "",
+          "title": "Root",
+          "type": "string"
+        },
+        "component_id": {
+          "default": "",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "risk_tier": {
+          "$ref": "#/$defs/RiskTier",
+          "default": "L0"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict",
+          "default": "ALLOW"
+        },
+        "findings": {
+          "default": 0,
+          "title": "Findings",
+          "type": "integer"
+        },
+        "least_privilege": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LeastPrivilege"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "triage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Triage"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "ArtifactSummary",
+      "type": "object"
     },
     "CapLabel": {
       "enum": [
@@ -107,7 +254,13 @@
         "code_exec",
         "credential_access",
         "persistence",
-        "auto_approved"
+        "auto_approved",
+        "fs_read",
+        "fs_write_workspace",
+        "fs_write_outside",
+        "shell",
+        "financial",
+        "host_elevated"
       ],
       "title": "CapLabel",
       "type": "string"
@@ -153,6 +306,52 @@
         "subject"
       ],
       "title": "Capability",
+      "type": "object"
+    },
+    "Category": {
+      "description": "What a finding is about. The three are never mixed into one list.",
+      "enum": [
+        "malice",
+        "vulnerability",
+        "hygiene"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "Chain": {
+      "description": "Linked findings along graph edges: instruction → script → source → sink.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "steps": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "narrative": {
+          "default": "",
+          "title": "Narrative",
+          "type": "string"
+        },
+        "sink": {
+          "default": "",
+          "title": "Sink",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "severity",
+        "steps"
+      ],
+      "title": "Chain",
       "type": "object"
     },
     "Component": {
@@ -300,7 +499,17 @@
         "command",
         "mcp_server",
         "mcp_client_config",
-        "package"
+        "package",
+        "plugin",
+        "marketplace",
+        "settings",
+        "hook",
+        "ci_workflow",
+        "workspace",
+        "container",
+        "connector",
+        "bundle",
+        "repository"
       ],
       "title": "ComponentKind",
       "type": "string"
@@ -313,6 +522,79 @@
       ],
       "title": "Confidence",
       "type": "string"
+    },
+    "Coverage": {
+      "properties": {
+        "files_total": {
+          "default": 0,
+          "title": "Files Total",
+          "type": "integer"
+        },
+        "files_analysed": {
+          "default": 0,
+          "title": "Files Analysed",
+          "type": "integer"
+        },
+        "bytes_total": {
+          "default": 0,
+          "title": "Bytes Total",
+          "type": "integer"
+        },
+        "bytes_analysed": {
+          "default": 0,
+          "title": "Bytes Analysed",
+          "type": "integer"
+        },
+        "analyzability": {
+          "default": 1.0,
+          "title": "Analyzability",
+          "type": "number"
+        },
+        "unanalysed": {
+          "items": {
+            "$ref": "#/$defs/UnanalysedItem"
+          },
+          "title": "Unanalysed",
+          "type": "array"
+        },
+        "excluded": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded",
+          "type": "array"
+        }
+      },
+      "title": "Coverage",
+      "type": "object"
+    },
+    "DynamicLimits": {
+      "properties": {
+        "ran": {
+          "default": false,
+          "title": "Ran",
+          "type": "boolean"
+        },
+        "level": {
+          "default": "",
+          "title": "Level",
+          "type": "string"
+        },
+        "seconds": {
+          "default": 0.0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "not_reached": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Reached",
+          "type": "array"
+        }
+      },
+      "title": "DynamicLimits",
+      "type": "object"
     },
     "Evidence": {
       "properties": {
@@ -366,6 +648,11 @@
           ],
           "default": null,
           "title": "Taint Path"
+        },
+        "engine": {
+          "default": "",
+          "title": "Engine",
+          "type": "string"
         }
       },
       "required": [
@@ -387,28 +674,90 @@
         "lock_diff",
         "llm",
         "policy",
-        "loader"
+        "loader",
+        "media",
+        "flow",
+        "dynamic",
+        "live"
       ],
       "title": "EvidenceKind",
       "type": "string"
     },
+    "EvidenceSummary": {
+      "description": "The evidence of a finding as the report shows it.",
+      "properties": {
+        "snippet": {
+          "default": "",
+          "title": "Snippet",
+          "type": "string"
+        },
+        "rendered": {
+          "default": "",
+          "title": "Rendered",
+          "type": "string"
+        },
+        "decoded": {
+          "default": "",
+          "title": "Decoded",
+          "type": "string"
+        },
+        "derivation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Derivation",
+          "type": "array"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "title": "EvidenceSummary",
+      "type": "object"
+    },
     "Finding": {
       "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant"
+        },
+        "rule_version": {
+          "default": 1,
+          "title": "Rule Version",
+          "type": "integer"
+        },
         "fingerprint": {
           "title": "Fingerprint",
           "type": "string"
         },
-        "rule_id": {
-          "title": "Rule Id",
-          "type": "string"
-        },
-        "rule_version": {
-          "title": "Rule Version",
-          "type": "integer"
-        },
         "title": {
           "title": "Title",
           "type": "string"
+        },
+        "family": {
+          "default": "",
+          "title": "Family",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/Category",
+          "default": "malice"
         },
         "severity": {
           "$ref": "#/$defs/Severity"
@@ -416,32 +765,24 @@
         "confidence": {
           "$ref": "#/$defs/Confidence"
         },
-        "score": {
+        "lane": {
+          "$ref": "#/$defs/Lane",
+          "default": "evidence"
+        },
+        "risk": {
+          "default": "",
+          "title": "Risk",
+          "type": "string"
+        },
+        "explanation": {
+          "default": "",
+          "title": "Explanation",
+          "type": "string"
+        },
+        "location": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Score"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "source": {
-          "$ref": "#/$defs/FindingSource",
-          "default": "deterministic"
-        },
-        "component_ids": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Component Ids",
-          "type": "array"
-        },
-        "primary": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Span"
+              "$ref": "#/$defs/Location"
             },
             {
               "type": "null"
@@ -456,33 +797,101 @@
           "title": "Related",
           "type": "array"
         },
-        "message": {
-          "title": "Message",
-          "type": "string"
-        },
-        "explanation": {
-          "default": "",
-          "title": "Explanation",
-          "type": "string"
-        },
-        "remediation": {
-          "default": "",
-          "title": "Remediation",
-          "type": "string"
-        },
         "evidence": {
+          "$ref": "#/$defs/EvidenceSummary"
+        },
+        "trace": {
           "items": {
-            "$ref": "#/$defs/Evidence"
+            "$ref": "#/$defs/TraceStep"
           },
-          "title": "Evidence",
+          "title": "Trace",
           "type": "array"
+        },
+        "chain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chain"
+        },
+        "fix": {
+          "$ref": "#/$defs/Fix"
         },
         "mappings": {
-          "items": {
-            "$ref": "#/$defs/Mapping"
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "title": "Mappings",
+          "type": "object"
+        },
+        "engines": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Engines",
           "type": "array"
+        },
+        "adjudication": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Adjudication"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "suppressed": {
+          "default": false,
+          "title": "Suppressed",
+          "type": "boolean"
+        },
+        "suppression": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SuppressionState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "corroborated": {
+          "default": true,
+          "title": "Corroborated",
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "#/$defs/FindingSource",
+          "default": "deterministic"
+        },
+        "component_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Component Ids",
+          "type": "array"
+        },
+        "aivss": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Score"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "references": {
           "items": {
@@ -509,17 +918,6 @@
           ],
           "default": null
         },
-        "suppression": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SuppressionState"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "baseline_state": {
           "anyOf": [
             {
@@ -534,13 +932,11 @@
         }
       },
       "required": [
+        "id",
         "fingerprint",
-        "rule_id",
-        "rule_version",
         "title",
         "severity",
-        "confidence",
-        "message"
+        "confidence"
       ],
       "title": "Finding",
       "type": "object"
@@ -550,9 +946,60 @@
         "deterministic",
         "llm",
         "intel",
-        "policy"
+        "policy",
+        "dynamic"
       ],
       "title": "FindingSource",
+      "type": "string"
+    },
+    "Fix": {
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/FixKind",
+          "default": "guidance"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "patch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Patch"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Action"
+        }
+      },
+      "title": "Fix",
+      "type": "object"
+    },
+    "FixKind": {
+      "enum": [
+        "auto",
+        "patch",
+        "guidance",
+        "remove",
+        "none"
+      ],
+      "title": "FixKind",
       "type": "string"
     },
     "FlowPath": {
@@ -652,6 +1099,52 @@
       "title": "ImmutableRef",
       "type": "object"
     },
+    "Lane": {
+      "description": "How much a rule may decide alone (spec/rules.md, \"Lanes\").",
+      "enum": [
+        "block",
+        "evidence",
+        "hunt"
+      ],
+      "title": "Lane",
+      "type": "string"
+    },
+    "LeastPrivilege": {
+      "description": "The smallest grant that covers what a component was observed to do (engine J, PLAN §6 \"policy output\").\n\n``allowed_tools`` is the value for a skill's ``allowed-tools``; ``permissions`` and ``sandbox`` are in the\nshape of an agent's settings file. It is a proposal for the reviewer, never applied by a scan.",
+      "properties": {
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array"
+        },
+        "permissions": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Permissions",
+          "type": "object"
+        },
+        "sandbox": {
+          "additionalProperties": true,
+          "title": "Sandbox",
+          "type": "object"
+        },
+        "observed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observed",
+          "type": "array"
+        }
+      },
+      "title": "LeastPrivilege",
+      "type": "object"
+    },
     "LimitEvent": {
       "properties": {
         "kind": {
@@ -666,6 +1159,11 @@
           "default": "",
           "title": "Detail",
           "type": "string"
+        },
+        "bytes": {
+          "default": 0,
+          "title": "Bytes",
+          "type": "integer"
         }
       },
       "required": [
@@ -675,37 +1173,88 @@
       "title": "LimitEvent",
       "type": "object"
     },
-    "Mapping": {
+    "Limits": {
       "properties": {
-        "framework": {
-          "title": "Framework",
+        "llm": {
+          "$ref": "#/$defs/LlmLimits"
+        },
+        "dynamic": {
+          "$ref": "#/$defs/DynamicLimits"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "LlmLimits": {
+      "properties": {
+        "tokens": {
+          "default": 0,
+          "title": "Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "default": 0.0,
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "calls": {
+          "default": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "complete": {
+          "default": true,
+          "title": "Complete",
+          "type": "boolean"
+        },
+        "model": {
+          "default": "",
+          "title": "Model",
           "type": "string"
         },
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Id"
+        "sent": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sent",
+          "type": "array"
+        }
+      },
+      "title": "LlmLimits",
+      "type": "object"
+    },
+    "Location": {
+      "description": "Where a finding is. Mandatory: a finding about something missing points\nat the line where the fix belongs. Findings inside archives, images and\nbundles give the container path and the inner path.",
+      "properties": {
+        "artifact": {
+          "default": "",
+          "title": "Artifact",
+          "type": "string"
         },
-        "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Title"
+        "file": {
+          "title": "File",
+          "type": "string"
         },
-        "todo": {
+        "start": {
+          "$ref": "#/$defs/Position",
+          "default": {
+            "line": 1,
+            "column": 1,
+            "byte": null
+          }
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Position"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "container": {
           "anyOf": [
             {
               "type": "string"
@@ -715,13 +1264,13 @@
             }
           ],
           "default": null,
-          "title": "Todo"
+          "title": "Container"
         }
       },
       "required": [
-        "framework"
+        "file"
       ],
-      "title": "Mapping",
+      "title": "Location",
       "type": "object"
     },
     "McpServerSpec": {
@@ -824,6 +1373,34 @@
       "title": "McpServerSpec",
       "type": "object"
     },
+    "Position": {
+      "properties": {
+        "line": {
+          "default": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "column": {
+          "default": 1,
+          "title": "Column",
+          "type": "integer"
+        },
+        "byte": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Byte"
+        }
+      },
+      "title": "Position",
+      "type": "object"
+    },
     "PromptDef": {
       "properties": {
         "name": {
@@ -914,6 +1491,13 @@
             "type": "integer"
           },
           "title": "Findings By Severity",
+          "type": "object"
+        },
+        "findings_by_category": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Findings By Category",
           "type": "object"
         },
         "suppressed": {
@@ -1021,28 +1605,16 @@
       "title": "ResourceDef",
       "type": "object"
     },
-    "RulePackInfo": {
-      "properties": {
-        "version": {
-          "title": "Version",
-          "type": "string"
-        },
-        "digest": {
-          "title": "Digest",
-          "type": "string"
-        },
-        "rule_count": {
-          "title": "Rule Count",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "version",
-        "digest",
-        "rule_count"
+    "RiskTier": {
+      "description": "Assigned from capabilities, independently of findings.",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
       ],
-      "title": "RulePackInfo",
-      "type": "object"
+      "title": "RiskTier",
+      "type": "string"
     },
     "Score": {
       "properties": {
@@ -1175,6 +1747,30 @@
           ],
           "default": null,
           "title": "End Col"
+        },
+        "start_byte": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Byte"
+        },
+        "end_byte": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Byte"
         }
       },
       "required": [
@@ -1196,6 +1792,16 @@
         "expires": {
           "title": "Expires",
           "type": "string"
+        },
+        "approved_by": {
+          "default": "",
+          "title": "Approved By",
+          "type": "string"
+        },
+        "kind": {
+          "default": "config",
+          "title": "Kind",
+          "type": "string"
         }
       },
       "required": [
@@ -1204,6 +1810,54 @@
         "expires"
       ],
       "title": "SuppressionState",
+      "type": "object"
+    },
+    "TargetInfo": {
+      "properties": {
+        "source": {
+          "default": "",
+          "title": "Source",
+          "type": "string"
+        },
+        "kind": {
+          "default": "local",
+          "title": "Kind",
+          "type": "string"
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "tree_sha256": {
+          "default": "",
+          "title": "Tree Sha256",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceRef"
+            },
+            {
+              "$ref": "#/$defs/ImmutableRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        }
+      },
+      "title": "TargetInfo",
       "type": "object"
     },
     "ToolDef": {
@@ -1274,12 +1928,92 @@
             }
           ],
           "default": null
+        },
+        "description_span": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Span"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "name"
       ],
       "title": "ToolDef",
+      "type": "object"
+    },
+    "ToolInfo": {
+      "properties": {
+        "name": {
+          "default": "agentguard",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "default": "",
+          "title": "Version",
+          "type": "string"
+        },
+        "rule_pack": {
+          "default": "",
+          "title": "Rule Pack",
+          "type": "string"
+        },
+        "rule_pack_digest": {
+          "default": "",
+          "title": "Rule Pack Digest",
+          "type": "string"
+        },
+        "rule_count": {
+          "default": 0,
+          "title": "Rule Count",
+          "type": "integer"
+        },
+        "rules_implemented": {
+          "default": 0,
+          "title": "Rules Implemented",
+          "type": "integer"
+        },
+        "intel": {
+          "default": "",
+          "title": "Intel",
+          "type": "string"
+        }
+      },
+      "title": "ToolInfo",
+      "type": "object"
+    },
+    "TraceStep": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "default": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "role": {
+          "default": "",
+          "title": "Role",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "TraceStep",
       "type": "object"
     },
     "Transport": {
@@ -1291,36 +2025,123 @@
       ],
       "title": "Transport",
       "type": "string"
+    },
+    "UnanalysedItem": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "bytes": {
+          "default": 0,
+          "title": "Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "UnanalysedItem",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "ALLOW",
+        "REVIEW",
+        "BLOCK"
+      ],
+      "title": "Verdict",
+      "type": "string"
     }
   },
   "properties": {
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "const": 1,
+      "default": 1,
       "title": "Schema Version",
-      "type": "string"
+      "type": "integer"
     },
-    "engine_version": {
-      "title": "Engine Version",
-      "type": "string"
-    },
-    "rule_pack": {
-      "$ref": "#/$defs/RulePackInfo"
+    "tool": {
+      "$ref": "#/$defs/ToolInfo"
     },
     "target": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/SourceRef"
-        },
-        {
-          "$ref": "#/$defs/ImmutableRef"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Target"
+      "$ref": "#/$defs/TargetInfo"
+    },
+    "profile": {
+      "default": "quick",
+      "title": "Profile",
+      "type": "string"
+    },
+    "policy": {
+      "default": "balanced",
+      "title": "Policy",
+      "type": "string"
+    },
+    "coverage": {
+      "$ref": "#/$defs/Coverage"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict",
+      "default": "ALLOW"
+    },
+    "verdict_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Verdict Reasons",
+      "type": "array"
+    },
+    "score": {
+      "default": 0,
+      "title": "Score",
+      "type": "integer"
+    },
+    "risk_tier": {
+      "$ref": "#/$defs/RiskTier",
+      "default": "L0"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactSummary"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "suppressed_findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Suppressed Findings",
+      "type": "array"
+    },
+    "chains": {
+      "items": {
+        "$ref": "#/$defs/Chain"
+      },
+      "title": "Chains",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/Limits"
+    },
+    "timings_ms": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Timings Ms",
+      "type": "object"
     },
     "network_features_used": {
       "items": {
@@ -1350,25 +2171,11 @@
       "title": "Inventory",
       "type": "array"
     },
-    "artifacts": {
+    "files": {
       "items": {
         "$ref": "#/$defs/Artifact"
       },
-      "title": "Artifacts",
-      "type": "array"
-    },
-    "findings": {
-      "items": {
-        "$ref": "#/$defs/Finding"
-      },
-      "title": "Findings",
-      "type": "array"
-    },
-    "suppressed_findings": {
-      "items": {
-        "$ref": "#/$defs/Finding"
-      },
-      "title": "Suppressed Findings",
+      "title": "Files",
       "type": "array"
     },
     "flows": {
@@ -1382,8 +2189,14 @@
       "$ref": "#/$defs/ReportStats"
     },
     "fail_on": {
-      "$ref": "#/$defs/Severity",
-      "default": "high"
+      "default": "block",
+      "title": "Fail On",
+      "type": "string"
+    },
+    "require_full_coverage": {
+      "default": false,
+      "title": "Require Full Coverage",
+      "type": "boolean"
     },
     "summary": {
       "default": "",
@@ -1404,10 +2217,6 @@
       "title": "Generated At"
     }
   },
-  "required": [
-    "engine_version",
-    "rule_pack"
-  ],
   "title": "Report",
   "type": "object",
   "$schema": "https://json-schema.org/draft/2020-12/schema",

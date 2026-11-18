@@ -1,0 +1,12 @@
+{
+  "facts": {
+    "images": {
+      "ghcr.io/acme/weather-mcp@sha256:ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12": {
+        "history": [
+          "/bin/sh -c #(nop) ARG NODE_ENV=production",
+          "/bin/sh -c npm ci"
+        ]
+      }
+    }
+  }
+}

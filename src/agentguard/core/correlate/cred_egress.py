@@ -1,4 +1,4 @@
-"""AG-SKL-CRED-010: credential access and network egress in the same skill.
+"""AG-EXF-001: credential access and network egress in the same skill.
 
 Requires *both* halves to be evidenced with at least one half from code or an
 explicit command, so documentation that merely mentions ~/.ssh does not fire.
@@ -19,25 +19,25 @@ from ..models.enums import ArtifactRole, CapLabel, ComponentKind, EvidenceKind
 from ..redact import RedactedText
 from .links import MAX_FILES, chain, component_links
 
-_CRED_RULES = {"AG-SKL-CRED-001", "AG-SKL-CRED-002", "AG-CODE-020", "AG-CODE-021"}
-_EGRESS_RULES = {"AG-SKL-EXF-001", "AG-SKL-EXF-002", "AG-SKL-EXF-003", "AG-SKL-EXF-004", "AG-SKL-EXF-005"}
+_CRED_RULES = {"AG-CRED-002", "AG-EXF-002/env-harvest", "AG-CRED-002/server-code", "AG-EXF-002/server-env-dump"}
+_EGRESS_RULES = {"AG-EXF-006/known-sink", "AG-SUPPLY-011/raw-ip", "AG-SUPPLY-011/shortener", "AG-EXF-004", "AG-EXF-007"}
 _ROLES = (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.reference, ArtifactRole.script,
-          ArtifactRole.source_code)
-_MARKDOWN = (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.reference)
+          ArtifactRole.source_code, ArtifactRole.command_md)
+_MARKDOWN = (ArtifactRole.skill_md, ArtifactRole.instruction_md, ArtifactRole.reference, ArtifactRole.command_md)
 _VERB = {"file": ("writes", "reads"), "runs": ("runs", "is run by"), "import": ("imports", "is imported by")}
 
 
 class CredEgressCorrelator:
     id: ClassVar[str] = "corr.cred_egress"
     requires: ClassVar[frozenset[str]] = frozenset()
-    rules: ClassVar[tuple[str, ...]] = ("AG-SKL-CRED-010",)
+    rules: ClassVar[tuple[str, ...]] = ("AG-EXF-001",)
 
     def run(self, ctx: Context) -> None:
         by_comp: dict[str, list] = {}
         for at in ctx.texts(*(r.value for r in _ROLES)):
             by_comp.setdefault(at.artifact.component_id, []).append(at)
-        for comp in ctx.inventory.of_kind(ComponentKind.skill, ComponentKind.instruction_file,
-                                          ComponentKind.command, ComponentKind.subagent):
+        for comp in ctx.inventory.of_kind(ComponentKind.skill, ComponentKind.instruction_file, ComponentKind.command,
+                                          ComponentKind.subagent, ComponentKind.plugin, ComponentKind.bundle):
             cred_ev: list[Evidence] = []
             egress_ev: list[Evidence] = []
             for raw in ctx.raw:
@@ -61,7 +61,7 @@ class CredEgressCorrelator:
                 c = next(e for e in cred_ev if e.location and e.location.path == path)
                 g = next(e for e in egress_ev if e.location and e.location.path == path)
                 ctx.emit(
-                    "AG-SKL-CRED-010",
+                    "AG-EXF-001",
                     component_ids=comp.id,
                     span=c.location,
                     snippet=str(c.snippet),
@@ -82,7 +82,7 @@ class CredEgressCorrelator:
         if len(texts) > MAX_FILES:
             ctx.data.setdefault("limit_events", []).append(  # type: ignore[union-attr]
                 LimitEvent(kind="links_not_traced", path=comp.root or comp.id,
-                           detail=f"{len(texts)} files > {MAX_FILES}; AG-SKL-CRED-010 compared files one by one"))
+                           detail=f"{len(texts)} files > {MAX_FILES}; AG-EXF-001 compared files one by one"))
             return
         links = component_links(texts, comp.root)
         if not links:
@@ -114,7 +114,7 @@ class CredEgressCorrelator:
                 else:
                     said.append(f"{_name(src)} {_VERB[link.kind][1]} {_name(dst)}")
             ctx.emit(
-                "AG-SKL-CRED-010",
+                "AG-EXF-001",
                 component_ids=comp.id,
                 span=c.location,
                 snippet=str(c.snippet),

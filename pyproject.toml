@@ -36,6 +36,10 @@ code = [
 ]
 yara = ["yara-python>=4.5,<5"]
 judge = ["anthropic>=1.0,<2"]
+# Pixel checks on images: low-contrast text (MIT-CMU licence).
+media = ["pillow>=10"]
+# Text in images and rendered PDF pages, QR codes: RapidOCR on ONNX Runtime, pypdfium2, zxing-cpp (Apache-2.0 / BSD).
+ocr = ["rapidocr-onnxruntime>=1.3", "pypdfium2>=4", "zxing-cpp>=2", "pillow>=10"]
 
 [dependency-groups]
 dev = ["pytest>=8.3", "pytest-timeout>=2.3"]
@@ -45,6 +49,7 @@ members = ["web"]
 
 [project.scripts]
 agentguard = "agentguard.cli.app:main"
+agentguard-hook = "agentguard.hooks:main"
 
 [project.urls]
 Homepage = "https://github.com/ak2dev/agentguard"

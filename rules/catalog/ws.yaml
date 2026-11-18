@@ -1,0 +1,20 @@
+family: WS
+name: Workspace auto-execution
+about: Editor tasks and settings, dev containers and directory environment files next to agent files.
+defaults: {category: vulnerability, lane: block, confidence: high, engine: config}
+mappings:
+  owasp-ast-1.0: [AST06]
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: [ASI05]
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-WS-001, H, A, "`.vscode/tasks.json` task with `runOn: \"folderOpen\"`"]
+  - [AG-WS-002, H, A, "`.vscode/settings.json` enables agent auto-approval or overrides the terminal profile"]
+  - [AG-WS-003, M, P, "Dev container lifecycle command with network exec or privileged mode"]
+  - [AG-WS-004, M, G, "`.envrc` or tool-version manager hooks that run code on entry", {lane: evidence}]
+  - [AG-WS-005, M, G, "Repository git hooks plus an instruction to enable them", {lane: evidence, confidence: medium}]
+  - [AG-WS-006, M, G, "`.gitattributes` filter or diff driver that runs a command"]
+  - [AG-WS-007, L, G, "IDE run configuration set to run automatically", {lane: evidence}]
+  - [AG-WS-008, M, P, "Build or package script that instruction files tell the agent to run, with risky content", {lane: evidence, confidence: medium}]

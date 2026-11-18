@@ -1,8 +1,8 @@
 - id: agentguard
   name: Agent Guard
-  description: Scan agent skills, instruction files and MCP configs (never executes scanned code).
-  entry: agentguard scan . --fail-on high
+  description: Scan agent skills, plugins, instruction files, agent settings and MCP configuration (never executes scanned code).
+  entry: agentguard scan --profile quick --llm off --context none --fail-on review
   language: python
   pass_filenames: false
   always_run: false
-  files: (SKILL\.md|AGENTS\.md|CLAUDE\.md|GEMINI\.md|\.mdc|mcp\.json|\.mcp\.json|settings\.json|config\.toml|server\.json|\.agentguard\.yaml)$
+  files: '(SKILL\.md|AGENTS(\.override)?\.md|CLAUDE(\.local)?\.md|GEMINI\.md|\.cursorrules|\.mdc|\.mcp\.json|mcp\.json|server\.json|hooks\.json|\.agentguard\.yaml|\.claude/|\.cursor/|\.codex/|\.gemini/|\.agents/|\.claude-plugin/|\.codex-plugin/|\.cursor-plugin/|\.github/(agents|hooks|skills|instructions)/)'

@@ -1,0 +1,6 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "enabledByDefault": true
+}

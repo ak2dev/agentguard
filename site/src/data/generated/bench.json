@@ -1,12 +1,13 @@
 {
   "schema": "agentguard-bench/1",
-  "engine_version": "0.1.0.dev0",
+  "engine_version": "0.2.0.dev0",
   "rule_pack": {
     "version": "0.1.0",
-    "digest": "d5a18af846b493f68bd632bdb5b1c34884c6f37028b7e453050efa21d7620426"
+    "digest": "14359d8f91a2f1b7a271677cad75b2fd7efbd1ecf761e8e77023779d8a57c1b9"
   },
-  "date": "2026-11-06",
+  "date": "2026-11-17",
   "split": "all",
+  "profile": "quick",
   "corpus": {
     "items": 286,
     "benign": 210,
@@ -17,142 +18,223 @@
       "synthetic": 123
     }
   },
+  "verdicts": {
+    "matrix": {
+      "adversarial": {
+        "ALLOW": 0,
+        "REVIEW": 4,
+        "BLOCK": 32
+      },
+      "benign": {
+        "ALLOW": 209,
+        "REVIEW": 1,
+        "BLOCK": 0
+      },
+      "malicious": {
+        "ALLOW": 0,
+        "REVIEW": 2,
+        "BLOCK": 38
+      }
+    },
+    "malicious_recall": 1.0,
+    "malicious_blocked": 0.9211,
+    "benign_flagged": 0.0048,
+    "false_positives": 1,
+    "macro_f1": 0.6522,
+    "per_class": {
+      "ALLOW": {
+        "precision": 1.0,
+        "recall": 0.9952,
+        "f1": 0.9976,
+        "tp": 209,
+        "fp": 0,
+        "fn": 1
+      },
+      "REVIEW": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 7,
+        "fn": 0
+      },
+      "BLOCK": {
+        "precision": 1.0,
+        "recall": 0.9211,
+        "f1": 0.9589,
+        "tp": 70,
+        "fp": 0,
+        "fn": 6
+      }
+    }
+  },
   "overall": {
     "critical": {
-      "tp": 54,
+      "tp": 40,
       "fp": 0,
-      "fn": 22,
+      "fn": 36,
       "tn": 210,
       "precision": 1.0,
-      "recall": 0.7105,
-      "f1": 0.8308,
+      "recall": 0.5263,
+      "f1": 0.6896,
       "fpr": 0.0
     },
     "high": {
       "tp": 75,
-      "fp": 4,
+      "fp": 8,
       "fn": 1,
-      "tn": 206,
-      "precision": 0.9494,
+      "tn": 202,
+      "precision": 0.9036,
       "recall": 0.9868,
-      "f1": 0.9677,
-      "fpr": 0.019
+      "f1": 0.9434,
+      "fpr": 0.0381
     },
     "medium": {
       "tp": 76,
-      "fp": 32,
+      "fp": 52,
       "fn": 0,
-      "tn": 178,
-      "precision": 0.7037,
+      "tn": 158,
+      "precision": 0.5938,
       "recall": 1.0,
-      "f1": 0.8261,
-      "fpr": 0.1524
+      "f1": 0.7451,
+      "fpr": 0.2476
     }
   },
   "by_split": {
     "dev": {
       "critical": {
-        "tp": 33,
+        "tp": 23,
         "fp": 0,
-        "fn": 11,
+        "fn": 21,
         "tn": 131,
         "precision": 1.0,
-        "recall": 0.75,
-        "f1": 0.8571,
+        "recall": 0.5227,
+        "f1": 0.6865,
         "fpr": 0.0
       },
       "high": {
         "tp": 43,
-        "fp": 2,
+        "fp": 7,
         "fn": 1,
-        "tn": 129,
-        "precision": 0.9556,
+        "tn": 124,
+        "precision": 0.86,
         "recall": 0.9773,
-        "f1": 0.9663,
-        "fpr": 0.0153
+        "f1": 0.9149,
+        "fpr": 0.0534
       },
       "medium": {
         "tp": 44,
-        "fp": 30,
+        "fp": 46,
         "fn": 0,
-        "tn": 101,
-        "precision": 0.5946,
+        "tn": 85,
+        "precision": 0.4889,
         "recall": 1.0,
-        "f1": 0.7458,
-        "fpr": 0.229
+        "f1": 0.6567,
+        "fpr": 0.3511
       }
     },
     "heldout": {
       "critical": {
-        "tp": 21,
+        "tp": 17,
         "fp": 0,
-        "fn": 11,
+        "fn": 15,
         "tn": 79,
         "precision": 1.0,
-        "recall": 0.6562,
-        "f1": 0.7924,
+        "recall": 0.5312,
+        "f1": 0.6938,
         "fpr": 0.0
       },
       "high": {
         "tp": 32,
-        "fp": 2,
+        "fp": 1,
         "fn": 0,
-        "tn": 77,
-        "precision": 0.9412,
+        "tn": 78,
+        "precision": 0.9697,
         "recall": 1.0,
-        "f1": 0.9697,
-        "fpr": 0.0253
+        "f1": 0.9846,
+        "fpr": 0.0127
       },
       "medium": {
         "tp": 32,
-        "fp": 2,
+        "fp": 6,
         "fn": 0,
-        "tn": 77,
-        "precision": 0.9412,
+        "tn": 73,
+        "precision": 0.8421,
         "recall": 1.0,
-        "f1": 0.9697,
-        "fpr": 0.0253
+        "f1": 0.9143,
+        "fpr": 0.0759
       }
     }
   },
   "calibrated": {
     "overall": {
       "items": 76,
-      "severity_met": 75,
-      "severity_met_rate": 0.9868,
+      "severity_met": 60,
+      "severity_met_rate": 0.7895,
       "critical_expected": {
         "items": 54,
-        "tp": 54,
-        "recall": 1.0
+        "tp": 39,
+        "recall": 0.7222
       },
       "below_expected": [
-        "rugpull-new-tool"
+        "a3-lolbin-bitsadmin",
+        "a3-split-wget",
+        "adv-split-files",
+        "h2-lolbin-certutil",
+        "h2-split-md-sh",
+        "h2-split-py-sh",
+        "h3-comp-mcp-helper",
+        "h3-comp-mcp-module",
+        "h3-comp-mcp-relative",
+        "h3-comp-mcp-ts-import",
+        "lure-zip-password",
+        "rugpull-new-tool",
+        "stdio-chain",
+        "stdio-cmd-enc",
+        "stdio-curl-sh",
+        "stdio-docker-sock"
       ]
     },
     "by_split": {
       "dev": {
         "items": 44,
-        "severity_met": 43,
-        "severity_met_rate": 0.9773,
+        "severity_met": 32,
+        "severity_met_rate": 0.7273,
         "critical_expected": {
           "items": 33,
-          "tp": 33,
-          "recall": 1.0
+          "tp": 22,
+          "recall": 0.6667
         },
         "below_expected": [
-          "rugpull-new-tool"
+          "a3-lolbin-bitsadmin",
+          "a3-split-wget",
+          "adv-split-files",
+          "h3-comp-mcp-helper",
+          "h3-comp-mcp-module",
+          "h3-comp-mcp-relative",
+          "h3-comp-mcp-ts-import",
+          "lure-zip-password",
+          "rugpull-new-tool",
+          "stdio-cmd-enc",
+          "stdio-curl-sh",
+          "stdio-docker-sock"
         ]
       },
       "heldout": {
         "items": 32,
-        "severity_met": 32,
-        "severity_met_rate": 1.0,
+        "severity_met": 28,
+        "severity_met_rate": 0.875,
         "critical_expected": {
           "items": 21,
-          "tp": 21,
-          "recall": 1.0
+          "tp": 17,
+          "recall": 0.8095
         },
-        "below_expected": []
+        "below_expected": [
+          "h2-lolbin-certutil",
+          "h2-split-md-sh",
+          "h2-split-py-sh",
+          "stdio-chain"
+        ]
       }
     }
   },
@@ -172,17 +254,17 @@
       "recall_critical": 0.0,
       "recall_high": 1.0,
       "recall_medium": 1.0,
-      "expected_rule_hit_rate": 0.1429,
+      "expected_rule_hit_rate": 0.5,
       "severity_met_rate": 1.0
     },
     "adv-split": {
       "label": "adversarial",
       "items": 7,
-      "recall_critical": 0.8571,
+      "recall_critical": 0.2857,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 0.4286,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.4286
     },
     "adv-unicode": {
       "label": "adversarial",
@@ -197,22 +279,22 @@
       "label": "benign",
       "items": 8,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
-      "fpr_medium": 0.5
+      "fpr_high": 0.125,
+      "fpr_medium": 0.25
     },
     "benign-config": {
       "label": "benign",
       "items": 7,
       "fpr_critical": 0.0,
       "fpr_high": 0.0,
-      "fpr_medium": 0.0
+      "fpr_medium": 0.4286
     },
     "benign-instructions": {
       "label": "benign",
       "items": 4,
       "fpr_critical": 0.0,
-      "fpr_high": 0.25,
-      "fpr_medium": 0.25
+      "fpr_high": 0.0,
+      "fpr_medium": 0.0
     },
     "benign-locked": {
       "label": "benign",
@@ -225,21 +307,21 @@
       "label": "benign",
       "items": 29,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
-      "fpr_medium": 0.4138
+      "fpr_high": 0.1034,
+      "fpr_medium": 0.3793
     },
     "benign-real-skill": {
       "label": "benign",
       "items": 134,
       "fpr_critical": 0.0,
       "fpr_high": 0.0224,
-      "fpr_medium": 0.097
+      "fpr_medium": 0.2537
     },
     "benign-server": {
       "label": "benign",
       "items": 3,
       "fpr_critical": 0.0,
-      "fpr_high": 0.0,
+      "fpr_high": 0.3333,
       "fpr_medium": 0.3333
     },
     "benign-skill": {
@@ -252,11 +334,11 @@
     "composition": {
       "label": "adversarial",
       "items": 8,
-      "recall_critical": 1.0,
+      "recall_critical": 0.5,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.5
     },
     "cred-exfil": {
       "label": "malicious",
@@ -279,11 +361,11 @@
     "prereq-lure": {
       "label": "malicious",
       "items": 11,
-      "recall_critical": 0.9091,
+      "recall_critical": 0.6364,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 0.8182,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.7273
     },
     "reverse-shell": {
       "label": "malicious",
@@ -306,16 +388,16 @@
     "stdio-injection": {
       "label": "malicious",
       "items": 7,
-      "recall_critical": 1.0,
+      "recall_critical": 0.4286,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
-      "severity_met_rate": 1.0
+      "severity_met_rate": 0.4286
     },
     "tool-poisoning": {
       "label": "malicious",
       "items": 5,
-      "recall_critical": 0.6,
+      "recall_critical": 0.8,
       "recall_high": 1.0,
       "recall_medium": 1.0,
       "expected_rule_hit_rate": 1.0,
@@ -332,56 +414,79 @@
     }
   },
   "benign_hits_by_rule": {
-    "AG-MCP-META-020:medium": 6,
-    "AG-CODE-024:medium": 5,
-    "AG-MCP-META-009:medium": 5,
-    "AG-CODE-020:medium": 3,
-    "AG-SKL-CRED-001:medium": 3,
-    "AG-SKL-INJ-002:medium": 3,
-    "AG-CODE-027:medium": 2,
-    "AG-CODE-040:medium": 2,
-    "AG-SKL-INJ-004:high": 2,
-    "AG-SKL-INJ-004:medium": 2,
-    "AG-SKL-INJ-007:medium": 2,
-    "AG-SKL-MIS-001:medium": 2,
-    "AG-CODE-002:medium": 1,
-    "AG-CODE-025:high": 1,
-    "AG-SKL-BND-002:medium": 1,
-    "AG-SKL-CRED-002:medium": 1,
-    "AG-SKL-EXEC-002:medium": 1,
-    "AG-SKL-HID-004:medium": 1,
-    "AG-SKL-INJ-001:high": 1,
-    "AG-SKL-INJ-001:medium": 1,
-    "AG-SKL-INJ-009:medium": 1,
-    "AG-SKL-SE-007:medium": 1
+    "AG-SUPPLY-005:medium": 10,
+    "AG-EXEC-008:medium": 6,
+    "AG-SUPPLY-010:medium": 6,
+    "AG-INJ-008:medium": 4,
+    "AG-CFG-090:medium": 3,
+    "AG-CRED-002/server-code:medium": 3,
+    "AG-INJ-003/forged-delimiters:medium": 3,
+    "AG-CONN-015:medium": 2,
+    "AG-CRED-002:medium": 2,
+    "AG-EVADE-009:high": 2,
+    "AG-IMPACT-004:medium": 2,
+    "AG-INJ-005:medium": 2,
+    "AG-INJ-009:high": 2,
+    "AG-PERSIST-002/prose:medium": 2,
+    "AG-PRIV-005:medium": 2,
+    "AG-VULN-010:medium": 2,
+    "AG-CRED-001:high": 1,
+    "AG-CRED-001:medium": 1,
+    "AG-EVADE-012:high": 1,
+    "AG-EXEC-006/install-hook:medium": 1,
+    "AG-EXEC-014:medium": 1,
+    "AG-EXF-002/env-harvest:medium": 1,
+    "AG-IMPACT-006:high": 1,
+    "AG-IMPACT-010:medium": 1,
+    "AG-INJ-001:medium": 1,
+    "AG-INJ-003/impersonation:medium": 1,
+    "AG-INJ-009:medium": 1,
+    "AG-INJ-011:medium": 1,
+    "AG-INJ-015:medium": 1,
+    "AG-INJ-021:medium": 1,
+    "AG-INJ-028:medium": 1,
+    "AG-META-004:high": 1,
+    "AG-OBF-005:medium": 1,
+    "AG-OBF-018/bundled-archive:medium": 1,
+    "AG-PRIV-004/registers-hooks:medium": 1,
+    "AG-PRIV-008:high": 1,
+    "AG-PRIV-013:medium": 1,
+    "AG-VULN-017:medium": 1,
+    "AG-VULN-019:medium": 1,
+    "AG-WS-003:medium": 1
   },
   "targets": {
+    "malicious_recall": {
+      "target": 0.95,
+      "actual": 1.0,
+      "met": true,
+      "at_most": false
+    },
+    "benign_flagged_max": {
+      "target": 0.02,
+      "actual": 0.0048,
+      "met": true,
+      "at_most": true
+    },
     "precision_critical": {
       "target": 0.95,
       "actual": 1.0,
-      "met": true
-    },
-    "precision_high": {
-      "target": 0.85,
-      "actual": 0.9494,
-      "met": true
-    },
-    "fpr_high_max": {
-      "target": 0.02,
-      "actual": 0.019,
-      "met": true
+      "met": true,
+      "at_most": false
     }
   },
   "performance": {
-    "total_seconds": 101.874,
-    "mean_ms_per_item": 356.2,
+    "total_seconds": 210.2,
+    "mean_ms_per_item": 735.0,
     "perf_check": {
       "skills": 100,
       "configs": 20,
-      "seconds": 4.09,
+      "seconds": 7.584,
       "target_seconds": 10,
       "met": true,
-      "findings": 547
+      "findings": 647
     }
-  }
+  },
+  "suite": "corpus",
+  "ok": true
 }

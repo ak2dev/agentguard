@@ -95,12 +95,24 @@ def main() -> None:
         bench = json.loads(bench_src.read_text(encoding="utf-8"))
         bench.pop("items", None)
         write(OUT / "bench.json", bench)
+    core = [r for r in pack.rules.values() if not r.extension]
+    core_families = sorted({r.family for r in core})
     write(OUT / "meta.json", {"engine_version": ENGINE_VERSION, "package_version": __version__,
-                              "rule_pack": pack.version, "rule_count": len(pack.rules)})
+                              "rule_pack": pack.version, "rule_count": len(core), "families": len(core_families),
+                              "rules_implemented": sum(1 for r in core if r.implemented), "detectors": len(pack.detectors),
+                              "extension_rules": len(pack.rules) - len(core)})
     report = scan(load_path(SAMPLE_FIXTURE), ScanOptions())
     write(ROOT / "site" / "public" / "sample-report.html", render_html(report))
-    write(OUT / "sample.json", {"findings_by_severity": report.stats.findings_by_severity,
-                                "findings": [{"rule_id": f.rule_id, "severity": f.severity.value, "title": f.title}
+    write(OUT / "sample.json", {"verdict": report.verdict.value, "score": report.score, "risk_tier": report.risk_tier.value,
+                                "verdict_reasons": report.verdict_reasons,
+                                "coverage": {"files_total": report.coverage.files_total,
+                                             "files_analysed": report.coverage.files_analysed,
+                                             "analyzability": report.coverage.analyzability},
+                                "findings_by_severity": report.stats.findings_by_severity,
+                                "findings": [{"id": f.id, "key": f.key, "severity": f.severity.value, "title": f.title,
+                                              "lane": f.lane.value, "category": f.category.value,
+                                              "file": f.location.file if f.location else "",
+                                              "line": f.location.start.line if f.location else 0}
                                              for f in report.findings]})
     for name, build in SCHEMAS.items():
         write(ROOT / "schemas" / f"{name}.v1.json", build())

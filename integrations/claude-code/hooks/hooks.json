@@ -1,0 +1,72 @@
+{
+  "description": "Agent Guard: scan before install, re-scan agent-facing files when they change, verify the baseline at session start",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook",
+            "args": ["pre-install", "--agent", "claude-code"],
+            "timeout": 300,
+            "onFailure": "block",
+            "statusMessage": "Agent Guard: checking the command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook",
+            "args": ["file-changed", "--agent", "claude-code"],
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "matcher": "user_settings|project_settings|local_settings|skills",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook",
+            "args": ["file-changed", "--agent", "claude-code"],
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "FileChanged": [
+      {
+        "matcher": ".mcp.json|CLAUDE.md|CLAUDE.local.md|AGENTS.md",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook",
+            "args": ["file-changed", "--agent", "claude-code"],
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "agentguard-hook",
+            "args": ["session-start", "--agent", "claude-code"],
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

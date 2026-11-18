@@ -29,7 +29,7 @@ from .core.models.enums import SourceKind
 from .core.parsers import parse_toml
 from .core.report.html import render_html
 from .core.report.render import render_cyclonedx, render_json, render_markdown, render_sarif
-from .core.rules.pack import RulePack, data_dirs
+from .core.rules.pack import RulePack, bundled_dirs
 from .core.tree import ArtifactTree
 
 LIMITS = LoadLimits.web()
@@ -51,7 +51,7 @@ def _rule_pack() -> RulePack:
 def _feed() -> tuple[IntelFeed | None, str]:
     global _intel
     if _intel is None:
-        rules_dir, _ = data_dirs()
+        rules_dir, _ = bundled_dirs()
         base = rules_dir.parent / "intel"
         keys = load_trusted_keys({p.name: p.read_bytes() for p in sorted((base / "keys").glob("*.pub.json"), key=lambda p: p.name)})
         try:
@@ -96,7 +96,7 @@ _SAFE_DIR = re.compile(r"[^a-z0-9-]+")
 
 def guess_pasted_name(text: str) -> str:
     """Pick a file name that makes the engine treat pasted text as what it is."""
-    s = text.lstrip("﻿ \t\r\n")
+    s = text.lstrip("\ufeff \t\r\n")
     # Parsed too, as JSON is below: the pattern misses a quoted or escaped table name, but
     # it alone still catches a config with a syntax error, which must be reported as one.
     if re.search(r"(?m)^\[mcp_servers[.\]]", s) or "mcp_servers" in (parse_toml(s).value or {}):

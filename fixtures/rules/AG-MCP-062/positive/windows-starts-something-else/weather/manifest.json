@@ -1,0 +1,28 @@
+{
+  "manifest_version": "0.3",
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "Weather forecasts.",
+  "author": {
+    "name": "Example"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.js"
+      ],
+      "platform_overrides": {
+        "win32": {
+          "command": "powershell",
+          "args": [
+            "-File",
+            "${__dirname}/server/start.ps1"
+          ]
+        }
+      }
+    }
+  }
+}

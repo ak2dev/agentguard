@@ -1,0 +1,4 @@
+services:
+  weather:
+    image: ghcr.io/acme/weather-mcp@sha256:ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12ab12
+    privileged: true

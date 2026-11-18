@@ -22,7 +22,7 @@ from agentguard.core.intel import ed25519  # noqa: E402
 from agentguard.core.intel.feed import sign_feed  # noqa: E402
 
 KEY_ID = "sample-2026-09"
-IOC_FIXTURE = ROOT / "fixtures" / "rules" / "AG-SC-010" / "positive" / "known-bad" / "helper-skill" / "scripts" / "helper.sh"
+IOC_FIXTURE = ROOT / "fixtures" / "rules" / "AG-SUPPLY-017/hash" / "positive" / "known-bad" / "helper-skill" / "scripts" / "helper.sh"
 
 
 def main() -> None:

@@ -1,0 +1,887 @@
+# Detection entries for the MCP family (catalogue: rules/catalog/mcp.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-MCP-001
+    aliases: [AG-MCP-CFG-004]
+    version: 1
+    description: The server is launched with npx/bunx/pnpm dlx/uvx/pipx run without an exact version, or with @latest (often with -y auto-confirm).
+    why: Every client start can fetch and execute a different version, so a compromised or hijacked release runs automatically (supply-chain and rug-pull risk).
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Pin an exact version (e.g. `npx -y @scope/server@1.4.2`, `uvx server==1.4.2`) and update deliberately.
+
+
+  - id: AG-MCP-002
+    variant: encoded-command
+    aliases: [AG-MCP-CFG-024]
+    version: 1
+    title: Server command runs an encoded command
+    description: The server command decodes and runs base64 or hex content (PowerShell -EncodedCommand, base64 -d | sh, FromBase64String | iex).
+    why: An encoded launch command hides what runs on every start from the user and from reviewers. Legitimate servers have no reason to do this.
+    confidence: high
+    applies_to: [client_config]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [command]
+      patterns:
+        - |-
+          \b(?:powershell|pwsh)(?:\.exe)?\b[^\n]*\s-(?:e|en|enc|enco|encod|encode|encoded|encodedcommand|ec)\s+[A-Za-z0-9+/=]{16,}
+        - |-
+          \bbase64\s+(?:-d|--decode|-D)\b[^\n]*\|\s*(?:sudo\s+)?(?:ba|z|da|k)?sh\b
+        - |-
+          \bxxd\s+-r\s+-p\b[^\n]*\|\s*(?:ba|z)?sh\b
+        - |-
+          FromBase64String[^\n]*\|\s*(?:iex|Invoke-Expression)|(?:iex|Invoke-Expression)[^\n]*FromBase64String
+        - |-
+          \b(?:exec|eval)\s*\(\s*(?:base64\.b64decode|codecs\.decode|bytes\.fromhex|zlib\.decompress|__import__\(\s*["']base64)|\beval\s*\(\s*(?:atob|Buffer\.from)\s*\(
+      window: 0
+    remediation: Replace the encoded command with the plain command it runs, or install the server from a registry with a pinned version.
+
+
+  - id: AG-MCP-002
+    variant: inline-code
+    aliases: [AG-MCP-CFG-002]
+    version: 1
+    title: Inline code as the server command
+    description: The server is started with an interpreter and inline code (python -c, node -e, deno eval…).
+    why: Inline code in a config is unreviewable, unversioned code execution on every client start.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Ship the server as a package or file and reference it by pinned version or path.
+
+  - id: AG-MCP-002
+    variant: shell-string
+    aliases: [AG-MCP-CFG-001]
+    version: 1
+    title: Shell interpreter runs a script string
+    description: The server command is a shell (sh, bash, cmd, PowerShell…) given a script string with -c, /c or -Command. A plain `cmd /c <program> <args>` wrapper is not reported.
+    why: Shell strings enable command chaining and substitution; this is how most MCP STDIO command-injection configs are built.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Invoke the server program directly with an argument array instead of a shell string.
+
+
+  - id: AG-MCP-003
+    aliases: [AG-MCP-CFG-006]
+    version: 2
+    description: The server command pipes a downloaded script into a shell or interpreter, or runs remote code through PowerShell (IEX DownloadString) or a Windows binary (mshta, regsvr32 /i, rundll32, msiexec /i). Encoded commands are decoded first.
+    why: Remote script execution on every start runs whatever the host serves at that moment.
+    confidence: high
+    applies_to: [client_config]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [command, decoded]
+      patterns:
+        - |-
+          \b(?:iex|Invoke-Expression)\s*\(?\s*(?:\(\s*)?(?:New-Object\s+(?:System\.)?Net\.WebClient\)?\.DownloadString|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)
+        - |-
+          \bmshta(?:\.exe)?\s+["']?(?:https?|vbscript|javascript):|\bregsvr32(?:\.exe)?\b[^\n]*\s/i:\s*["']?https?://|\brundll32(?:\.exe)?\b[^\n]*javascript:|\bmsiexec(?:\.exe)?\b[^\n]*\s/(?:i|package)\s+["']?https?://
+        - |-
+          \b(?:curl|wget|fetch)\b[^\n|]{0,300}https?://[^\n|]*\|\s*(?:sudo\s+)?(?:-E\s+)?(?:ba|z|k|da)?sh\b
+        - |-
+          \b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^\n|]*\|\s*(?:iex|Invoke-Expression)\b
+        - |-
+          \b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b[^)]*https?://
+        - |-
+          \b(?:python3?|node|perl|ruby)\s+(?:-c\s+)?["']?(?:<\(|\$\()\s*(?:curl|wget)\b
+      unless:
+        - |-
+          https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|bun\.sh|nodejs\.org|get\.pnpm\.io)\b
+      window: 0
+    remediation: Install the server from a registry with a pinned version; never pipe remote scripts into a shell from a config.
+
+
+  - id: AG-MCP-004
+    aliases: [AG-MCP-CFG-013]
+    version: 1
+    description: A remote MCP server URL uses http:// for a non-loopback host.
+    why: Tool definitions, results and bearer tokens can be read and modified in transit.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Use https:// .
+
+
+  - id: AG-MCP-005
+    aliases: [AG-MCP-CFG-012]
+    version: 1
+    description: A secret-named env var, header or argument holds a long high-entropy literal.
+    why: Likely a credential that does not match a known provider format.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Move the value to a secret store or environment reference; rotate it if it is real.
+
+
+  - id: AG-MCP-007
+    variant: conflicting-definitions
+    aliases: [AG-MCP-CFG-018]
+    lane: block
+    version: 1
+    title: Same server name, different command or URL
+    description: The same server name resolves to different packages, images or URLs in different config files.
+    why: Which definition wins depends on client precedence rules, so a project config can silently replace a trusted user-level server.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Keep one definition per server name, or rename the project-level server.
+
+
+  - id: AG-MCP-007
+    variant: near-duplicate
+    aliases: [AG-MCP-CFG-017]
+    version: 1
+    title: Near-duplicate server names
+    description: Two configured servers have names that differ by one edit or only by look-alike characters.
+    why: Near-duplicate names are used to shadow a trusted server and confuse users approving tool calls.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Remove the unexpected entry or rename servers so they are clearly distinct.
+
+
+  - id: AG-MCP-009
+    variant: docker-socket
+    aliases: [AG-MCP-CFG-008]
+    version: 1
+    title: Container mounts the Docker socket or host root
+    description: The server container mounts /var/run/docker.sock (or the Windows docker_engine pipe) or the host root filesystem.
+    why: Either mount is equivalent to full root access on the host.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Remove the mount. If the server must manage containers, run it on an isolated host.
+
+
+  - id: AG-MCP-009
+    variant: home-mount
+    aliases: [AG-MCP-CFG-009]
+    version: 1
+    title: Container mounts home or credential directories
+    description: The server container mounts $HOME or directories such as ~/.ssh, ~/.aws, ~/.kube, ~/.docker.
+    why: The server (and anything that compromises it) can read every credential in those directories.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Mount only the project directory the server needs, read-only where possible.
+
+
+  - id: AG-MCP-009
+    variant: privileged
+    aliases: [AG-MCP-CFG-007]
+    version: 1
+    title: Container runs with elevated host access
+    description: docker/podman is run with --privileged, --cap-add=ALL/SYS_ADMIN, host PID/network/IPC namespaces, or unconfined seccomp/AppArmor.
+    why: These flags remove container isolation; a compromised server gets host-level access.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Drop the flags; grant only the specific capabilities and mounts the server needs.
+
+
+  - id: AG-MCP-010
+    aliases: [AG-MCP-CFG-003]
+    version: 1
+    description: The command contains $(…), backticks, or a variable in the command position.
+    why: Dynamically built commands can be altered through the environment and hide what actually runs.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Use a literal command and argument array.
+
+
+  - id: AG-MCP-011
+    aliases: [AG-MCP-CFG-023]
+    version: 1
+    description: The server uses the HTTP+SSE transport, deprecated in favor of Streamable HTTP.
+    why: Deprecated transports lag on security fixes and are scheduled for removal.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Migrate to Streamable HTTP.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/changelog"]
+
+
+  - id: AG-MCP-012
+    version: 1
+    description: A server in the lockfile keeps its approved name, but the command, arguments or URL it is started with differ from what was approved.
+    why: The name is what a person recognises and approves. Swapping what runs behind an approved name is how a rug pull reaches a machine without a new approval prompt.
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Do not run the server until the new command or URL has been reviewed. If the change is intended, re-approve it with `agentguard baseline update`.
+
+  - id: AG-MCP-020
+    aliases: [AG-MCP-META-002]
+    version: 1
+    description: A tool or parameter description contains directives aimed at the model (override, concealment, "before using this tool…", pseudo-tags like <IMPORTANT>).
+    why: Tool descriptions are injected into the model's context for every conversation; instructions there act on every request (tool poisoning).
+    confidence: medium
+    applies_to: [tool, tool_param]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?|HIDDEN|SECRET|ADMIN|CRITICAL)\s*>
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|earlier|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|guidelines?|tools?|requests?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert|mention|reveal|show)\b[^\n.]{0,40}\b(?:user|human|operator)\b
+        - |-
+          \b(?:before|prior\s+to)\s+(?:using|calling|invoking|running)\s+(?:this|any|the)\s+(?:tool|function)\b[^\n]{0,160}\b(?:must|always|first|read|call|run|send|include|pass)\b
+        - |-
+          \b(?:otherwise|or\s+else)\s+(?:the\s+)?(?:tool|server|request)\s+(?:will\s+not|won'?t|cannot|can'?t|will\s+fail)
+        - |-
+          \bthe\s+(?:assistant|model|ai|agent|llm)\s+(?:must|should|needs\s+to|is\s+required\s+to)\b
+        - |-
+          \b(?:silently|secretly|covertly|quietly|without\s+(?:asking|telling))\b
+    remediation: Keep descriptions to what the tool does and its parameters. Remove any instructions to the model.
+
+  - id: AG-MCP-020
+    variant: hidden-unicode
+    aliases: [AG-MCP-META-001]
+    version: 1
+    title: Hidden Unicode in MCP metadata
+    description: Tool, parameter, prompt or resource metadata contains tag characters, bidi controls, zero-width characters or mixed-script words.
+    why: Models read hidden characters that humans approving the server cannot see.
+    severity: high
+    confidence: high
+    match: {type: analyzer, analyzer: text.hidden}
+    remediation: Remove hidden characters from metadata.
+
+
+  - id: AG-MCP-020
+    variant: remote-script
+    aliases: [AG-MCP-META-021]
+    version: 1
+    title: Description tells the agent to run a remote script
+    description: A tool, parameter, prompt or resource description, or the server's instructions, contains a download-and-run command (curl | sh, iwr | iex, a downloaded file made executable and run) or a Windows binary that runs remote code. Vendor installers on the AG-SKL-SE-002 allowlist are reported at medium.
+    why: Descriptions reach the model on every request, so a command there asks the agent to fetch and run code the server's author controls, with the agent's shell access. It is a typical rug-pull payload, added after the server was approved.
+    confidence: high
+    applies_to: [tool, tool_param, prompt, resource, server_instructions]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [tool_text, server_instructions]
+      patterns:
+        # The pipe-to-shell and LOLBin forms of AG-SKL-SE-002, and the download-then-run form of AG-SKL-SE-001.
+        - |-
+          \b(?:curl|wget|fetch)\b[^\n|]{0,300}https?://[^\n|]*\|\s*(?:sudo\s+)?(?:-E\s+)?(?:ba|z|k|da)?sh\b
+        - |-
+          \b(?:iwr|irm|Invoke-WebRequest|Invoke-RestMethod)\b[^\n|]*\|\s*(?:iex|Invoke-Expression)\b
+        - |-
+          \b(?:iex|Invoke-Expression)\s*\(?\s*(?:\(\s*)?(?:New-Object\s+(?:System\.)?Net\.WebClient\)?\.DownloadString|iwr|irm|Invoke-WebRequest|Invoke-RestMethod)
+        - |-
+          \b(?:ba|z)?sh\s+(?:-c\s+)?["']?\$\(\s*(?:curl|wget)\b[^)]*https?://
+        - |-
+          \b(?:python3?|node|perl|ruby)\s+(?:-c\s+)?["']?(?:<\(|\$\()\s*(?:curl|wget)\b
+        - |-
+          \bsource\s+<\(\s*(?:curl|wget)\b
+        - |-
+          \bmshta(?:\.exe)?\s+["']?(?:https?|vbscript|javascript):
+        - |-
+          \bregsvr32(?:\.exe)?\b[^\n]*\s/i:\s*["']?https?://
+        - |-
+          \brundll32(?:\.exe)?\b[^\n]*(?:javascript:|\burl\.dll\b[^\n]*https?://|\bmshtml\b[^\n]*RunHTMLApplication)
+        - |-
+          \bmsiexec(?:\.exe)?\b[^\n]*\s/(?:i|package)\s+["']?https?://
+        - |-
+          \b(?:curl|wget|iwr|Invoke-WebRequest|certutil(?:\.exe)?\s+-urlcache)\b[^\n]{0,200}(?:\s-o\s|\s-O\s|--output|-OutFile|\s>\s*\S)[^\n]{0,200}(?:&&|;|\|\|)\s*(?:sudo\s+)?(?:chmod\s+\+x|\./|start\s|Start-Process|open\s|bash\s|sh\s|\.\\)
+      downgrade:
+        - severity: medium
+          patterns:
+            - |-
+              (?:https?://(?:[a-z0-9-]+\.)*(?:astral\.sh|rustup\.rs|sh\.rustup\.rs|get\.docker\.com|brew\.sh|deno\.land|deno\.com|bun\.sh|nodejs\.org|deb\.nodesource\.com|rpm\.nodesource\.com|get\.pnpm\.io|install\.python-poetry\.org|pyenv\.run|get\.sdkman\.io|ollama\.com|claude\.ai/install|get\.helm\.sh|starship\.rs|tailscale\.com/install|fly\.io/install|get\.volta\.sh|sh\.vector\.dev|install\.determinate\.systems|nixos\.org/nix/install|mise\.run|get\.jetify\.com|opencode\.ai/install|cursor\.com/install|cli\.sentry\.dev/install|hf\.co/cli/install\.sh)\b)|(?:https?://raw\.githubusercontent\.com/(?:Homebrew/install|nvm-sh/nvm|ohmyzsh/ohmyzsh|pyenv/pyenv-installer|render-oss/cli)/)
+      window: 0
+    remediation: Remove the command from the description. Descriptions say what the tool does; a dependency the server needs belongs in its install documentation, pinned and verified, where a person reviews it before running it.
+
+
+  - id: AG-MCP-021
+    aliases: [AG-MCP-META-005]
+    version: 1
+    description: Instruction-like text appears in enum values, default values, titles, examples or annotation strings.
+    why: These fields are included in the model's context but rarely reviewed.
+    confidence: medium
+    applies_to: [tool_enum, tool_default, tool_title, tool_annotation]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          \b(?:ignore|disregard|you\s+must|always|never|do\s+not|don'?t|before\s+using|the\s+(?:assistant|model|agent))\b[^\n]{8,}
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?)\s*>|<\|im_start\|>
+    remediation: Keep enum values, defaults and titles short and descriptive.
+
+
+  - id: AG-MCP-021
+    variant: output-schema
+    aliases: [AG-MCP-META-024]
+    version: 1
+    title: Instructions to the model in a tool's outputSchema
+    description: A description, title, enum, example, default or const string anywhere in a tool's outputSchema contains directives aimed at the model (override, concealment, "before using this tool…", pseudo-tags like <IMPORTANT>).
+    why: The outputSchema is part of the tool definition the client receives, and the spec describes it as guiding "clients and LLMs" in using the result, so its text can reach the model like a description does. It is reviewed even less often than the description (tool poisoning).
+    severity: high
+    confidence: medium
+    applies_to: [tool_output]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?|HIDDEN|SECRET|ADMIN|CRITICAL)\s*>|<\|im_start\|>
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|earlier|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|guidelines?|tools?|requests?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert|mention|reveal|show)\b[^\n.]{0,40}\b(?:user|human|operator)\b
+        - |-
+          \b(?:before|prior\s+to|after)\s+(?:using|calling|invoking|running|returning|reading)\s+(?:this|any|the)\s+(?:tool|function|result|output)\b[^\n]{0,160}\b(?:must|always|first|read|call|run|send|include|pass)\b
+        - |-
+          \bthe\s+(?:assistant|model|ai|agent|llm)\s+(?:must|should|needs\s+to|is\s+required\s+to)\b
+        - |-
+          \b(?:silently|secretly|covertly|quietly|without\s+(?:asking|telling))\b
+    remediation: Keep outputSchema text to what each field contains. Remove any instructions to the model.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/server/tools#output-schema"]
+
+
+  - id: AG-MCP-022
+    aliases: [AG-MCP-META-006]
+    version: 2
+    description: A tool or resource description references other servers' tools or tries to redefine how other tools behave. Reported at medium for a resource, whose description is often documentation.
+    why: Shadowing lets one server hijack calls made to another (e.g. BCC every email sent with a trusted mail server).
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Remove cross-tool instructions; a description should only describe its own tool or resource.
+
+
+  - id: AG-MCP-023
+    variant: collision
+    aliases: [AG-MCP-META-007]
+    version: 1
+    title: Tool name collision across servers
+    description: Two or more servers expose a tool with the same name.
+    why: Clients resolve collisions differently; a malicious server can capture calls meant for a trusted one.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Disable one of the servers or use a client that namespaces tools by server.
+
+
+  - id: AG-MCP-023
+    variant: near-identical
+    aliases: [AG-MCP-META-008]
+    version: 1
+    title: Near-identical tool names across servers
+    description: Tool names from different servers differ by one edit or only by look-alike characters.
+    why: Near-collisions confuse both models and users approving calls.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Review which server the similar name belongs to and remove the unexpected one.
+
+
+  - id: AG-MCP-024
+    aliases: [AG-MCP-META-003]
+    version: 2
+    description: A tool, parameter or resource description tells the model to read sensitive files, keys, the system prompt or conversation history and pass them as an argument.
+    why: This is the canonical tool-poisoning exfiltration chain; the data leaves in the tool call itself.
+    confidence: high
+    applies_to: [tool, tool_param, resource]
+    aivss: {threat: attacked}
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          \b(?:read|cat|open|load|fetch|include|obtain|collect|retrieve|copy)\b[^\n]{0,80}(?:~/\.ssh|id_rsa|id_ed25519|\.aws/credentials|\.env\b|mcp\.json|claude_desktop_config\.json|\.cursor/|\.claude\.json|\.npmrc|\.netrc|credentials?\s+file|private\s+keys?|system\s+prompt|conversation\s+history|chat\s+history|environment\s+variables)
+      require:
+        - |-
+          \b(?:pass|send|put|provide|include|add|insert|supply|append|attach)\b[^\n]{0,80}(?:\b(?:as|in|into|to|via)\s+(?:the\s+)?[`'"]?[A-Za-z_]\w*[`'"]?\s*(?:param(?:eter)?|argument|arg|field|input|value)?\b|\bparam(?:eter)?\b|\bargument\b)
+      unless:
+        - |-
+          \bfrom\s+(?:the|your)\s+(?:dashboard|console|settings\s+page|account|website|portal|developer\s+page)\b
+      window: 3
+    remediation: Remove the instruction. Tools and resources must never ask the model to supply secrets or context it was not explicitly given for the task.
+
+
+  - id: AG-MCP-025
+    aliases: [AG-MCP-META-004]
+    version: 1
+    description: A parameter (often named note, context, feedback, sidenote…) asks the model to fill it with conversation, system prompt or file contents.
+    why: Side-channel parameters exfiltrate context through otherwise normal-looking tool calls.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Remove the parameter or restrict it to task-specific input.
+
+
+  - id: AG-MCP-026
+    variant: destructive-open-world
+    aliases: [AG-MCP-META-012]
+    version: 1
+    title: destructiveHint / openWorldHint contradicted by code
+    description: A tool annotated destructiveHint=false deletes data, or one annotated openWorldHint=false makes network requests.
+    why: Annotations drive client approval UX; wrong annotations mislead users.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Make annotations match the handler's behavior.
+
+
+  - id: AG-MCP-026
+    variant: read-only
+    aliases: [AG-MCP-META-011]
+    lane: block
+    version: 2
+    title: readOnlyHint contradicted by code
+    description: A tool annotated readOnlyHint=true has a handler that writes, deletes or executes.
+    why: Clients may auto-approve read-only tools; a false annotation turns that into unattended writes.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Fix the annotation, or make the handler genuinely read-only.
+
+  - id: AG-MCP-027
+    aliases: [AG-SC-001]
+    version: 2
+    description: A server's normalized tool definition (name, title, description, input schema, output schema, annotations) differs from agentguard.lock while the server version is unchanged. Locks written before output schemas were pinned (no `tool_hash_version`) are compared without them.
+    why: Rug pulls change tool behavior or instructions after users approved the server, without an update anyone would review.
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review the diff. If the change is legitimate, re-run `agentguard lock`; otherwise remove or pin the server.
+
+
+  - id: AG-MCP-027
+    variant: new-capabilities
+    aliases: [AG-SC-005]
+    version: 1
+    title: Drift adds new capabilities
+    description: Since the lock, the component gained capability labels (for example network egress or code execution).
+    why: A capability change is the part of an update that matters for security.
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review why the component now needs the new capability before accepting the update.
+
+
+  - id: AG-MCP-028
+    aliases: [AG-SC-003]
+    version: 1
+    description: A server exposes tools that were not locked, or no longer exposes locked tools.
+    why: New tools expand what the agent can do without review.
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review the new tools, then update the lock.
+
+
+  - id: AG-MCP-028
+    variant: not-in-lock
+    aliases: [AG-SC-006]
+    lane: evidence
+    version: 1
+    title: Component not in the lockfile
+    description: A component is present that agentguard.lock does not know about.
+    why: Unlocked components have not been through the lock review.
+    severity: low
+    confidence: high
+    match: {type: analyzer, analyzer: supply.drift}
+    remediation: Review the component and run `agentguard lock`.
+
+
+  - id: AG-MCP-029
+    variant: prompt
+    aliases: [AG-MCP-META-014]
+    version: 1
+    title: Injection in prompt templates
+    description: A server-provided prompt template contains override, concealment or exfiltration directives.
+    why: Prompt templates are inserted into conversations verbatim when selected.
+    confidence: medium
+    applies_to: [prompt]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          \b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|system|safety)\s+(?:instructions?|prompts?|rules?|guidelines?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|mention|reveal)\b[^\n.]{0,40}\b(?:user|human)\b
+        - |-
+          \b(?:send|upload|post|forward)\b[^\n]{0,60}\b(?:conversation|chat\s+history|system\s+prompt|credentials?|api\s+keys?)\b
+    remediation: Remove directives from prompt templates.
+
+
+  - id: AG-MCP-029
+    variant: resource
+    aliases: [AG-MCP-META-015]
+    lane: evidence
+    version: 2
+    title: Injection in resource metadata
+    description: Resource names, titles, descriptions or inline text contain agent-directed instructions (override, concealment, pseudo-tags like <IMPORTANT>). HTML views are checked by AG-MCP-META-016, -017, -018, -026 and -027 instead.
+    why: Resource metadata is shown to the model when listing or selecting resources, and inline text when it reads one.
+    severity: medium
+    confidence: medium
+    applies_to: [resource]
+    match:
+      type: regex
+      scopes: [tool_text]
+      patterns:
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?|HIDDEN|SECRET|ADMIN|CRITICAL)\s*>
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|earlier|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|guidelines?|tools?|requests?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert|mention|reveal|show)\b[^\n.]{0,40}\b(?:user|human|operator)\b
+        - |-
+          \b(?:before|prior\s+to)\s+(?:using|calling|invoking|running|reading)\s+(?:this|any|the)\s+(?:tool|function|resource)\b[^\n]{0,160}\b(?:must|always|first|read|call|run|send|include|pass)\b
+        - |-
+          \b(?:otherwise|or\s+else)\s+(?:the\s+)?(?:tool|server|request|resource)\s+(?:will\s+not|won'?t|cannot|can'?t|will\s+fail)
+        - |-
+          \bthe\s+(?:assistant|model|agent)\s+(?:must|should)\b|\byou\s+must\s+(?:always|first|now)\b
+    remediation: Keep resource metadata and inline text descriptive. Remove any instructions to the model.
+
+
+  - id: AG-MCP-030
+    aliases: [AG-MCP-META-013]
+    version: 1
+    description: The server's `instructions` field contains override, concealment, approval-bypass or cross-tool directives.
+    why: Server instructions are added to the model context when the server is connected.
+    confidence: medium
+    match:
+      type: regex
+      scopes: [server_instructions]
+      patterns:
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above|system|safety|other|user'?s?)\s+(?:instructions?|prompts?|rules?|tools?|guidelines?)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|mention|reveal)\b[^\n.]{0,40}\b(?:user|human)\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+ask\s+(?:the\s+user\s+)?(?:for\s+)?(?:permission|confirmation|approval)\b
+        - |-
+          \b(?:for|when\s+using)\s+(?:all|any)\s+other\s+(?:tools|servers)\b
+        - |-
+          <\s*/?\s*(?:IMPORTANT|SYSTEM|INSTRUCTIONS?)\s*>
+    remediation: Limit server instructions to usage guidance for this server's own tools.
+
+
+  - id: AG-MCP-032
+    variant: description-stuffing
+    lane: evidence
+    aliases: [AG-MCP-META-019]
+    version: 1
+    title: Description stuffing
+    description: A tool description is unusually long (> 2000 characters) or padded with long runs of whitespace/newlines.
+    why: Padding hides instructions below what a user reviewing the tool will scroll to.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Keep descriptions concise.
+
+
+  - id: AG-MCP-032
+    variant: schema-bomb
+    lane: evidence
+    category: vulnerability
+    aliases: [AG-MCP-META-023]
+    version: 1
+    title: Tool schema too deep, too large, or exponential under $ref
+    description: A tool's inputSchema or outputSchema is nested more than 48 levels deep, has more than 10,000 subschemas, or grows past 1,000,000 subschemas when its local `$ref`s are followed (`$defs` that each reuse the previous one several times); or a tool manifest nests past the 64 levels Agent Guard's JSON loader accepts, so its tools cannot be read at all. A recursive schema counts each cycle once.
+    why: MCP 2026-07-28 warns that composition keywords and `$defs` can be expensive to validate and asks implementations to bound schema depth, subschema count or validation time so that a malicious schema cannot deny service to the validator. The spec gives no numbers; these bounds are Agent Guard's, far above any tool schema in its benchmark corpus.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Flatten the schema. Validate in the client with a depth, subschema and time limit.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/index#composition-keyword-resource-use"]
+
+
+  - id: AG-MCP-033
+    aliases: [AG-MCP-META-010]
+    version: 1
+    description: A tool with dangerous parameters accepts arbitrary additional arguments.
+    why: Extra arguments can smuggle options the server passes through to commands or queries.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Set additionalProperties to false.
+
+
+  - id: AG-MCP-041
+    variant: config-bind-all
+    aliases: [AG-MCP-CFG-016]
+    version: 1
+    title: Server listens on all interfaces
+    description: The server is configured to bind 0.0.0.0.
+    why: Local MCP servers exposed on all interfaces can be reached by other hosts on the network (and by DNS-rebinding web pages).
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Bind to 127.0.0.1 and require authentication for any network listener.
+
+
+  - id: AG-MCP-042
+    aliases: [AG-CODE-029]
+    version: 1
+    description: The server forwards the incoming Authorization header (the client's token) to upstream services.
+    why: The MCP authorization spec forbids token passthrough; it breaks audience binding and lets tokens reach services they were not issued for.
+    confidence: medium
+    match: {type: analyzer, analyzer: code}
+    remediation: Exchange or obtain a separate upstream token; validate the audience of tokens you receive.
+
+
+  - id: AG-MCP-044
+    variant: client-credentials-unbound
+    aliases: [AG-MCP-SPEC-004]
+    version: 1
+    title: MCP client stores client credentials without the issuer
+    description: In a package that uses an MCP client outside its tests, code saves OAuth client registration (`saveClientInformation`, `save_client_info`, `set_client_info`) and the file never mentions the issuer outside comments. Test files are not checked.
+    why: MCP 2026-07-28 (SEP-2352) says clients MUST key persisted client credentials by the authorization server's issuer, MUST NOT reuse them with a different authorization server, and MUST re-register when the server's protected resource metadata names a new one. Credentials keyed only by the MCP server are sent to whatever authorization server it points at next. This is a heuristic (the key may be built elsewhere), hence low confidence.
+    severity: low
+    confidence: low
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Key stored client credentials by the issuer from validated authorization server metadata, and re-register when it changes. Client ID Metadata Document client IDs need no re-registration.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration#authorization-server-binding"]
+
+
+  - id: AG-MCP-044
+    variant: client-no-iss
+    aliases: [AG-MCP-SPEC-003]
+    version: 1
+    title: MCP client OAuth callback does not check iss
+    description: In a package that uses an MCP client outside its tests, code reads the authorization code from the OAuth redirect (`searchParams.get("code")`, `query.code`, `args.get("code")`) and the file never reads `iss` outside comments. Test files are not checked.
+    why: MCP 2026-07-28 (SEP-2468) requires clients to record the authorization server's issuer before redirecting and, before sending the code to any token endpoint, to compare a returned `iss` to it (RFC 9207), and to reject a response without `iss` from a server that advertises it. A callback that ignores `iss` cannot tell which authorization server answered, which is what a mix-up attack exploits to steal the code.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Read `iss` from the redirect and compare it, unnormalized, to the issuer recorded with the PKCE verifier; reject a mismatch, and reject a missing `iss` when the server advertises `authorization_response_iss_parameter_supported`.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#authorization-response-validation", "https://www.rfc-editor.org/rfc/rfc9207"]
+
+
+  - id: AG-MCP-044
+    variant: client-no-resource
+    aliases: [AG-MCP-SPEC-005]
+    version: 1
+    title: MCP client OAuth request without the resource parameter
+    description: In a package that uses an MCP client outside its tests, code builds an authorization request (`code_challenge`) or a token request (`grant_type` authorization_code or refresh_token) with no `resource` parameter within 20 lines. Requests in comments (for example generated API docs) and test files are not checked.
+    why: Since 2025-06-18 MCP clients MUST send the RFC 8707 `resource` parameter, set to the MCP server's canonical URI, in both authorization and token requests, whether or not the authorization server supports it. Without it the token is not bound to the server it is meant for, so a malicious server can obtain a token usable elsewhere.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.client_auth}
+    remediation: Add `resource=<canonical MCP server URI>` to the authorization request and to every token request, including refreshes.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#resource-parameter-implementation", "https://www.rfc-editor.org/rfc/rfc8707"]
+
+
+  - id: AG-MCP-048
+    variant: unconstrained-parameter
+    aliases: [AG-MCP-META-009]
+    version: 1
+    title: Unconstrained dangerous string parameter
+    description: A tool accepts a command, code, script or SQL string with no enum or pattern constraint. Path, URL and search-query parameters are not reported here; the implementation rules judge what the server's code does with them.
+    why: An unconstrained parameter that is run lets injected instructions reach a shell, an interpreter or a database directly.
+    severity: medium
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Constrain the parameter (enum, pattern, allowlisted roots/hosts) and validate it server-side.
+
+
+  - id: AG-MCP-060
+    aliases: [AG-SC-024]
+    lane: evidence
+    version: 1
+    description: A server.json uses an io.github.<owner>/ namespace that differs from the owner of its declared repository.
+    why: Namespace/repository mismatches are how impersonating registry entries point at someone else's code.
+    confidence: medium
+    match: {type: analyzer, analyzer: supply.offline}
+    remediation: Verify who publishes the server and use the entry from the repository owner's namespace.
+
+
+  - id: AG-MCP-070
+    variant: external-frame
+    aliases: [AG-MCP-META-018]
+    version: 1
+    title: MCP Apps UI resource embeds an external frame
+    description: A ui:// resource embeds an iframe from an external origin.
+    why: External frames can change after review and can be used for clickjacking or phishing inside the client.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Avoid external frames; serve content from the resource itself.
+
+
+  - id: AG-MCP-070
+    variant: external-origins
+    aliases: [AG-MCP-META-016]
+    version: 2
+    title: MCP Apps UI resource contacts external origins
+    description: A ui:// (HTML) resource fetches, beacons or loads images or stylesheets from external origins. External scripts are AG-MCP-META-026.
+    why: Interactive UI resources run in the client; external requests can exfiltrate what the UI displays.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Bundle assets and declare any required network origins explicitly.
+
+
+  - id: AG-MCP-070
+    variant: no-user-action
+    aliases: [AG-MCP-META-027]
+    lane: block
+    version: 1
+    title: MCP Apps UI resource acts without a user action
+    description: A UI resource sends `tools/call`, `ui/message`, `ui/update-model-context` or `ui/open-link` (in a postMessage, or through a helper called with the method name) and has no click, key, pointer, input or form handler at all, so nothing the user does can be what triggers it.
+    why: In MCP Apps these requests act for the user. `tools/call` runs a server tool, `ui/message` adds a message to the conversation as the user, `ui/update-model-context` changes what the model sees in later turns, and `ui/open-link` opens a URL; hosts only MAY ask for consent. The spec's interactive phase starts each one from a user interaction, and its threat model lists unauthorized tool execution and social engineering by the View.
+    confidence: medium
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Send these requests only from a user action (a button, link or form), and show the user what will be sent.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]
+
+
+  - id: AG-MCP-070
+    variant: open-csp
+    aliases: [AG-MCP-META-025]
+    version: 1
+    title: MCP Apps CSP declaration opens the UI sandbox
+    description: A UI resource's `_meta.ui.csp` lists, in connectDomains, resourceDomains, frameDomains or baseUriDomains, an entry that allows any origin (`*`, a bare scheme such as `https:` or `data:`, `https://*`, `https://*.com`), a cleartext `http://` or `ws://` origin, or text with spaces, quotes or `;` that adds CSP sources or directives. High for any origin in connectDomains or resourceDomains and for CSP syntax. Omitting `ui.csp` is not reported; hosts then apply a restrictive default.
+    why: Hosts build the View's Content Security Policy from these lists and MUST NOT allow undeclared domains (MCP Apps 2026-01-26), so the declaration is the sandbox's network boundary. A wildcard in connectDomains lets the View send everything it shows (tool input and results) anywhere; in resourceDomains it lets it load script from anywhere; an entry such as `https://a.example 'unsafe-eval'` or `https://a.example; script-src *` rewrites the policy when it is joined into the header.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: List the exact https origins the View needs, one per entry.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]
+
+
+  - id: AG-MCP-070
+    variant: unpinned-script
+    aliases: [AG-MCP-META-026]
+    version: 1
+    title: MCP Apps UI resource runs an external script without an integrity hash
+    description: A UI resource loads script from another origin (`<script src>` without an `integrity` attribute, `import()` or `import ... from` an http(s) URL, `importScripts`, or a `.js` URL assigned to `.src`). The finding says whether the origin is declared in `_meta.ui.csp.resourceDomains`.
+    why: MCP Apps relies on hosts reviewing, hashing and allow-listing UI templates when they connect ("predeclared resource review"). Script fetched from elsewhere at render time is not part of what was reviewed and can change at any time without the server's resources changing. An undeclared origin is blocked by a host that follows the spec, so the View only works on hosts that do not enforce the CSP.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.meta}
+    remediation: Bundle the script into the resource, or pin it with a Subresource Integrity hash and declare its origin in resourceDomains.
+    references: ["https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx"]
+
+
+  - id: AG-MCP-071
+    aliases: [AG-MCP-CFG-022]
+    version: 1
+    description: A project/workspace-scoped MCP config defines a local (STDIO) server, which runs a command when the project is opened or trusted.
+    why: Cloning or opening a repository should not be enough to run code; project configs are an easy supply-chain entry point.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Review the server before trusting the project; prefer documenting servers in the README over committing configs.
+
+
+  - id: AG-MCP-072
+    aliases: [AG-MCP-CFG-021]
+    version: 1
+    description: Client configuration auto-approves server tools (alwaysAllow/autoApprove/trust) or enables all project MCP servers / all tool calls.
+    why: Auto-approval removes the human check on every tool call, so any injection executes unattended.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Remove auto-approval, or limit it to specific read-only tools.
+
+
+  - id: AG-MCP-006
+    version: 1
+    description: An MCP server entry gets its request headers from a helper command (`headersHelper`, `http_headers_helper`).
+    why: The helper is a shell command that runs on every connection and handles the credentials sent to the server.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the helper command, or supply headers from environment variables.
+
+  - id: AG-MCP-008
+    version: 1
+    description: A repository or plugin configuration starts a local MCP server from a path outside the repository or plugin - an absolute path, a home-directory path, or one that climbs out with `..`.
+    why: The code that runs is not part of what ships with the configuration, so it was not reviewed or scanned with it, and it differs from machine to machine.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Ship the server inside the repository or plugin, or reference a pinned package.
+
+  - id: AG-MCP-034
+    version: 1
+    description: A tool, server or bundle icon is loaded from a remote host, or is an SVG that carries script or event handlers.
+    why: A remote icon is fetched each time the client shows it, which reveals who uses the server and lets the image change. SVG can carry script; the registry schema itself warns about it.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: remove-key
+    remediation: Ship icons as local PNG files.
+
+  - id: AG-MCP-061
+    version: 1
+    description: A registry entry names an MCPB bundle with no `fileSha256`, or the bundle's actual hash differs from the one declared.
+    why: The official registry does not validate bundle hashes and does not scan for malware. The hash is the only link between the entry that was reviewed and the file that is downloaded.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Do not install. The entry must carry the hash of the bundle, and the bundle must match it.
+
+  - id: AG-MCP-062
+    version: 1
+    description: An MCPB bundle's `mcp_config` launches a shell command string, inline code or a command that fetches content, or starts a different command on some platforms.
+    why: The launch command is what runs when the bundle is installed. A platform override can hide a different program from a reviewer who looks only at the main command.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Review the launch command for every platform before installing.
+
+  - id: AG-MCP-063
+    version: 1
+    description: The tools a bundle's manifest declares are not the tools its server code registers, or the tools a live listing returned.
+    why: The manifest is what a user reviews before installing. Tools that are served and not declared never get that review.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Compare the manifest with what the server lists, and review the undeclared tools.
+
+  - id: AG-MCP-064
+    version: 1
+    description: An MCPB bundle file carries no signature block.
+    why: Without a signature the file's origin cannot be checked; anyone can repackage a bundle under the same name.
+    match: {type: analyzer, analyzer: plugins}
+    remediation: Prefer signed bundles, and verify the hash against a source you trust.
+
+  - id: AG-MCP-065
+    version: 1
+    description: "A bundle's `user_config` asks for a key, token, password or other secret and does not mark it `sensitive`."
+    why: A value not marked sensitive is stored in plain text instead of the system keychain.
+    match: {type: analyzer, analyzer: plugins}
+    fix_action: "set-sibling:sensitive=true"
+    remediation: 'Add `"sensitive": true` to the field.'
+
+# ---- added: mcp_impl ----
+  - id: AG-MCP-031
+    version: 1
+    description: "A tool result or an error message gives orders to the model. Checked in two places: results recorded when the server was run in the sandbox (`facts.tool_results`), and string literals a tool handler returns or raises."
+    why: The model reads tool output with the trust it gives the tool. This text is not part of the tool's definition, so reviewing or pinning the definition does not cover it.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Remove the directive from the result. Tool output should be data; anything the server wants the model to do belongs in the reviewed tool description.
+
+  - id: AG-MCP-040
+    version: 1
+    description: The server's source sets up an HTTP transport (streamable HTTP or SSE) and nothing in it checks the caller - no Authorization header, token verifier, API key or OAuth configuration. Medium when the server binds to the loopback address only.
+    why: Every tool of the server is then callable by anyone who can reach the port. Published surveys found roughly four in ten public MCP servers in this state.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Require a bearer token on every request and validate it, as the MCP authorization specification describes, or serve the server over stdio only.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization"]
+
+  - id: AG-MCP-043
+    version: 1
+    description: "Server code verifies a JWT without checking its audience: the audience check is switched off (`verify_aud: False`), or neither the verification call nor the code after it reads `aud`."
+    why: A token issued by the same authorization server for a different service is accepted. The MCP authorization specification requires servers to accept only tokens issued for them.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Pass the server's own canonical URI as the expected audience to the verification call, and reject tokens without it.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-audience-binding-and-validation"]
+
+  - id: AG-MCP-045
+    version: 1
+    description: "Server code reads a token or API key from the URL query string, builds one into a URL, or writes a token, password, API key or the request headers to a log."
+    why: URLs and logs are stored in many places and read by many people. A token that appears in either is exposed for as long as those records exist.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Send tokens in the Authorization header only, and log a fingerprint or nothing at all.
+
+  - id: AG-MCP-046
+    version: 1
+    description: A tool fetches content from outside (a URL it is given, a web page, mail, issues) and returns it as it came, in a server that marks nothing as untrusted.
+    why: Instructions planted in that content reach the model as tool output. This is the indirect prompt injection path, and the server is the place where the content can still be labelled as data.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Wrap fetched content in clear delimiters that say it is untrusted data, strip markup that hides text, and say so in the tool description.
+
+  - id: AG-MCP-047
+    version: 1
+    description: "The server requests OAuth scopes that allow writing or administration upstream (for example `repo`, `admin:org`, full Drive or Mail access, `*.ReadWrite.All`), and every tool it offers only reads."
+    why: The token the server holds can do much more than the server does. Anyone who reaches the token, or steers the model through the server, gains the difference.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Request the narrowest scopes the tools need (read-only variants), and request more only when a tool that needs them is added.
+
+  - id: AG-MCP-049
+    version: 1
+    description: A tool opens, lists, writes or deletes the path it is given, and the server's source has no path confinement anywhere - no allowed root, no resolve-and-compare.
+    why: Whoever steers the model can read or write any file the server's account can reach, including credentials and the agent's own configuration.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Resolve the path, compare it with an allowed root, and refuse anything outside. Take the allowed roots from the client or the server's configuration.
+
+  - id: AG-MCP-050
+    version: 1
+    description: "A server served over HTTP keeps per-user state (current user, session, token, history, context) in module-level variables that its tool handlers change."
+    why: One process answers every client. What one user's call stores, another user's call reads - a cross-tenant leak that does not exist in the same code run over stdio.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Keep state per session or per authenticated user (the request context), not in module-level variables.
+
+  - id: AG-MCP-051
+    version: 1
+    description: A tool deletes or destroys data, and its handler contains no check at all - no validation of the target, no confirmation, no rate limit.
+    why: A single mistaken or injected call removes data with nothing in the way. Destructive tools are where a missing check costs the most.
+    match: {type: analyzer, analyzer: mcp.impl}
+    remediation: Validate the target, ask for confirmation (elicitation) before destructive actions, and limit how often the tool can run.

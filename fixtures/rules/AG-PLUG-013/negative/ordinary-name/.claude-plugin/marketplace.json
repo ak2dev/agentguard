@@ -1,0 +1,12 @@
+{
+  "name": "acme-internal-tools",
+  "owner": {
+    "name": "Example Team"
+  },
+  "plugins": [
+    {
+      "name": "fmt",
+      "source": "./plugins/fmt"
+    }
+  ]
+}

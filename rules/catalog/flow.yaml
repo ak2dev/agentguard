@@ -1,0 +1,26 @@
+family: FLOW
+name: Toxic flows and composition
+about: Needs the installed context. Mirrors ColluSkill and toxic-flow research.
+defaults: {category: vulnerability, lane: evidence, confidence: medium, engine: flow}
+mappings:
+  owasp-ast-1.0: [AST03]
+  owasp-mcp-2025-beta: ["MCP10:2025"]
+  owasp-asi-2026: [ASI02, ASI08]
+  owasp-llm-2026: ["LLM03:2026"]
+  nsa-csi-mcp-2026-05: [recommendations/design-for-boundaries]
+  cwe: []
+rules:
+  - [AG-FLOW-001, H, P, "One component reads untrusted content, reaches private data, and can send data out"]
+  - [AG-FLOW-002, H, G, "The same three capabilities spread across components"]
+  - [AG-FLOW-003, H, G, "Untrusted-content source feeds a privileged action"]
+  - [AG-FLOW-004, M, G, "Sensitive-data tool and external-communication tool installed together"]
+  - [AG-FLOW-005, H, X, "Cross-skill chain through a file one writes and another executes or obeys", {category: malice, lane: block}]
+  - [AG-FLOW-006, H, X, "Cross-skill chain through shared environment or state", {category: malice, lane: block}]
+  - [AG-FLOW-007, M, G, "Skill invokes a sensitive skill by name"]
+  - [AG-FLOW-008, H, X, "One component writes memory that another treats as instruction", {category: malice, mappings: {owasp-asi-2026: [ASI06]}}]
+  - [AG-FLOW-009, H, G, "Data flows from one server's tool to another server's external sink"]
+  - [AG-FLOW-010, M, G, "Capability label: exposes the agent to untrusted content", {lane: hunt}]
+  - [AG-FLOW-011, L, G, "Capability label: reads sensitive or workspace data", {lane: hunt}]
+  - [AG-FLOW-012, M, G, "Capability label: destructive or irreversible actions", {lane: hunt}]
+  - [AG-FLOW-013, H, X, "Candidate changes how an installed component behaves", {category: malice, lane: block}]
+  - [AG-FLOW-014, M, P, "Delegation gives a subagent more tools than its parent", {engine: privilege}]

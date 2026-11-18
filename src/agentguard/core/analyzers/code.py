@@ -1,4 +1,4 @@
-"""Code analyzer (AG-CODE-*, plus code-backed AG-MCP-META-011/012/020).
+"""Code analyzer (AG-VULN-*, code-backed AG-MCP-026 and AG-EVADE-015, and other code findings).
 
 * Python tool handlers: real intra-procedural taint via ``ast`` (pytaint).
 * JS/TS tool handlers: sink calls are located and their argument lists
@@ -32,18 +32,20 @@ from .heuristics import CREDENTIAL_PATH, EGRESS_CODE, PERSISTENCE, finditer, sea
 from .mcp import ToolHandler
 
 TAINT_RULE = {
-    "shell": "AG-CODE-001", "argv": "AG-CODE-002", "eval": "AG-CODE-003", "deser": "AG-CODE-004",
-    "path": "AG-CODE-005", "url": "AG-CODE-006", "sql": "AG-CODE-007", "template": "AG-CODE-008",
+    "shell": "AG-VULN-001", "argv": "AG-VULN-001/process-argument", "eval": "AG-VULN-001/eval", "deser": "AG-VULN-005",
+    "path": "AG-VULN-002", "url": "AG-VULN-003", "sql": "AG-VULN-004", "template": "AG-VULN-007",
+    "write": "AG-VULN-006",
 }
 TAINT_TEXT = {
     "shell": "reaches a shell command", "argv": "is passed as a process argument", "eval": "reaches eval/exec",
     "deser": "is deserialized unsafely", "path": "is used as a filesystem path", "url": "controls an outbound request URL",
     "sql": "is concatenated into SQL", "template": "is compiled as a template",
+    "write": "decides which file is written",
 }
 TAINT_LABEL = {
     "shell": CapLabel.code_exec, "argv": CapLabel.code_exec, "eval": CapLabel.code_exec, "deser": CapLabel.code_exec,
     "path": CapLabel.reads_private_data, "url": CapLabel.external_egress, "sql": CapLabel.reads_private_data,
-    "template": CapLabel.code_exec,
+    "template": CapLabel.code_exec, "write": CapLabel.fs_write_workspace,
 }
 
 # ---- JS/TS sink shapes (call name → kind) -----------------------------------
@@ -52,9 +54,11 @@ _JS_SINKS = (
     (regex.compile(r"\b(?:spawn|spawnSync|execFile|execFileSync|execa|execaSync|fork)\s*\("), "argv"),
     (regex.compile(r"\beval\s*\(|\bnew\s+Function\s*\(|\bvm\.run\w*\s*\("), "eval"),
     (regex.compile(r"\b(?:unserialize|deserialize)\s*\("), "deser"),
-    (regex.compile(r"\bfs(?:\.promises)?\.(?:readFile|writeFile|appendFile|unlink|rm|rmdir|readdir|createReadStream|createWriteStream|"
-                   r"readFileSync|writeFileSync|appendFileSync|unlinkSync|rmSync|readdirSync|copyFile|rename)\w*\s*\(|"
-                   r"\b(?:readFile|writeFile|readFileSync|writeFileSync)\s*\("), "path"),
+    (regex.compile(r"\bfs(?:\.promises)?\.(?:writeFile|appendFile|createWriteStream|writeFileSync|appendFileSync)\w*\s*\(|"
+                   r"\b(?:writeFile|writeFileSync)\s*\("), "write"),
+    (regex.compile(r"\bfs(?:\.promises)?\.(?:readFile|unlink|rm|rmdir|readdir|createReadStream|"
+                   r"readFileSync|unlinkSync|rmSync|readdirSync|copyFile|rename)\w*\s*\(|"
+                   r"\b(?:readFile|readFileSync)\s*\("), "path"),
     (regex.compile(r"\b(?:fetch|got|ky|axios(?:\.(?:get|post|put|patch|delete|request))?|https?\.(?:get|request)|undici\.request)\s*\("), "url"),
     (regex.compile(r"\.(?:query|execute|raw|unsafe|\$queryRawUnsafe|\$executeRawUnsafe)\s*\("), "sql"),
     (regex.compile(r"\b(?:ejs|Handlebars|handlebars|pug|nunjucks|_)\.(?:render|compile|renderString|template)\s*\("), "template"),
@@ -133,6 +137,7 @@ _JS_SANITIZERS = {
                           r"\bpath\.relative\s*\([^)]*\)[^;\n]*startsWith\s*\(\s*['\"]\.\."),
     "url": regex.compile(r"\b(?:ALLOWED_HOSTS|allowedHosts|ALLOWLIST|allowlist|isAllowed(?:Url|Host)\w*)\b"),
 }
+_JS_SANITIZERS["write"] = _JS_SANITIZERS["path"]
 
 
 def _fixed_prefix(handler: str, names: list[str], params: list[str]) -> set[str]:
@@ -166,7 +171,7 @@ def js_taint(handler: str, params: list[str]) -> list[_Hit]:
                 kind_eff = "shell"
             else:
                 kind_eff = kind
-            first = args.split(",", 1)[0] if kind_eff in ("url", "path", "sql", "template") else args
+            first = args.split(",", 1)[0] if kind_eff in ("url", "path", "write", "sql", "template") else args
             for n in names:
                 pat = rf"(?<![\w$.'\"]){regex.escape(n)}(?![\w$])"
                 if kind_eff == "url":
@@ -431,7 +436,52 @@ _WRITE_EVIDENCE = regex.compile(
     r"method\s*:\s*[\"'](?:POST|PUT|DELETE|PATCH)|subprocess|child_process|execSync|exec\()",
 )
 _DELETE_EVIDENCE = regex.compile(r"\b(?:unlink\w*|rmSync|rm\(|rmdir|shutil\.rmtree|os\.remove|DELETE\s+FROM|DROP\s+(?:TABLE|DATABASE)|TRUNCATE)", regex.IGNORECASE)
-_CLIENT_VARIANCE = regex.compile(r"\b(?:clientInfo|client_info|getClientVersion|getClientCapabilities|client_params)\b")
+# The client's *identity* (name or version) compared with something. Reading its capabilities
+# (`getClientCapabilities()`) is the protocol's own feature negotiation and says nothing.
+_CLIENT_VARIANCE = regex.compile(
+    r"\b(?:clientInfo|client_info|getClientVersion\(\)|client_params)\??(?:\.\w+\??){0,2}\.(?:name|version)\b\s*"
+    r"(?:[=!]==?|\.(?:includes|startsWith|endsWith|match|test|toLowerCase|lower|startswith|endswith)\b|\s+(?:not\s+)?in\b)"
+    r"|(?:[=!]==?|\bin)\s*(?:\w+\??\.)*(?:clientInfo|client_info)\??\.(?:name|version)\b"
+    r"|\b(?:clientName|client_name|clientVersion|client_version)\s*(?:[=!]==?|\.(?:includes|startsWith|match|startswith)\b|\s+(?:not\s+)?in\b)")
+_ARBITRARY_EXEC = regex.compile(r"\bos\.(?:system|popen)\(|shell\s*=\s*True|shell\s*:\s*true|\beval\(|(?<![.\w])exec\(|child_process\.exec(?:Sync)?\(|"
+                               r"\bexecSync\(|\bnew\s+Function\(|\b(?:bash|sh|cmd|powershell|pwsh)[\"']\s*,\s*[\"'](?:-c|/c|-Command)[\"']")
+_INSTALL_CMD = regex.compile(r"\b(?:pip3?|npm|pnpm|yarn|uv)\b[^\n]{0,40}\b(?:install|i|add)\b|\b(?:npx|uvx)\s+-y\s")
+_INSTALL_REMOTE = regex.compile(r"https?://|git\+|\bgithub:|--(?:extra-)?index-url|--registry\b|(?<=\s)-i\s")
+_ECHO_LINE = regex.compile(r"^\s*(?:echo|printf|print|console\.(?:log|error|warn|info)|log(?:ger)?\.\w+|usage)\b(?![^\n]*(?:\$\(|`|<\s*[~/$]))", regex.IGNORECASE)
+_DOC_URL = regex.compile(r"/(?:docs?|guides?|help|blog|wiki|support|learn|reference|dashboard|legal|terms|privacy)(?:/|$)|\.(?:md|html?|pdf)(?:[?#]|$)",
+                         regex.IGNORECASE)
+# Install hooks that only build the package from its own sources.
+_BUILD_HOOK = regex.compile(
+    r"^(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?[\w:.\-]+|tsc(?:\s+[\w\-./ ]*)?|tsup(?:\s+[\w\-./ ]*)?|husky(?:\s+install)?|patch-package|"
+    r"node-gyp\s+(?:rebuild|configure|build)|prisma\s+generate|simple-git-hooks|lefthook\s+install|is-ci|ngcc(?:\s+[\w\-./ ]*)?|"
+    r"electron-builder\s+install-app-deps|shx\s+chmod\s+\+x\s+[\w./*\-]+|chmod\s+\+x\s+[\w./*\-]+|rimraf\s+[\w./\-]+|exit\s+0|true)$")
+_RISKY_HOOK = regex.compile(r"\b(?:curl|wget|node\s+-e|python3?\s+-c|bash\s+-c|sh\s+-c|powershell|pwsh|iwr|nc|eval)\b|https?://|\|\s*(?:ba)?sh\b",
+                            regex.IGNORECASE)
+
+
+def _build_only(cmd: str, scripts: dict, depth: int = 0) -> bool:
+    """Every step of an npm lifecycle command is a local build step (and so is each script it runs)."""
+    for part in regex.split(r"\s*(?:&&|\|\||;)\s*", cmd.strip()):
+        part = part.strip()
+        if not part:
+            continue
+        if _RISKY_HOOK.search(part) or not _BUILD_HOOK.match(part):
+            return False
+        m = regex.match(r"^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?([\w:.\-]+)$", part)
+        if m and m.group(1) not in ("install", "ci", "i"):
+            target = scripts.get(m.group(1))
+            if not isinstance(target, str) or depth >= 3:
+                return False
+            # The script it names: a build command (anything without network or inline code), followed one level down.
+            if _RISKY_HOOK.search(target):
+                return False
+            for sub in regex.findall(r"(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.\-]+)", target):
+                nested = scripts.get(sub)
+                if not isinstance(nested, str) or _RISKY_HOOK.search(nested):
+                    return False
+        elif m:
+            return False
+    return True
 _REMOTE_TOOLS = regex.compile(r"\btools\s*=\s*(?:await\s+)?\(?\s*(?:await\s+)?(?:fetch|requests\.get|httpx\.get|axios\.get)\s*\(")
 
 
@@ -468,10 +518,10 @@ class CodeAnalyzer:
     id: ClassVar[str] = "code"
     requires: ClassVar[frozenset[str]] = frozenset()
     rules: ClassVar[tuple[str, ...]] = (
-        "AG-CODE-001", "AG-CODE-002", "AG-CODE-003", "AG-CODE-004", "AG-CODE-005", "AG-CODE-006", "AG-CODE-007",
-        "AG-CODE-008", "AG-CODE-020", "AG-CODE-021", "AG-CODE-022", "AG-CODE-023", "AG-CODE-024", "AG-CODE-025",
-        "AG-CODE-026", "AG-CODE-027", "AG-CODE-028", "AG-CODE-029", "AG-CODE-040",
-        "AG-MCP-META-011", "AG-MCP-META-012", "AG-MCP-META-020",
+        "AG-VULN-001", "AG-VULN-001/process-argument", "AG-VULN-001/eval", "AG-VULN-005", "AG-VULN-002", "AG-VULN-003", "AG-VULN-004",
+        "AG-VULN-006", "AG-VULN-007", "AG-CRED-002/server-code", "AG-EXF-002/server-env-dump", "AG-EXF-015/hardcoded-host", "AG-EXEC-002/obfuscated-exec", "AG-EXEC-006/install-hook", "AG-SUPPLY-009",
+        "AG-EXEC-008/command-variable", "AG-PERSIST-005/code", "AG-EVADE-009", "AG-EXEC-003/native-binary", "AG-MCP-042", "AG-PRIV-008",
+        "AG-MCP-026/read-only", "AG-MCP-026/destructive-open-world", "AG-EVADE-015/tool-defs-code",
     )
 
     def run(self, ctx: Context) -> None:
@@ -573,8 +623,12 @@ class CodeAnalyzer:
         s = caps.setdefault(key, set())
         if search(EGRESS_CODE, body):
             s.add(CapLabel.external_egress)
-        if search(regex.compile(r"\bsubprocess\b|child_process|\bexecSync\b|\bspawn\(|\bos\.system\(|\beval\("), body):
+        if search(_ARBITRARY_EXEC, body):
             s.add(CapLabel.code_exec)
+        elif search(regex.compile(r"\bsubprocess\b|child_process|\bspawn(?:Sync)?\(|\bexecFile"), body):
+            # A fixed program started with an argument list (a git tool running `git`): how the tool
+            # is implemented, not code execution it should declare. It still contradicts readOnlyHint.
+            s.add("runs-program")  # type: ignore[arg-type]
         if search(_DELETE_EVIDENCE, body):
             s.add(CapLabel.destructive)
         if search(CREDENTIAL_PATH, body) or env_dumps(body, language):
@@ -586,17 +640,17 @@ class CodeAnalyzer:
     def _capabilities(self, ctx: Context, at: ArtifactText, comp: Component) -> None:
         cid = comp.id
         text = at.text
-        is_server = comp.kind in (ComponentKind.mcp_server, ComponentKind.package)
+        is_server = comp.kind in (ComponentKind.mcp_server, ComponentKind.package, ComponentKind.bundle)
         if at.artifact.role == ArtifactRole.package_manifest:
             self._install_hooks(ctx, at, comp)
             return
-        # CODE-020/021: server source only (skill scripts use AG-SKL-CRED-*).
+        # Credential and environment reads in server source (skill scripts use the regex detectors).
         if is_server:
             for m in finditer(CREDENTIAL_PATH, text)[:3]:
                 line = _line_of(text, m.start())
-                if _is_comment(line):
-                    continue
-                ctx.emit("AG-CODE-020", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(),
+                if _is_comment(line) or _ECHO_LINE.match(line):
+                    continue            # a comment, or a usage or log line that names the file
+                ctx.emit("AG-CRED-002/server-code", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(),
                          match=m.group(0), kind=EvidenceKind.ast, message=f"Server code references credential store '{m.group(0)[:60]}'.")
                 ctx.add_capability(cid, CapLabel.reads_private_data, confidence=Confidence.high, span=at.span(m.start()),
                                    snippet=line.strip(), reason="reads a credential store", kind=EvidenceKind.ast)
@@ -604,40 +658,53 @@ class CodeAnalyzer:
                                    snippet=line.strip(), reason="reads a credential store", kind=EvidenceKind.ast)
             for m in env_dumps(text, at.artifact.language)[:2]:
                 line = _line_of(text, m.start())
-                ctx.emit("AG-CODE-021", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(),
+                ctx.emit("AG-EXF-002/server-env-dump", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(),
                          match=line.strip(), kind=EvidenceKind.ast, message="Server code serializes or dumps the whole environment.")
             hosts: dict[str, int] = {}
             for m in finditer(_URL, text):
                 host = m.group(1).lower().rstrip(".")
                 line = _line_of(text, m.start())
-                if _is_comment(line) or _BENIGN_HOSTS.search(host) or host in hosts:
-                    continue
+                if _is_comment(line) or _BENIGN_HOSTS.search(host) or host in hosts or _DOC_URL.search(m.group(0)):
+                    continue            # a link to documentation is text the server shows, not a host it calls
                 hosts[host] = m.start()
             for host, off in list(hosts.items())[:5]:
                 exfil = bool(_EXFIL_HOSTS.search(host))
-                ctx.emit("AG-CODE-022", component_ids=cid, span=at.span(off), snippet=_line_of(text, off).strip(), match=host,
+                ctx.emit("AG-EXF-015/hardcoded-host", component_ids=cid, span=at.span(off), snippet=_line_of(text, off).strip(), match=host,
                          kind=EvidenceKind.ast, severity=Severity.high if exfil else None,
                          message=f"Hardcoded outbound host '{host}'" + (" (known exfiltration sink)." if exfil else "."))
         for rid, pattern, msg in (
-            ("AG-CODE-023", _OBFUSCATED, "Code executes decoded or obfuscated content."),
-            ("AG-CODE-025", _REMOTE_CODE, "Code fetches or installs code at run time."),
-            ("AG-CODE-027", _ANTI_ANALYSIS, "Code checks for CI/sandbox/debugger or delays execution (anti-analysis)."),
-            ("AG-CODE-028", _BINARY_DOWNLOAD, "Code downloads or references a native binary."),
-            ("AG-CODE-029", _PASSTHROUGH, "Server forwards the client's Authorization header upstream (token passthrough)."),
+            ("AG-EXEC-002/obfuscated-exec", _OBFUSCATED, "Code executes decoded or obfuscated content."),
+            ("AG-SUPPLY-009", _REMOTE_CODE, "Code fetches or installs code at run time."),
+            ("AG-EVADE-009", _ANTI_ANALYSIS, "Code checks for CI/sandbox/debugger or delays execution (anti-analysis)."),
+            ("AG-EXEC-003/native-binary", _BINARY_DOWNLOAD, "Code downloads or references a native binary."),
+            ("AG-MCP-042", _PASSTHROUGH, "Server forwards the client's Authorization header upstream (token passthrough)."),
         ):
-            if rid == "AG-CODE-029" and not is_server:
+            if rid == "AG-MCP-042" and not is_server:
                 continue
             hits = finditer(pattern, text)
-            if rid == "AG-CODE-025":
+            if rid == "AG-SUPPLY-009":
                 hits += [v for v in finditer(_INSTALL_VAR, text)
                          if search(regex.compile(_RUNNER + regex.escape(v.group(1)) + r"\b"), text)]
             for m in hits[:2]:
                 line = _line_of(text, m.start())
-                if _is_comment(line) and rid != "AG-CODE-023":
+                if _is_comment(line) and rid != "AG-EXEC-002/obfuscated-exec":
+                    continue
+                if rid == "AG-SUPPLY-009" and _INSTALL_CMD.search(m.group(0)) and not _INSTALL_REMOTE.search(line):
+                    # A package installed by name from the default registry: an unpinned run-time
+                    # install (AG-EXEC-008 reports it), not code fetched from a URL someone can change.
+                    ctx.add_capability(cid, CapLabel.code_exec, confidence=Confidence.high, span=at.span(m.start()),
+                                       snippet=line.strip(), reason="installs a package at run time", kind=EvidenceKind.ast)
+                    if m.re is _INSTALL_VAR and not regex.search(r"==|@\d", m.group(0)):
+                        # The command is put together in a variable and run from another line, which
+                        # the line-based AG-EXEC-008 pattern cannot see.
+                        ctx.emit("AG-EXEC-008/command-variable", component_ids=cid, span=at.span(m.start(), m.end()),
+                                 snippet=line.strip(), match=m.group(0)[:200], kind=EvidenceKind.ast,
+                                 message=f"`{m.group(1)}` holds an install command with no version and is handed to a process "
+                                         "runner: the package is fetched and installed when this code runs.")
                     continue
                 ctx.emit(rid, component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(), match=m.group(0)[:200],
                          kind=EvidenceKind.ast, message=msg)
-                if rid in ("AG-CODE-023", "AG-CODE-025"):
+                if rid in ("AG-EXEC-002/obfuscated-exec", "AG-SUPPLY-009"):
                     ctx.add_capability(cid, CapLabel.code_exec, confidence=Confidence.high, span=at.span(m.start()),
                                        snippet=line.strip(), reason="dynamic code execution", kind=EvidenceKind.ast)
                 break
@@ -645,7 +712,7 @@ class CodeAnalyzer:
             line = _line_of(text, m.start())
             if _is_comment(line) or not regex.search(r"(?i)\b(open|write|append|>>|tee|copy|cp|mv|crontab|launchctl|schtasks|reg\s+add|systemctl|echo)\b|writeFile|appendFile", line, timeout=TIMEOUT):
                 continue
-            ctx.emit("AG-CODE-026", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(), match=m.group(0),
+            ctx.emit("AG-PERSIST-005/code", component_ids=cid, span=at.span(m.start(), m.end()), snippet=line.strip(), match=m.group(0),
                      kind=EvidenceKind.ast, message=f"Code writes a persistence location ({m.group(0)[:60]}).")
             ctx.add_capability(cid, CapLabel.persistence, confidence=Confidence.high, span=at.span(m.start()),
                                snippet=line.strip(), reason="writes a persistence location", kind=EvidenceKind.ast)
@@ -662,12 +729,12 @@ class CodeAnalyzer:
                                    snippet=_line_of(text, m.start()).strip(), reason="process execution in server code", kind=EvidenceKind.ast)
             m = search(_CLIENT_VARIANCE, text)
             if m and regex.search(r"\b(?:tool|tools|ListTools|list_tools|registerTool)\b", text[max(0, m.start() - 600): m.end() + 600], timeout=TIMEOUT):
-                ctx.emit("AG-MCP-META-020", component_ids=cid, span=at.span(m.start()), snippet=_line_of(text, m.start()).strip(),
+                ctx.emit("AG-EVADE-015/tool-defs-code", component_ids=cid, span=at.span(m.start()), snippet=_line_of(text, m.start()).strip(),
                          match="client-variance", kind=EvidenceKind.ast,
                          message="Tool definitions appear to depend on the connecting client's identity.")
             m = search(_REMOTE_TOOLS, text)
             if m:
-                ctx.emit("AG-MCP-META-020", component_ids=cid, span=at.span(m.start()), snippet=_line_of(text, m.start()).strip(),
+                ctx.emit("AG-EVADE-015/tool-defs-code", component_ids=cid, span=at.span(m.start()), snippet=_line_of(text, m.start()).strip(),
                          match="remote-tools", kind=EvidenceKind.ast, message="Tool definitions are fetched from the network at run time.")
 
     def _install_hooks(self, ctx: Context, at: ArtifactText, comp: Component) -> None:
@@ -684,16 +751,18 @@ class CodeAnalyzer:
             for hook in ("preinstall", "install", "postinstall", "prepare", "prepublish"):
                 cmd = scripts.get(hook)
                 if isinstance(cmd, str) and cmd.strip():
+                    if _build_only(cmd, scripts):
+                        continue        # "prepare": "npm run build" compiles the package's own sources
                     line = at.text.find(f'"{hook}"')
                     danger = bool(search(risky, cmd))
-                    ctx.emit("AG-CODE-024", component_ids=comp.id, span=at.span(max(line, 0)), snippet=f'"{hook}": "{cmd}"',
+                    ctx.emit("AG-EXEC-006/install-hook", component_ids=comp.id, span=at.span(max(line, 0)), snippet=f'"{hook}": "{cmd}"',
                              match=f"{hook}:{cmd}", kind=EvidenceKind.config, severity=Severity.high if danger else None,
                              message=f"npm lifecycle script '{hook}' runs at install time: {cmd[:80]}")
         elif name == "setup.py":
             m = search(regex.compile(r"\bcmdclass\s*=|^\s*(?:os\.system|subprocess\.\w+|urllib\.request\.urlopen)\(", regex.MULTILINE), at.text)
             if m:
                 line = _line_of(at.text, m.start())
-                ctx.emit("AG-CODE-024", component_ids=comp.id, span=at.span(m.start()), snippet=line.strip(), match=line.strip(),
+                ctx.emit("AG-EXEC-006/install-hook", component_ids=comp.id, span=at.span(m.start()), snippet=line.strip(), match=line.strip(),
                          kind=EvidenceKind.ast, severity=Severity.high if search(risky, at.text) else None,
                          message="setup.py runs custom code at install/build time.")
 
@@ -710,20 +779,20 @@ class CodeAnalyzer:
             desc = f"{tool.name} {tool.title or ''} {tool.description or ''}"
             ann = tool.annotations or {}
             span = tool.span
-            writes = "writes" in labels or CapLabel.code_exec in labels or CapLabel.destructive in labels
+            writes = "writes" in labels or "runs-program" in labels or CapLabel.code_exec in labels or CapLabel.destructive in labels
             if ann.get("readOnlyHint") is True and writes:
-                ctx.emit("AG-MCP-META-011", component_ids=cid, span=span, snippet=f"{name}: readOnlyHint=true", match=f"{name}:ro",
+                ctx.emit("AG-MCP-026/read-only", component_ids=cid, span=span, snippet=f"{name}: readOnlyHint=true", match=f"{name}:ro",
                          kind=EvidenceKind.ast, message=f"Tool '{name}' is annotated readOnlyHint=true but its handler writes, deletes or executes.")
             if ann.get("destructiveHint") is False and CapLabel.destructive in labels:
-                ctx.emit("AG-MCP-META-012", component_ids=cid, span=span, snippet=f"{name}: destructiveHint=false", match=f"{name}:destr",
+                ctx.emit("AG-MCP-026/destructive-open-world", component_ids=cid, span=span, snippet=f"{name}: destructiveHint=false", match=f"{name}:destr",
                          kind=EvidenceKind.ast, message=f"Tool '{name}' is annotated destructiveHint=false but its handler deletes data.")
             if ann.get("openWorldHint") is False and CapLabel.external_egress in labels:
-                ctx.emit("AG-MCP-META-012", component_ids=cid, span=span, snippet=f"{name}: openWorldHint=false", match=f"{name}:ow",
+                ctx.emit("AG-MCP-026/destructive-open-world", component_ids=cid, span=span, snippet=f"{name}: openWorldHint=false", match=f"{name}:ow",
                          kind=EvidenceKind.ast, message=f"Tool '{name}' is annotated openWorldHint=false but its handler makes network requests.")
             undeclared = [lbl for lbl in (CapLabel.code_exec, CapLabel.external_egress, CapLabel.credential_access)
                           if lbl in labels and not search(_DESC_WORDS[lbl], desc)]
             if undeclared:
-                ctx.emit("AG-CODE-040", component_ids=cid, span=span, snippet=(tool.description or name)[:200],
+                ctx.emit("AG-PRIV-008", component_ids=cid, span=span, snippet=(tool.description or name)[:200],
                          match=f"{name}:{','.join(sorted(undeclared))}", kind=EvidenceKind.ast,
                          message=f"Tool '{name}' does not mention it, but its handler shows: {', '.join(l.value for l in undeclared)}.")
 

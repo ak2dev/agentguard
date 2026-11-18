@@ -1,5 +1,5 @@
 """Links between the files of one component, so evidence split across files can
-be correlated (AG-SKL-CRED-010).
+be correlated (AG-EXF-001).
 
 Pure text and ``ast`` analysis: nothing is imported or executed. A link says
 data can move from one file to another:

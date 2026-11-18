@@ -1,0 +1,16 @@
+{
+  "facts": {
+    "endpoints": {
+      "https://mcp.acme.example.invalid/mcp": {
+        "tools_by_identity": {
+          "client-a": {
+            "list_reports": "1f3b"
+          },
+          "client-b": {
+            "list_reports": "b7c0"
+          }
+        }
+      }
+    }
+  }
+}

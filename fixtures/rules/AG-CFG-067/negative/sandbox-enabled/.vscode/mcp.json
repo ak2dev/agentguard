@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "files": {
+      "command": "node",
+      "args": [
+        "server.js"
+      ],
+      "sandboxEnabled": true
+    }
+  },
+  "inputs": [
+    {
+      "id": "api-key",
+      "type": "promptString",
+      "password": true
+    }
+  ]
+}

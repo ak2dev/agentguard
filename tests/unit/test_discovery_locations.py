@@ -37,7 +37,7 @@ def test_every_unverified_location_says_why():
     for plat in ("darwin", "linux", "win32"):
         for loc in user_locations(HOME, plat):
             assert loc.verified or loc.note, f"{loc.client} {loc.path} is unverified without a note"
-    assert all(verified for *_rest, verified in PROJECT_PATTERNS)
+    assert all(verified or note for *_rest, verified, note in PROJECT_PATTERNS)
 
 
 def test_home_overrides(monkeypatch):
@@ -70,7 +70,7 @@ def test_new_instruction_files_are_scanned_as_instructions():
     kinds = {c.root or c.name: c.kind.value for c in report.inventory}
     for path in ("AGENTS.override.md", ".claude/rules/style.md", "~/.copilot/instructions/team.instructions.md"):
         assert kinds.get(path) == "instruction_file", (path, kinds)
-    hit = {f.primary.path for f in report.findings if f.rule_id == "AG-SKL-INJ-001" and f.primary}
+    hit = {f.primary.path for f in report.findings if f.rule_id == "AG-INJ-001" and f.primary}
     assert {"AGENTS.override.md", ".claude/rules/style.md"} <= hit
     servers = [c for c in report.inventory if c.server]
     assert servers and servers[0].server.client == "copilot"

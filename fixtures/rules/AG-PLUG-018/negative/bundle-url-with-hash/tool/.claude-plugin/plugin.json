@@ -1,0 +1,11 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "description": "Formats Python files.",
+  "mcpServers": {
+    "weather": {
+      "url": "https://downloads.example.invalid/weather-1.0.0.mcpb",
+      "sha256": "3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855e"
+    }
+  }
+}

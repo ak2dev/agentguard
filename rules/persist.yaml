@@ -1,0 +1,357 @@
+# Detection entries for the PERSIST family (catalogue: rules/catalog/persist.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-PERSIST-001
+    variant: startup-or-memory-write
+    aliases: [AG-SKL-INJ-006]
+    lane: block
+    version: 1
+    title: Persistence via memory, instruction, shell or startup files
+    description: Writes to agent memory/instruction files (AGENTS.md, CLAUDE.md, MEMORY.md, SOUL.md, Cursor rules), shell rc files, cron, launchd, systemd user units, Run keys or Startup items.
+    why: Persistence outlives the skill; poisoned memory or instruction files keep influencing future sessions after uninstall.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, code, command]
+      patterns:
+        - |-
+          (?:>>|\btee\s+-a\b|\becho\b[^\n]{0,200}>>|\bappend(?:ing|s)?\s+(?:(?:this|these|the\s+following|the|it|a)\s+)?(?:(?:lines?|rules?|text|block|section|snippet|entry|instructions?|notes?)\s+)?to|\badd(?:ing|s)?\s+(?:this|the\s+following|a\s+line|these\s+lines)\s+to|\bwrite(?:s)?\s+(?:this\s+|it\s+)?(?:in)?to|\binsert(?:s)?\s+(?:this\s+)?into|\bmodif(?:y|ies)|\bopen\([^)]*,\s*["']a)[^\n]{0,80}(?:\.bashrc|\.zshrc|\.bash_profile|\.zprofile|\.profile\b|config\.fish|\$PROFILE\b|PowerShell_profile|crontab|/etc/cron|LaunchAgents|LaunchDaemons|systemd/user|\\CurrentVersion\\Run\b|Startup\\|\.config/autostart|MEMORY\.md|SOUL\.md|IDENTITY\.md|AGENTS\.md|CLAUDE\.md|GEMINI\.md|\.cursorrules|\.cursor/rules|copilot-instructions\.md)
+        - |-
+          \bcrontab\s+-l\b[^\n]*\|\s*crontab\s+-\s*$|\(crontab\s+-l[^\n]*;\s*echo\b
+        - |-
+          \blaunchctl\s+(?:load|bootstrap)\b|\bschtasks(?:\.exe)?\s+/create\b|\bRegister-ScheduledTask\b|\bsystemctl\s+--user\s+enable\b
+        - |-
+          \breg(?:\.exe)?\s+add\s+[^\n]*\\CurrentVersion\\Run\b|\bNew-ItemProperty\b[^\n]*\\CurrentVersion\\Run\b
+      unless:
+        - |-
+          \bexport\s+PATH=|\bPATH\s*=|\bcompletion\b|\beval\s+"\$\(\w+\s+(?:init|env|activate)|\bsource\s+\S*(?:venv|nvm|sdkman|cargo/env)
+      window: 0
+    remediation: Do not write to agent memory/instruction files or OS persistence locations. If configuration is required, show it to the user to apply.
+
+
+  - id: AG-PERSIST-002
+    variant: prose
+    aliases: [AG-SKL-INJ-007]
+    version: 2
+    title: Tampers with agent/IDE settings or MCP configuration
+    description: Writes to agent settings, hook configuration or MCP client configs, or instructs the agent to register new servers/hooks.
+    why: Adding servers or hooks through a skill silently expands what the agent can do and runs on every session.
+    severity: high
+    confidence: medium
+    applies_to: [skill_md, instruction_md, script]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, code, command]
+      patterns:
+        # not negated: "Do not edit `.mcp.json`" is a guardrail
+        - |-
+          (?<!(?:\bnot|n't|\bnever)\s+)(?:>>?|\btee\b|\bwrite(?:s|_text|FileSync)?\b|\badd(?:s)?\b|\bappend(?:s)?\b|\bmodif(?:y|ies)\b|\bedit(?:s)?\b|\bupdate(?:s)?\b|\binsert(?:s)?\b|\bregister(?:s)?\b|\bjson\.dump)[^\n]{0,80}(?:\.claude/settings(?:\.local)?\.json|\.claude\.json|\.mcp\.json|claude_desktop_config\.json|\.cursor/mcp\.json|\.vscode/(?:settings|mcp)\.json|\.gemini/settings\.json|\.codex/config\.toml|mcp_config\.json)
+        - |-
+          \b(?:add|register|install|inject)\s+(?:the\s+following\s+|this\s+|a\s+new\s+|an?\s+)?(?:mcp\s+server|hook|pre(?:tool)?use\s+hook|post(?:tool)?use\s+hook)\s+(?:to|in|into)\s+(?:your\s+|the\s+user'?s?\s+|the\s+)?(?:config|settings|claude|cursor|client)
+      # A skill whose declared purpose is agent/MCP configuration (a migration or
+      # setup skill) is doing what it says: reported, at MEDIUM.
+      downgrade:
+        - severity: medium
+          declared:
+            - |-
+              \b(?:migrat\w*|configur\w*|set\s*up|install\w*|register\w*|manag\w*)\b[^.\n]{0,80}\b(?:mcp|codex|claude\s+code|cursor|agent\s+(?:settings|config\w*)|hooks?)\b
+            - |-
+              \bmcp\s+(?:config\w*|servers?|settings)\b
+        # Setup steps addressed to the user ("walk the user through these steps:
+        # ... add this to ~/.cursor/mcp.json") are what the remediation asks for.
+        - severity: medium
+          window: 10
+          patterns:
+            - |-
+              \b(?:walk|guide|tell|ask|instruct|show|help)\s+the\s+user\b|\bthe\s+user\s+(?:should|can|must|needs?\s+to)\s+(?:add|paste|edit|update|copy|apply)\b
+    remediation: Skills should not change agent settings or MCP configuration. Document required setup for the user to review and apply.
+
+
+  - id: AG-PERSIST-003
+    variant: self-modification
+    aliases: [AG-SKL-INJ-005]
+    lane: block
+    version: 2
+    title: Self-modification
+    description: The skill edits its own or other skills' instructions, or installs additional skills or servers from a URL.
+    why: Self-modifying skills can change behavior after review (a local rug pull).
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, code, command]
+      patterns:
+        # "the system prompt" alone is ordinary prompt-engineering vocabulary ("a
+        # proxy can rewrite the system prompt"); self-modification names the
+        # skill's own file or the agent's own instructions.
+        - |-
+          \b(?:modify|edit|update|rewrite|overwrite|append\s+to|change|replace)\s+(?:(?:this|your\s+own|its\s+own|the)\s+(?:SKILL\.md|skill\s+file|skill\s+definition)|(?:this|your\s+own|its\s+own)\s+(?:instructions|system\s+prompt))\b
+        # a redirect into SKILL.md; not the ">" closing a placeholder in skills/<name>/SKILL.md
+        - |-
+          (?:(?<!<[\w.$ -]{0,40})>>?|\btee\s+(?:-a\s+)?)\s*\S*SKILL\.md\b
+        - |-
+          \b(?:install|download|add|fetch)\s+(?:a\s+|another\s+|new\s+|additional\s+)?(?:skills?|plugins?|mcp\s+servers?|extensions?)\s+(?:from|at|via)\s+https?://
+        - |-
+          \b(?:cp|mv|curl\s+[^\n]*-o|wget\s+[^\n]*-O|Copy-Item|Move-Item)\b[^\n]{0,80}(?:\.claude|\.codex|\.cursor|\.openclaw|\.agents)[/\\]skills\b
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Skills should not modify skills or install new ones. Ship updates through the normal, reviewable update path.
+
+
+  - id: AG-PERSIST-005
+    variant: code
+    aliases: [AG-CODE-026]
+    version: 1
+    title: Code writes persistence locations
+    description: Code writes shell rc files, crontab, LaunchAgents, systemd user units, Run keys, scheduled tasks or startup folders.
+    why: Persistence outlives the tool and survives uninstall.
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Remove persistence; document any required setup for the user to perform.
+
+
+  - id: AG-PERSIST-015
+    version: 1
+    description: A skill, plugin or bundle writes files outside its own directory and the workspace, and documents no way to clean them up.
+    why: What it leaves behind stays after the package is removed, and the user has no list of what to delete.
+    match: {type: analyzer, analyzer: hygiene}
+    remediation: Keep state inside the package's own data directory, or document every path written and how to remove it.
+
+# ---- added: persist_regex ----
+  - id: AG-PERSIST-004
+    version: 1
+    description: A command or code appends to or rewrites a shell start-up file - `.bashrc`, `.zshrc`, `.profile`, `.bash_profile`, fish config, the PowerShell profile.
+    why: Whatever is added runs in every new shell, long after the skill has finished or been removed.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?)\s*["']?(?:~|\$\{?HOME\}?|/home/[\w.-]+|/Users/[\w.-]+|/root)/\.(?:bashrc|bash_profile|bash_login|zshrc|zshenv|zprofile|profile|kshrc|config/fish/config\.fish)\b
+        - |-
+          \bsed\s+-i\b[^\n]*\s["']?(?:~|\$\{?HOME\}?)/\.(?:bashrc|bash_profile|zshrc|zshenv|zprofile|profile)\b
+        - |-
+          \bopen\(\s*(?:os\.path\.expanduser\(\s*)?["']~/\.(?:bashrc|bash_profile|zshrc|zshenv|zprofile|profile)["']\s*\)?\s*,\s*["'][aw]\+?["']
+        - |-
+          \b(?:Add-Content|Set-Content|Out-File)\b[^\n]*\$PROFILE\b|>>?\s*\$PROFILE\b|\b(?:appendFile|appendFileSync|writeFile|writeFileSync)\([^\n]*\.(?:bashrc|zshrc|profile|bash_profile)\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:add|append|write|insert|put)\s+(?:this|these|the\s+following|the)\s+(?:lines?|commands?|alias(?:es)?|exports?|snippet|function)?\s*(?:in)?to\s+(?:the\s+user'?s?\s+|your\s+|the\s+)?`?~?/?\.(?:bashrc|zshrc|bash_profile|profile|zprofile)`?
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. If the tool needs something on the user's PATH or in their shell, tell the user what to add and let them do it.
+
+  - id: AG-PERSIST-006
+    version: 1
+    description: A command or code adds a key to `authorized_keys` or changes the SSH daemon's configuration.
+    why: An added key is a standing login to the machine for whoever holds the other half, independent of passwords and of the agent.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?)\s*["']?(?:~|\$\{?HOME\}?|/home/[\w.-]+|/Users/[\w.-]+|/root)/\.ssh/authorized_keys2?\b
+        - |-
+          \bopen\([^\n)]*\.ssh[/\\"',\s]+authorized_keys["']?[^\n)]*\)?\s*,\s*["'][aw]\+?["']|\b(?:appendFile|appendFileSync|writeFile|writeFileSync)\([^\n]*authorized_keys\b
+        - |-
+          \bssh-copy-id\b[^\n]*\s-i\s|\bssh-keygen\b[^\n]*(?:&&|;)[^\n]*authorized_keys\b
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?|\bsed\s+-i\b[^\n]*)\s*/etc/ssh/sshd_config(?:\.d/\S+)?\b|\b(?:PermitRootLogin\s+yes|PasswordAuthentication\s+yes|PermitEmptyPasswords\s+yes)\b[^\n]{0,60}(?:>>|sshd_config)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that adds SSH keys or changes the SSH daemon.
+
+  - id: AG-PERSIST-007
+    version: 1
+    description: A command or code installs a git hook (writes into `.git/hooks`, sets `core.hooksPath`, sets a template directory) or changes the user's global git configuration.
+    why: A git hook runs on every commit, checkout or push in that repository, or in every repository when set globally, with no further prompt.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?|\bcp\s+[^\n]*\s|\bln\s+-s\w*\s+[^\n]*\s|\binstall\s+[^\n]*\s|\bmv\s+[^\n]*\s)["']?(?:\S*/)?\.git/hooks/(?:pre-commit|post-commit|pre-push|post-checkout|post-merge|prepare-commit-msg|commit-msg|pre-rebase|post-rewrite)\b
+        - |-
+          \bopen\([^\n)]*\.git[/\\"',\s]+hooks[/\\"',\s]+[\w-]+["']?[^\n)]*\)?\s*,\s*["'][aw]\+?["']|\b(?:writeFile|writeFileSync)\([^\n]*\.git/hooks/
+        - |-
+          \bgit\s+config\s+(?:--global|--system)\s+(?:--add\s+)?(?:core\.hooksPath|init\.templateDir|core\.pager|core\.editor|alias\.\w+|core\.fsmonitor|protocol\.\w+\.allow|filter\.\w+\.(?:clean|smudge|process))\s+\S
+        - |-
+          \bgit\s+config\s+(?:--local\s+)?core\.hooksPath\s+(?!\.githooks\b|\.husky\b)\S
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. If the project wants hooks, document them and let the user enable them with the project's own tooling.
+
+  - id: AG-PERSIST-008
+    version: 1
+    description: A command or code writes editor configuration that runs things automatically - VS Code `tasks.json` with `runOn`, workspace or user `settings.json`, extension installs, JetBrains run configurations, Vim or Emacs start-up files.
+    why: The editor runs these when a folder is opened or the editor starts, so the code keeps executing outside the agent.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:>>?\s*|\btee\s+(?:-a\s+)?|\bcp\s+[^\n]*\s|\bmv\s+[^\n]*\s)["']?(?:\S*/)?\.vscode/(?:tasks|settings|launch|extensions)\.json\b
+        - |-
+          \bopen\([^\n)]*\.vscode[/\\"',\s]+(?:tasks|settings|launch)\.json["']?[^\n)]*\)?\s*,\s*["'][aw]\+?["']|\b(?:writeFile|writeFileSync)\([^\n]*\.vscode/(?:tasks|settings|launch)\.json
+        - |-
+          (?:>>?|\btee\s+(?:-a\s+)?)\s*["']?(?:~|\$\{?HOME\}?)/(?:\.config/Code/User/settings\.json|Library/Application\s+Support/Code/User/settings\.json|\.vimrc|\.config/nvim/init\.(?:vim|lua)|\.emacs(?:\.d/init\.el)?|\.ideavimrc)\b
+        - |-
+          \b(?:code|cursor|codium|windsurf)\s+--install-extension\s+\S+
+        - |-
+          "runOn"\s*:\s*"folderOpen"[\s\S]{0,300}?(?:writeFile|write_text|json\.dump|>\s*\S*tasks\.json)|(?:writeFile|write_text|json\.dump)[\s\S]{0,300}?"runOn"\s*:\s*"folderOpen"
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Editor configuration is the user's; propose the change as a diff for them to apply.
+
+  - id: AG-PERSIST-009
+    version: 1
+    description: Text tells the agent to store a rule permanently - "remember this forever", "add this to your memory", "from now on in every session" - where the rule changes how the agent treats approvals, secrets, other instructions or what it reports.
+    why: Memory and instruction files are loaded into every later session. A rule written there keeps acting after the skill is gone, and the user never sees it being applied.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:remember|memori[sz]e|store|save|record|keep)\s+(?:this|these|the\s+following|that)\s*(?:rule|instruction|preference|fact|setting|note)?s?\s*(?:permanently|forever|for\s+(?:all|every)\s+future\s+(?:sessions?|conversations?|chats?)|in\s+(?:your\s+)?(?:long[- ]term\s+)?memory|across\s+(?:all\s+)?sessions)\b
+        - |-
+          \b(?:add|write|append|save|insert)\s+(?:this|these|the\s+following|it)\s*(?:rule|instruction|line|note|preference)?s?\s+(?:in)?to\s+(?:your\s+|the\s+(?:user'?s?\s+)?|the\s+project'?s?\s+)?(?:(?:long[- ]term\s+)?memory|`?MEMORY\.md`?|`?CLAUDE\.md`?|`?AGENTS\.md`?|`?GEMINI\.md`?|`?SOUL\.md`?|`?\.cursorrules`?|(?:global|user|project)\s+(?:rules|instructions|memory))\b
+        - |-
+          \b(?:from\s+now\s+on|henceforth|going\s+forward)\s*,?\s+(?:in\s+(?:all|every)\s+(?:future\s+)?(?:sessions?|conversations?|projects?)\s*,?\s+)?(?:always|never)\b[^.\n]{0,80}\b(?:approv\w+|confirm\w*|permission|secrets?|tokens?|credentials?|instructions?|report\w*|mention\w*|ask\w*|sandbox|review\w*)\b
+        - |-
+          \bupdate\s+(?:your|the)\s+(?:memory|instructions?|system\s+prompt|rules)\s+(?:so\s+that|to\s+(?:say|state|include|always|never))\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner|ask\s+the\s+user|if\s+the\s+user\s+(?:asks|agrees|confirms))\b
+      window: 0
+    remediation: Remove the instruction. What goes into memory or instruction files is the user's decision, made when they see the text.
+
+  - id: AG-PERSIST-010
+    version: 1
+    description: Code or instructions copy the skill, plugin or its files into other repositories, other agents' skill directories, or every project found on the machine.
+    why: This is how a malicious extension spreads - each copy is loaded by another agent or pushed to another repository, where it runs again.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          \b(?:cp\s+-\w*r\w*|rsync\s+-\w+|ln\s+-s\w*)\s+[^\n;|&]*(?:\$\{?(?:CLAUDE_SKILL_DIR|CLAUDE_PLUGIN_ROOT|SKILL_DIR|PWD)\}?|\.(?=\s)|\$0|"\$\(dirname)[^\n;|&]*\s+["']?(?:~|\$\{?HOME\}?)/\.(?:claude|codex|cursor|gemini|agents|openclaw|copilot)/(?:skills|plugins|agents|commands|extensions|rules)\b
+        - |-
+          \bfor\s+\w+\s+in\s+[^\n;]*(?:~|\$\{?HOME\}?)/[^\n;]*\*[^\n;]*;\s*do\b[^\n]*\b(?:cp|ln|rsync|git\s+-C)\b[^\n]*(?:SKILL\.md|\.claude|\.cursor|AGENTS\.md|CLAUDE\.md)
+        - |-
+          \bshutil\.copy(?:tree|2|file)?\(\s*(?:__file__|os\.path\.dirname\(\s*(?:os\.path\.abspath\(\s*)?__file__|SKILL_DIR|skill_dir|here|HERE)[^\n]*(?:\.claude|\.codex|\.cursor|\.gemini|\.agents|skills)
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:copy|install|replicate|propagate|add)\s+(?:this|itself|the)\s*(?:skill|plugin|file|instructions?|rules?\s+file)?\s+(?:in)?to\s+(?:every|each|all|any)\s+(?:other\s+)?(?:repo(?:sitor(?:y|ies))?|projects?|workspaces?|skill\s+director(?:y|ies)|agents?)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that copies itself elsewhere.
+
+  - id: AG-PERSIST-011
+    version: 1
+    description: A command or code prepends a directory to `PATH` in a start-up file, or places an executable in a directory on the path (`/usr/local/bin`, `~/.local/bin`, `~/bin`) under the name of an existing command.
+    why: A shim earlier on the path than the real `git`, `ssh`, `python` or `sudo` is run in its place by the user and by every tool, and sees their arguments and input.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          \bexport\s+PATH\s*=\s*["']?[^\n"':$]+:\$\{?PATH\}?["']?\s*["']?\s*>>\s*\S+|\becho\s+["'][^\n"']*\bPATH\s*=\s*["\\]*[^\n"':$]+:\\?\$\{?PATH\b[^\n]*>>\s*\S+
+        - |-
+          \b(?:cp|mv|install|ln\s+-s\w*)\s+[^\n;|&]*\s["']?(?:/usr/local/bin|/usr/bin|/opt/homebrew/bin|(?:~|\$\{?HOME\}?)/(?:\.local/bin|bin))/(?:git|ssh|scp|sudo|su|python3?|pip3?|node|npm|npx|curl|wget|docker|kubectl|gh|aws|gpg|make|bash|sh|ls|cat)\b
+        - |-
+          (?:>>?|\btee\s+)\s*["']?(?:/usr/local/bin|(?:~|\$\{?HOME\}?)/(?:\.local/bin|bin))/(?:git|ssh|scp|sudo|su|python3?|pip3?|node|npm|npx|curl|wget|docker|kubectl|gh|aws|gpg|make)\b
+        - |-
+          \[Environment\]::SetEnvironmentVariable\(\s*["']Path["'][^\n]*["'](?:User|Machine)["']|\bsetx\s+(?:/M\s+)?PATH\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Call the tool by its own path from inside the skill, and leave the user's PATH alone.
+
+  - id: AG-PERSIST-012
+    version: 1
+    description: Code or instructions create a scheduled or automatic agent run - a cron-style agent job, a routine, a remote trigger, a headless agent in a timer, a scheduled workflow.
+    why: A scheduled agent runs with the user's access when nobody is watching, on whatever instructions it finds then.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          (?:\bcron\w*\b|\bcrontab\b|\bschtasks\b|\blaunchd\b|\bsystemd\b|\btimer\b|\*/\d+\s+\*\s+\*)[^\n]{0,120}\b(?:claude\s+(?:-p|--print)|codex\s+exec|gemini\s+(?:-p|--prompt|--yolo)|cursor-agent|opencode\s+run|openclaw\s+\w+)\b
+        - |-
+          \b(?:claude\s+(?:-p|--print)|codex\s+exec|gemini\s+(?:-p|--prompt)|cursor-agent|opencode\s+run)\b[^\n]{0,160}(?:\bcrontab\b|/etc/cron|\bschtasks\b|LaunchAgents|systemd)
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:create|set\s+up|schedule|register|add)\s+(?:an?\s+|a\s+new\s+|a\s+recurring\s+)?(?:scheduled\s+(?:agent|task|job|routine|run)|recurring\s+(?:agent|task|job|run)|routine|automation|cron\s+job|remote\s+trigger)\b[^.\n]{0,80}\b(?:that\s+)?(?:runs?|invokes?|starts?|launch(?:es)?|calls?)\s+(?:this\s+skill|the\s+agent|claude|codex|gemini|yourself|you)\b
+        - |-
+          \bopenclaw\s+cron\s+add\b|\b(?:CronCreate|RemoteTrigger|create_scheduled_task)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|ask\s+the\s+user|if\s+the\s+user\s+(?:asks|agrees|confirms))\b
+      window: 0
+    remediation: Leave scheduling to the user. If the skill offers it, show the schedule and the prompt it will run, and create it only when the user asks.
+
+  - id: AG-PERSIST-013
+    version: 1
+    description: A command or code creates something that runs at login or session start - an autostart entry, a login item, an XDG autostart `.desktop` file, a Windows Startup folder shortcut, an agent `SessionStart` hook, an OpenClaw `BOOT.md`.
+    why: The file runs each time the user logs in or the agent starts, with no further action from anyone.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:>>?|\btee\s+|\bcp\s+[^\n]*\s|\bmv\s+[^\n]*\s|\bln\s+-s\w*\s+[^\n]*\s)["']?(?:~|\$\{?HOME\}?)/(?:\.config/autostart/\S+\.desktop|Library/LaunchAgents/\S+\.plist|\.config/systemd/user/\S+\.service)\b
+        - |-
+          (?:Start\s+Menu[/\\]Programs[/\\]Startup|shell:startup|\\Startup\\)[^\n]{0,80}\.(?:lnk|bat|cmd|vbs|ps1|exe)\b
+        - |-
+          \bosascript\b[^\n]*\bmake\s+(?:new\s+)?login\s+item\b|\bloginitems?\b[^\n]{0,40}\b(?:add|insert)\b
+        - |-
+          (?:>>?|\btee\s+|\bcp\s+[^\n]*\s)["']?(?:~|\$\{?HOME\}?)/\.openclaw/workspace/(?:BOOT|BOOTSTRAP)\.md\b
+        - |-
+          "SessionStart"\s*:[\s\S]{0,300}?(?:writeFile|write_text|json\.dump|>\s*\S*settings(?:\.local)?\.json)|(?:writeFile|write_text|json\.dump|jq\b)[\s\S]{0,300}?"?SessionStart"?\s*[:=]
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Start-up entries are for the user to create, knowing what will run.
+
+  - id: AG-PERSIST-014
+    version: 1
+    description: A command or code installs a browser extension or registers a native messaging host - `--load-extension`, forced-install policy keys, files under a browser's `NativeMessagingHosts` or `Extensions` directory.
+    why: A browser extension reads and changes every page the user visits; a native messaging host gives it a program on the machine to talk to.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          --load-extension[=\s]\S+|\bExtensionInstallForcelist\b|\bExtensionSettings\b[^\n]{0,80}\bforce_installed\b
+        - |-
+          [/\\]NativeMessagingHosts[/\\]|\bnative[-_ ]messaging[-_ ]hosts?\b[^\n]{0,60}\b(?:install|register|write|copy|create)\b
+        - |-
+          (?:>>?|\btee\s+|\bcp\s+-?\w*\s+[^\n]*\s|\bmv\s+[^\n]*\s)["']?(?:~|\$\{?HOME\}?|%LOCALAPPDATA%|%APPDATA%)[^\n"']{0,80}(?:Google[/\\]Chrome|chromium|BraveSoftware|Microsoft[/\\]Edge|\.mozilla[/\\]firefox)[^\n"']{0,80}[/\\](?:Extensions|extensions)[/\\]
+        - |-
+          \bHK(?:CU|LM)\\Software\\(?:Policies\\)?(?:Google\\Chrome|Microsoft\\Edge|Mozilla)\\[^\n]*(?:Extension|NativeMessagingHosts)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that adds browser extensions or native messaging hosts.

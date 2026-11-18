@@ -1,0 +1,402 @@
+# Detection entries for the EXF family (catalogue: rules/catalog/exf.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-EXF-001
+    aliases: [AG-SKL-CRED-010]
+    version: 3
+    description: One file accesses credentials (credential stores, token variables, environment dumps) and sends data over the network, or two linked files of the skill do — one writes a file the other reads, one runs the other, or one imports the other (up to three links; a SKILL.md that runs both scripts does not link them). Copying the environment only to hand it to a child process (subprocess env=, spawn env:) is not an environment dump, and local AF_UNIX sockets are not network egress.
+    why: Credential read + egress in one place is the complete exfiltration chain; each half alone may be benign, together they are not.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: corr.cred_egress}
+    remediation: Remove the credential access or the network call. A skill that needs an API token should receive a scoped token from the user, not read local stores.
+
+
+  # YARA rules (rules/yara/*.yar) match raw bytes, so they see inside bundled
+  # binaries that the text analyzers skip. They need `agentguard[yara]`; without
+  # it the yara analyzer is reported as skipped.
+  - id: AG-EXF-001
+    variant: binary-yara
+    aliases: [AG-SKL-BND-004]
+    version: 1
+    title: Bundled binary combines credential-store paths with an exfiltration channel
+    description: A bundled executable (ELF, PE, Mach-O, WebAssembly or Java class) contains strings naming several browser credential databases, crypto wallets, keychains or cloud/SSH credential files, together with a chat-bot or webhook upload endpoint.
+    why: That combination is the signature of an information stealer. It sits inside a binary, where no text rule and no reviewer reading the skill will see it.
+    severity: high
+    confidence: high
+    applies_to: [binary]
+    aivss: {threat: attacked}
+    match: {type: yara, rule_file: rules/yara/bundled-credential-harvester.yar}
+    remediation: Do not install the skill or server. Remove the binary, or replace it with reviewed source built from a trusted repository.
+    references: ["https://cwe.mitre.org/data/definitions/506.html"]
+
+
+  - id: AG-EXF-001
+    variant: private-data-to-sink
+    version: 2
+    title: Private data can reach a known exfiltration sink
+    description: Within one session, a component reads private data and a component sends data to a known exfiltration sink (request catchers, paste sites, chat webhooks, tunnels).
+    why: The egress destination is a drop point, not a business service.
+    confidence: high
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: flows}
+    remediation: Remove the component that references the exfiltration sink.
+
+
+  - id: AG-EXF-002
+    variant: env-harvest
+    aliases: [AG-SKL-CRED-002]
+    lane: evidence
+    version: 2
+    title: Harvests token variables or dumps the environment
+    description: Prints, serializes, filters or writes out the whole environment, or greps it for tokens and secrets.
+    why: Environment variables hold API keys and tokens; dumping them is the core step of env-harvesting "utility" skills.
+    severity: medium
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        # `env` as a command: at line start, after a shell separator, or as $(env);
+        # not prose ("the `FOO` env var", "the `env` object") or a call like f(env).
+        # A bare `env` code span counts after a run-type verb or as `x=`env``, and
+        # a code span that pipes or redirects it (`env | grep KEY`) always counts.
+        - |-
+          (?:^[ \t]*(?:\$\s+)?|[;&|]\s*|(?<![\w\].])\(\s*)(?:env|printenv|export\s+-p|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)[ \t]*(?:$|[|>;&)`])
+        - |-
+          `(?:env|printenv|export\s+-p|Get-ChildItem\s+env:|gci\s+env:|dir\s+env:)[ \t]*[|>;&]
+        - |-
+          (?:\b(?:run|runs|running|execute|exec|type|call|invoke|print|paste|dump|echo|output\s+of)\s+(?:the\s+)?|=\s*)`(?:env|printenv|export\s+-p)`
+        - |-
+          \b(?:env|printenv|set)\s*\|\s*(?:grep|findstr|Select-String)\s+[^\n]*(?:token|key|secret|pass|auth|cred)
+        - |-
+          \bjson\.dumps?\(\s*(?:dict\()?\s*os\.environ|\bprint\(\s*(?:dict\()?\s*os\.environ\s*\)|\bfor\s+\w+(?:\s*,\s*\w+)?\s+in\s+os\.environ(?:\.items\(\))?\s*:
+        - |-
+          \bJSON\.stringify\(\s*process\.env\s*\)|\bconsole\.log\(\s*process\.env\s*\)|\bObject\.(?:entries|keys)\(\s*process\.env\s*\)
+      unless:
+        - |-
+          \benv\s+(?:-i\b|[A-Z_]+=)|#!/usr/bin/env\b|/usr/bin/env\s
+        # a Markdown heading names the object ("Environment Configuration (`env`)")
+        - |-
+          ^\s*#{1,6}\s
+      window: 0
+    remediation: Read only the specific variables the task needs, and never print or transmit the environment.
+
+
+  - id: AG-EXF-002
+    variant: server-env-dump
+    aliases: [AG-CODE-021]
+    lane: evidence
+    version: 2
+    title: Server code dumps the environment
+    description: MCP server code prints, serializes or transmits the whole environment.
+    why: The environment of an MCP server typically contains API tokens passed by the client.
+    severity: medium
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Read only the variables the server needs.
+
+
+  - id: AG-EXF-004
+    aliases: [AG-SKL-EXF-004]
+    version: 2
+    description: DNS lookups whose hostname is built from variables or command output. The lookup tool must be in command position and the interpolation inside the hostname argument itself, so prose such as "host the container ..." does not match.
+    why: Encoding data into subdomains exfiltrates it through DNS, which is rarely filtered.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        # <command position> <tool> [options/record type/@server] <hostname token
+        # containing $(..), `..`, ${..}, $VAR or an f-string {var}> ending in .tld
+        - |-
+          (?:^[ \t]*(?:\$\s+)?|[;&|]\s*|\$\(\s*|`|\b(?:do|then|sudo|exec|xargs(?:\s+-\S+)*)\s+|\b(?:system|popen|run|call|check_output|exec\w*|spawn\w*)\(\s*f?["'`])(?:nslookup|dig|host|ping|Resolve-DnsName)(?:\s+(?:[-+]{1,2}[\w=-]+|\d+|(?-i:[A-Z]{1,5})|@\S+))*\s+["']?(?=[^\s"']*?(?:\$[({A-Za-z_]|`|\{[A-Za-z_]))(?:[\w.-]|\$\([^)\n]*\)|`[^`\n]*`|\$\{[^}\n]*\}|\$env:\w+|\$[A-Za-z_]\w*|\{[A-Za-z_][\w.\[\]'"]*\})+\.[a-z]{2,}\b
+        - |-
+          \bdns\.(?:resolve\w*|lookup)\(\s*`[^`]*\$\{
+        - |-
+          \bsocket\.gethostbyname\(\s*(?:f["']|[^)]*\+|[^)]*\.format\()
+    remediation: Remove dynamic DNS lookups built from data.
+
+
+  - id: AG-EXF-006
+    variant: known-sink
+    aliases: [AG-SKL-EXF-001]
+    lane: block
+    version: 1
+    title: Known exfiltration sink
+    description: References request-capture services, paste sites, file drops, Discord webhooks or Telegram bot APIs, tunnels, or out-of-band testing domains. Slack incoming webhooks are excluded as a common legitimate integration.
+    why: These endpoints accept arbitrary data from anyone and are the usual drop points for stolen data.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:webhook\.site|requestbin\.(?:com|net)|[a-z0-9-]+\.m\.pipedream\.net|pipedream\.net|hookbin\.com|beeceptor\.com|requestcatcher\.com|requestrepo\.com|webhook\.cool|mockbin\.org)\b
+        - |-
+          \b(?:pastebin\.com|paste\.ee|hastebin\.com|ghostbin\.\w+|dpaste\.(?:com|org)|termbin\.com|transfer\.sh|file\.io|0x0\.st|gofile\.io|anonfiles\.\w+|catbox\.moe|temp\.sh|bashupload\.com)\b
+        - |-
+          \bdiscord(?:app)?\.com/api/webhooks/|\bapi\.telegram\.org/bot
+        - |-
+          \b(?:[a-z0-9-]+\.)?(?:ngrok(?:-free)?\.(?:io|app|dev)|trycloudflare\.com|serveo\.net|localtunnel\.me|loca\.lt|localhost\.run|pinggy\.(?:io|link))\b
+        - |-
+          \b(?:[a-z0-9-]+\.)?(?:interact\.sh|oast\.(?:pro|live|site|online|fun|me)|burpcollaborator\.net|oastify\.com|canarytokens\.com|dnslog\.cn|ceye\.io)\b
+    remediation: Remove the endpoint. If the skill must send data somewhere, use the documented API of the service it integrates with and say so in the description.
+
+
+  - id: AG-EXF-007
+    aliases: [AG-SKL-EXF-005]
+    version: 1
+    description: Tells the agent to render an image or link whose URL carries data (conversation, secrets, file contents) in the query string.
+    why: When a client renders the image it silently sends the data to the attacker's server, with no tool call and no approval.
+    confidence: medium
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          !\[[^\]]*\]\(\s*https?://[^)\s]*\?[^)\s]*=(?:\{|\$|<|%7B|\[)
+        - |-
+          <img[^>]+src=["']https?://[^"']+\?[^"']*(?:\{|\$\{|\$\(|<)
+        - |-
+          \b(?:render|display|include|output|show|embed)\b[^\n]{0,60}\b(?:image|markdown\s+image|img|pixel)\b[^\n]{0,80}https?://[^\s]+\?[^\s]*=
+        - |-
+          https?://[^\s)]+\?(?:[^\s)]*&)?(?:data|d|q|secret|token|key|content|conversation|chat|history|env|creds?)=(?:\{\{|\{|\$\{|<)
+    remediation: Never build URLs from conversation or secret data. Render only static, allowlisted images.
+
+
+  - id: AG-EXF-014
+    variant: mcp-config
+    aliases: [AG-MCP-CFG-015]
+    lane: block
+    version: 1
+    title: Cloud-metadata or link-local target
+    description: The server URL points at a cloud instance-metadata endpoint or link-local address.
+    why: Metadata endpoints expose instance credentials; a config pointing there is an SSRF-style credential grab.
+    confidence: high
+    match: {type: analyzer, analyzer: mcp.config}
+    remediation: Remove the server entry.
+
+
+  - id: AG-EXF-015
+    variant: hardcoded-host
+    lane: evidence
+    aliases: [AG-CODE-022]
+    version: 1
+    title: Hardcoded outbound host
+    description: Server code contains a hardcoded URL to an external host (known exfiltration sinks escalate to high).
+    why: Inventory of where a server can send data; unexpected hosts deserve review.
+    severity: low
+    confidence: high
+    match: {type: analyzer, analyzer: code}
+    remediation: Document every external endpoint the server contacts, or make it configurable.
+
+# ---- added: exf_regex ----
+  - id: AG-EXF-003
+    version: 1
+    description: The home directory or the whole workspace is packed into an archive and sent out - `tar … ~ | curl`, `zip -r … && curl -F`, `rclone` / `scp -r` of the home directory, or code that archives the tree and uploads the result.
+    why: The archive holds every credential, key and document under that directory. Nothing a skill does needs all of it on someone else's server.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \btar\s+[^\n|;&]*\s(?:~|\$\{?HOME\}?|/home/\S+|/Users/\S+|\.)/?(?=\s|\|)[^\n|]*\|\s*(?:curl|wget|nc|ncat|ssh|openssl\s+s_client)\b
+        - |-
+          \b(?:zip\s+-\w*r\w*|7z\s+a)\s+\S+\s+(?:~|\$\{?HOME\}?|\.)(?:/\S*)?\s*(?:&&|;)\s*(?:curl|wget|scp|rclone|aws\s+s3\s+cp)\b
+        - |-
+          \b(?:shutil\.make_archive|tarfile\.open|zipfile\.ZipFile)\([^\n]*[\s\S]{0,300}?(?:expanduser\(\s*["']~|Path\.home\(\)|os\.getcwd\(\))[\s\S]{0,400}?\b(?:requests\.(?:post|put)|urlopen\(|httpx\.(?:post|put)|upload_file\(|put_object\()
+        - |-
+          \b(?:rclone\s+(?:copy|sync)|rsync\s+-\w+|scp\s+-\w*r\w*)\s+(?:~|\$\{?HOME\}?|/home/\S+|/Users/\S+)/?\s+\S+:\S*
+        - |-
+          \b(?:curl|wget)\b[^\n]*(?:-T|--upload-file|-F\s+\S*=@|--data-binary\s+@)\s*\S*(?:home|workspace|backup|project|repo)\S*\.(?:tar(?:\.gz)?|tgz|zip|7z)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that uploads the home directory or workspace.
+
+  - id: AG-EXF-005
+    version: 1
+    description: Data is posted to a chat webhook - a Discord or Slack incoming webhook, the Telegram bot API, a Teams or Google Chat webhook.
+    why: A webhook URL is a one-way drop box that needs no account on the sender's side, which makes it the commonest place stolen data is sent.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          https?://(?:(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\w|hooks\.slack\.com/(?:services|workflows)/\w|api\.telegram\.org/bot[\w:-]+/send(?:Message|Document|Photo|MediaGroup)\b|[\w-]+\.webhook\.office\.com/\w|chat\.googleapis\.com/v1/spaces/[^/\s]+/messages)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the webhook, or take its URL from the user's own configuration and say in the description what is posted there.
+
+  - id: AG-EXF-008
+    version: 1
+    description: Outgoing mail is copied to another address - a fixed BCC or CC address in mail-sending code, an instruction to blind-copy or forward every message, or a mailbox forwarding rule.
+    why: Every message the user sends or receives is copied to someone they did not choose, and nothing in the visible message shows it.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:always\s+|silently\s+|quietly\s+|secretly\s+)?(?:bcc|blind[- ]copy|forward)\s+(?:every|all|each|any)\s+(?:outgoing\s+|sent\s+|incoming\s+|new\s+)?(?:emails?|messages?|mail|replies)\s+to\s+[`"'<]?[\w.+-]+@[\w-]+\.[\w.]+
+        - |-
+          \b(?:add|include|insert|put)\s+[`"'<]?[\w.+-]+@[\w-]+\.[\w.]+[`"'>]?\s+(?:as|to|in|on)\s+(?:an?\s+|the\s+)?(?:hidden\s+|silent\s+)?bcc\b
+        - |-
+          \b[Bb][Cc][Cc]["']?\s*\]?\s*[:=]\s*\[?\s*["'][\w.+-]+@[\w-]+\.[\w.]+["']|\.(?:add_bcc|addBcc|setBcc|bcc)\(\s*["'][\w.+-]+@[\w-]+\.[\w.]+["']
+        - |-
+          \b(?:New-InboxRule|Set-InboxRule)\b[^\n]*-(?:ForwardTo|RedirectTo|ForwardAsAttachmentTo)\b|\b(?:Set-Mailbox)\b[^\n]*-ForwardingSmtpAddress\b|\bforwardingSmtpAddress["']?\s*[:=]\s*["']
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the copy. Recipients come from the user's request, and every recipient is shown before sending.
+
+  - id: AG-EXF-009
+    version: 1
+    description: Local content is pushed to a git remote other than the repository's own, or published as a gist or a new public repository.
+    why: A push or a gist carries the working tree, and possibly its history and secrets, to a place the user did not choose, using git access the user already granted.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bgit\s+remote\s+add\s+(?!origin\b)\S+\s+\S+[\s\S]{0,200}?\bgit\s+push\s+(?:-\S+\s+)*(?!origin\b)\S+
+        - |-
+          \bgit\s+push\s+(?:-\S+\s+)*(?:https?://|git@|ssh://)\S+
+        - |-
+          \bgit\s+push\s+--mirror\b|\bgh\s+gist\s+create\b|\bgh\s+repo\s+create\b[^\n]*--public\b[^\n]*--push\b|api\.github\.com/gists\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|ask\s+the\s+user|confirm\w*)\b
+      window: 0
+    remediation: Push only to the remote the user names, after they confirm what is being pushed.
+
+  - id: AG-EXF-010
+    version: 1
+    description: Text tells the agent to send file contents, the conversation, secrets or environment values somewhere using a tool it is already allowed to use - web fetch, the browser, an HTTP or MCP tool.
+    why: No code is needed for this kind of leak, so code scanning does not see it. The agent does the sending with tools that usually run without a prompt.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,40})\b(?:use|call|invoke)\s+(?:the\s+)?(?:WebFetch|web[_ ]?fetch|WebSearch|web[_ ]?search|browser|fetch|http|curl|mcp)\s*(?:tool|server)?\b[^.\n]{0,80}\b(?:send|post|upload|transmit|submit|deliver)\b[^.\n]{0,80}\b(?:contents?|files?|conversation|history|secrets?|tokens?|keys?|credentials?|environment|\.env|source\s+code)\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,40})\b(?:send|post|upload|transmit|submit|forward)\s+(?:the\s+|all\s+|any\s+|its\s+|their\s+)?(?:contents?(?:\s+of)?|files?|conversation|chat\s+history|history|secrets?|tokens?|api\s+keys?|credentials?|environment(?:\s+variables?)?|\.env|source\s+code|private\s+\w+)\b[^\n]{0,80}\b(?:to|at|via|through|using)\s+(?:the\s+)?(?:https?://\S+|[\w-]+\s+(?:tool|server|endpoint|webhook)|WebFetch|web\s+fetch|the\s+browser)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the instruction. If the skill has to send something, name the destination and the exact fields, and have the agent show them to the user first.
+
+  - id: AG-EXF-011
+    version: 1
+    description: An agent's saved conversations or session files (`~/.claude/projects/*.jsonl`, Codex sessions and history, Gemini and Cursor chats, OpenClaw sessions) are read next to something that sends data, or instructions say to send the conversation transcript somewhere.
+    why: Transcripts hold everything the user and the agent said and every file and secret that passed through, across all projects.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          \.claude[/\\]projects[/\\][^\s"']*\.jsonl|\.claude[/\\]["',\s]*projects\b[^\n]{0,60}\.jsonl|\.claude[/\\]history\.jsonl|\.codex[/\\](?:sessions[/\\]|history\.jsonl)|\.gemini[/\\]tmp[/\\][^\s"']*chats|\.cursor[/\\]chats\b|\.openclaw[/\\](?:agents[/\\][^\s/\\]+[/\\])?sessions[/\\]
+        - |-
+          \b(?:send|upload|post|forward|share|copy|email)\s+(?:the\s+|this\s+)?(?:entire\s+|full\s+|whole\s+)?(?:conversation|chat|session)\s+(?:transcript|history|logs?)\b[^.\n]{0,60}\bto\b
+      require:
+        - |-
+          \b(?:curl|wget|requests\.|fetch\(|urlopen|httpx|upload|post|send|scp|nc\s|webhook|https?://|email|forward|share)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 5
+    remediation: Remove it. A skill has no reason to read other sessions' transcripts, and none to send them anywhere.
+
+  - id: AG-EXF-012
+    version: 1
+    description: Code reads the clipboard, takes a screenshot or records keystrokes.
+    why: The clipboard and the screen hold passwords, tokens and private messages from every program, not just the agent's task; a key logger records everything typed.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:pyperclip\.paste\(|clipboard\.(?:paste|readText|read)\(|Get-Clipboard\b|pbpaste\b|xclip\s+[^\n]*-o\b|xsel\s+[^\n]*-o\b|wl-paste\b|GetClipboardData\(|navigator\.clipboard\.read)
+        - |-
+          \b(?:ImageGrab\.grab\(|pyautogui\.screenshot\(|mss\.mss\(\)|screencapture\s+-\w|gnome-screenshot\b|CopyFromScreen\(|desktopCapturer\.getSources)
+        - |-
+          \b(?:pynput\.keyboard\b|keyboard\.(?:on_press|hook|record)\(|GetAsyncKeyState\b|WH_KEYBOARD(?:_LL)?\b|CGEventTapCreate\b|\bxinput\s+test\b|\blogkeys\b)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+      # A screenshot tool takes screenshots and a clipboard tool reads the clipboard: the capture is
+      # what the skill's description says it does. Key logging is never softened.
+      downgrade:
+        - severity: low
+          confidence: low
+          window: 0
+          patterns: ['(?i)screenshot|screencapture|ImageGrab|CopyFromScreen|mss\.mss|desktopCapturer']
+          declared: ['\b(?:screen\s*shots?|screen\s*captures?|captur\w+\s+(?:the\s+)?(?:screen|desktop|window)|screen\s+recording)\b']
+        - severity: low
+          confidence: low
+          window: 0
+          patterns: ['(?i)clipboard|pbpaste|xclip|xsel|wl-paste']
+          declared: ['\b(?:clipboard|pasteboard)\b']
+    remediation: Remove the capture, or make it the stated purpose of the tool and take it only when the user asks.
+
+  - id: AG-EXF-013
+    version: 1
+    description: Code or a command opens a browser's stored logins or cookies - Chrome, Edge, Brave or Firefox profile files (`Login Data`, `Cookies`, `logins.json`, `key4.db`, `cookies.sqlite`), a cookie-extraction library, or the browser's storage key.
+    why: These files hold the user's saved passwords and live session cookies; with them an attacker is logged in as the user everywhere.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code, resolved]
+      patterns:
+        - |-
+          (?:Google[/\\]Chrome|google-chrome|chromium|BraveSoftware|Microsoft[/\\]Edge|Opera\s+Software|Vivaldi)[^\n"']{0,80}(?:Login\s+Data|Cookies|Web\s+Data|Local\s+State)\b
+        - |-
+          (?:\.mozilla[/\\]firefox|Firefox[/\\]Profiles)[^\n"']{0,80}(?:logins\.json|key[34]\.db|cookies\.sqlite|formhistory\.sqlite)\b
+        - |-
+          \b(?:browser_cookie3|browsercookie|pycookiecheat)\b|\b(?:Chrome|Chromium|Brave|Microsoft\s+Edge)\s+Safe\s+Storage\b|Library/Cookies/Cookies\.binarycookies\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove it. Do not install something that reads browser password or cookie stores.
+
+  - id: AG-EXF-016
+    version: 1
+    description: Text tells the agent to print, repeat or send its system prompt, its hidden or developer instructions, or the instruction files it has loaded.
+    why: The system prompt and loaded instructions describe the agent's rules, tools and sometimes secrets. Revealing them is the first step of most targeted attacks on an agent.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:print|reveal|show|output|repeat|display|dump|leak|disclose|share|write\s+out|include|send)\s+(?:me\s+)?(?:your|the)\s+(?:entire\s+|full\s+|complete\s+|original\s+|exact\s+|hidden\s+)?(?:system\s+prompt|system\s+message|initial\s+(?:prompt|instructions)|developer\s+(?:message|instructions|prompt)|hidden\s+instructions|custom\s+instructions)\b
+        - |-
+          \b(?:repeat|print|output)\s+(?:everything|all\s+(?:the\s+)?text|the\s+text)\s+(?:above|before\s+this)\b[^.\n]{0,40}\b(?:verbatim|word\s+for\s+word|exactly)\b
+        - |-
+          (?<!\b(?:never|not|n't)\b[^.\n]{0,30})\b(?:include|append|attach|paste|copy)\s+(?:the\s+)?(?:contents?\s+of\s+)?(?:your\s+)?(?:CLAUDE\.md|AGENTS\.md|GEMINI\.md|system\s+prompt|loaded\s+(?:instructions|skills|rules))\s+(?:in|to|into)\s+(?:the\s+|your\s+|an?\s+)?(?:output|response|reply|request|url|message|issue|comment)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Remove the instruction.

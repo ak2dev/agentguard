@@ -221,14 +221,14 @@ def test_collect_and_scan_report_the_feature_and_hosts():
     report = scan(tree, options)
     assert report.network_features_used == ["hijackable"]
     assert {"api.github.com", "pypi.org", "data.iana.org", "rdap.example"} <= set(report.network_hosts)
-    fired = {(f.rule_id, f.severity.value) for f in report.findings if f.rule_id in ("AG-SC-026", "AG-SC-027", "AG-SC-028")}
-    assert fired == {("AG-SC-026", "high"), ("AG-SC-027", "high"), ("AG-SC-028", "high")}
+    fired = {(f.key, f.severity.value) for f in report.findings if f.key in ("AG-SUPPLY-015/repojacking", "AG-SUPPLY-004", "AG-SUPPLY-012/unregistered")}
+    assert fired == {("AG-SUPPLY-015/repojacking", "high"), ("AG-SUPPLY-004", "high"), ("AG-SUPPLY-012/unregistered", "high")}
 
 
 def test_offline_scan_never_reports_hijackable():
     tree = _tree({"demo/SKILL.md": SKILL})
     report = scan(tree, ScanOptions())
-    assert not any(f.rule_id in ("AG-SC-026", "AG-SC-027", "AG-SC-028") for f in report.findings)
+    assert not any(f.key in ("AG-SUPPLY-015/repojacking", "AG-SUPPLY-004", "AG-SUPPLY-012/unregistered") for f in report.findings)
     assert report.network_features_used == [] and report.network_hosts == []
 
 
@@ -241,7 +241,8 @@ def test_cli_passes_the_token_for_hijackable_only_and_never_prints_it(tmp_path, 
     (tmp_path / "demo").mkdir()
     (tmp_path / "demo" / "SKILL.md").write_text(SKILL, encoding="utf-8")
     seen = []
-    monkeypatch.setattr(collect_mod, "collect", lambda tree, options, client=None, github_token=None: seen.append(github_token))
+    monkeypatch.setattr(collect_mod, "collect",
+                        lambda tree, options, client=None, github_token=None, features=None: seen.append(github_token))
     monkeypatch.setenv("AGENTGUARD_GITHUB_TOKEN", TOKEN)
     monkeypatch.setenv("GITHUB_TOKEN", "ghs_other")
     runner = CliRunner()

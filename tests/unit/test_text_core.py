@@ -69,6 +69,23 @@ def test_yaml_records_duplicate_keys():
     assert res.duplicate_keys == [("name", 2)]
 
 
+def test_yaml_reads_aliases_in_configuration_files_within_bounds():
+    # Compose files and CI workflows use anchors and merge keys; they are read as any loader reads them.
+    text = ("x-env: &env\n  LOG_LEVEL: info\n  MODE: prod\nservices:\n  api:\n    environment:\n      <<: *env\n"
+            "      MODE: dev\n  worker:\n    environment: *env\n")
+    res = safe_load(text, aliases=True)
+    assert res.error is None and res.anchors_used and res.duplicate_keys == []
+    assert res.value["services"]["api"]["environment"] == {"LOG_LEVEL": "info", "MODE": "dev"}
+    assert res.value["services"]["worker"]["environment"] == {"LOG_LEVEL": "info", "MODE": "prod"}
+    assert safe_load("b: &b {k: 1}\nc:\n  <<: *b\n  k: 2\n  k: 3\n", aliases=True).duplicate_keys == [("k", 5)]
+    # Each alias counts as the nodes it stands for, so a billion-laughs document stops at the node limit.
+    bomb = "a: &a [x, x, x, x, x, x, x, x, x, x]\n" + "".join(
+        f"{n}: &{n} [{', '.join([f'*{p}'] * 10)}]\n" for p, n in zip("abcdefgh", "bcdefghi"))
+    assert "node limit" in safe_load(bomb, aliases=True).error
+    assert "contains it" in safe_load("a: &a\n  - 1\n  - *a\n", aliases=True).error
+    assert "undefined alias" in safe_load("a: *nope\n", aliases=True).error
+
+
 def test_frontmatter_split():
     doc = split_frontmatter("---\nname: x\ndescription: y\n---\n# Body\n")
     assert doc.has_frontmatter and doc.data == {"name": "x", "description": "y"}

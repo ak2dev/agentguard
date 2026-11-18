@@ -1,0 +1,1 @@
+{ hooks: { enabled: true, token: "${OPENCLAW_HOOK_TOKEN}" } }

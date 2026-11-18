@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "agentguard-hook pre-install --agent cursor",
+        "matcher": "clone|skills? |add-skill|mcp add|plugin|extensions? |clawhub|smithery|\\.(claude|agents|cursor|codex|gemini|openclaw|copilot|github)[/\\\\]",
+        "failClosed": true,
+        "timeout": 300
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "agentguard-hook file-changed --agent cursor",
+        "timeout": 120
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "agentguard-hook session-start --agent cursor",
+        "timeout": 120
+      }
+    ]
+  }
+}

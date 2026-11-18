@@ -1,5 +1,6 @@
-# Example: scan agent skills and MCP configs on every pull request and show
-# findings as GitHub code scanning alerts. Copy to .github/workflows/.
+# Example: scan agent skills, plugins, settings and MCP configs on every pull request; fail on a BLOCK
+# verdict, annotate the changed lines and show findings as GitHub code scanning alerts.
+# Copy to .github/workflows/.
 name: Agent Guard
 
 on:
@@ -19,9 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          fetch-depth: 0             # PR mode compares against the base commit
+          fetch-depth: 0             # pull-request mode diffs the base and head commits
           persist-credentials: false
       - uses: ak2dev/agentguard@v0.1.0   # pin to a release tag or commit SHA
         with:
-          path: .
-          fail-on: high
+          targets: .
+          policy: balanced           # strict also fails on REVIEW
+          fail-on: block

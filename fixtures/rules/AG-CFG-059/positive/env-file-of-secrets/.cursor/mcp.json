@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "db": {
+      "command": "node",
+      "args": [
+        "db.js"
+      ],
+      "envFile": "${workspaceFolder}/.env"
+    }
+  }
+}

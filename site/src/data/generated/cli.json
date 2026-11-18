@@ -3,9 +3,294 @@
   "version": "0.1.0.dev0",
   "commands": [
     {
-      "name": "bench",
-      "help": "Measure precision, recall, F1 and false-positive rate on the benchmark corpus.",
+      "name": "baseline",
+      "help": "The baseline lockfile: what was approved. create | verify | update | diff.",
+      "params": []
+    },
+    {
+      "name": "baseline create",
+      "help": "Write agentguard.lock: file hashes, server launch commands, a hash per\ntool definition, capabilities, risk tier and verdict of what is there now.",
       "params": [
+        {
+          "name": "target",
+          "kind": "argument",
+          "opts": [
+            "target"
+          ],
+          "help": "What to record (default: the current directory).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "Lockfile path.",
+          "default": "agentguard.lock",
+          "required": false
+        },
+        {
+          "name": "machine",
+          "kind": "option",
+          "opts": [
+            "--machine"
+          ],
+          "help": "Record every agent component installed on this machine.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "no_user",
+          "kind": "option",
+          "opts": [
+            "--no-user"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "approved_by",
+          "kind": "option",
+          "opts": [
+            "--approved-by"
+          ],
+          "help": "Who approved what the lock records.",
+          "default": "",
+          "required": false
+        },
+        {
+          "name": "review_by",
+          "kind": "option",
+          "opts": [
+            "--review-by"
+          ],
+          "help": "Date (YYYY-MM-DD) the approval should be looked at again.",
+          "default": "",
+          "required": false
+        },
+        {
+          "name": "accept_findings",
+          "kind": "option",
+          "opts": [
+            "--accept-findings"
+          ],
+          "help": "Record the current findings as reviewed and accepted: later scans against this lock do not report them again.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "baseline diff",
+      "help": "What differs between two locks, or between a lock and what is there now.",
+      "params": [
+        {
+          "name": "old",
+          "kind": "argument",
+          "opts": [
+            "old"
+          ],
+          "help": "A lockfile.",
+          "default": "agentguard.lock",
+          "required": false
+        },
+        {
+          "name": "new",
+          "kind": "argument",
+          "opts": [
+            "new"
+          ],
+          "help": "Another lockfile, or a target to compare the lock with (default: the current directory).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "baseline update",
+      "help": "Record the current state as approved, and print what changed since the\nprevious lock. Entries that did not change keep their approval record.",
+      "params": [
+        {
+          "name": "target",
+          "kind": "argument",
+          "opts": [
+            "target"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "baseline",
+          "kind": "option",
+          "opts": [
+            "--baseline",
+            "--lock",
+            "-o"
+          ],
+          "help": "",
+          "default": "agentguard.lock",
+          "required": false
+        },
+        {
+          "name": "machine",
+          "kind": "option",
+          "opts": [
+            "--machine"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "no_user",
+          "kind": "option",
+          "opts": [
+            "--no-user"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "approved_by",
+          "kind": "option",
+          "opts": [
+            "--approved-by"
+          ],
+          "help": "",
+          "default": "",
+          "required": false
+        },
+        {
+          "name": "review_by",
+          "kind": "option",
+          "opts": [
+            "--review-by"
+          ],
+          "help": "",
+          "default": "",
+          "required": false
+        },
+        {
+          "name": "accept_findings",
+          "kind": "option",
+          "opts": [
+            "--accept-findings"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "baseline verify",
+      "help": "Re-scan what the lock records with the current rules and report what\nchanged: file content, versions, launch commands, tool definitions, tool\nsets and capabilities (rug pulls and update drift).",
+      "params": [
+        {
+          "name": "target",
+          "kind": "argument",
+          "opts": [
+            "target"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "baseline",
+          "kind": "option",
+          "opts": [
+            "--baseline",
+            "--lock"
+          ],
+          "help": "Lockfile to compare against.",
+          "default": "agentguard.lock",
+          "required": false
+        },
+        {
+          "name": "machine",
+          "kind": "option",
+          "opts": [
+            "--machine"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "no_user",
+          "kind": "option",
+          "opts": [
+            "--no-user"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "fail_on",
+          "kind": "option",
+          "opts": [
+            "--fail-on"
+          ],
+          "help": "Lowest severity of drift that fails the command.",
+          "default": "low",
+          "required": false
+        },
+        {
+          "name": "format",
+          "kind": "option",
+          "opts": [
+            "--format",
+            "-f"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "bench",
+      "help": "Run benchmark and regression suites and print a scorecard.",
+      "params": [
+        {
+          "name": "suite",
+          "kind": "argument",
+          "opts": [
+            "suite"
+          ],
+          "help": "corpus · evasion · incidents · perf · malskillbench · skilltrustbench · all (the suites that need no download).",
+          "default": "corpus",
+          "required": false
+        },
         {
           "name": "corpus",
           "kind": "option",
@@ -17,13 +302,43 @@
           "required": false
         },
         {
+          "name": "data",
+          "kind": "option",
+          "opts": [
+            "--data"
+          ],
+          "help": "Local copy of a public benchmark (never redistributed with Agent Guard).",
+          "default": null,
+          "required": false
+        },
+        {
           "name": "split",
           "kind": "option",
           "opts": [
             "--split"
           ],
-          "help": "all | dev | heldout",
+          "help": "Corpus suite: all | dev | heldout. skilltrustbench: subset (the fixed 556 cases) | full.",
           "default": "all",
+          "required": false
+        },
+        {
+          "name": "profile",
+          "kind": "option",
+          "opts": [
+            "--profile"
+          ],
+          "help": "",
+          "default": "quick",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "kind": "option",
+          "opts": [
+            "--limit"
+          ],
+          "help": "Scan at most this many cases.",
+          "default": null,
           "required": false
         },
         {
@@ -33,7 +348,7 @@
             "--output",
             "-o"
           ],
-          "help": "Write results JSON here.",
+          "help": "Write the scorecard JSON here.",
           "default": null,
           "required": false
         },
@@ -43,15 +358,83 @@
           "opts": [
             "--perf"
           ],
-          "help": "Also time 100 skills + 20 configs.",
+          "help": "Corpus suite: also time 100 skills + 20 configs.",
           "default": "True",
           "required": false
         }
       ]
     },
     {
+      "name": "detonate",
+      "help": "Dynamic analysis only: run the target in a disposable container with no\nroute to the internet and no real credentials, and report what it did.\nFails if the sandbox is not available; it never falls back to the host.",
+      "params": [
+        {
+          "name": "target",
+          "kind": "argument",
+          "opts": [
+            "target"
+          ],
+          "help": "What to detonate (any scan target that can be fetched to disk).",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "timeout",
+          "kind": "option",
+          "opts": [
+            "--timeout"
+          ],
+          "help": "Seconds for the whole run (default 900).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "adapter",
+          "kind": "option",
+          "opts": [
+            "--agent-adapter"
+          ],
+          "help": "claude-code, opencode or none (direct execution only).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "format",
+          "kind": "option",
+          "opts": [
+            "--format",
+            "-f"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "keep_trace",
+          "kind": "option",
+          "opts": [
+            "--keep-trace"
+          ],
+          "help": "Directory for the trace, the file diff and the network log.",
+          "default": null,
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "discover",
-      "help": "Inventory agents, MCP servers, skills and instruction files (no findings).",
+      "help": "Alias of `inventory`.",
       "params": [
         {
           "name": "format",
@@ -61,7 +444,7 @@
             "-f"
           ],
           "help": "",
-          "default": "DiscoverFormat.table",
+          "default": "table",
           "required": false
         },
         {
@@ -81,7 +464,7 @@
           "opts": [
             "--no-user"
           ],
-          "help": "Skip user-level configuration.",
+          "help": "",
           "default": "False",
           "required": false
         },
@@ -91,25 +474,319 @@
           "opts": [
             "--project"
           ],
-          "help": "Project root (default: current directory).",
+          "help": "",
           "default": null,
           "required": false
         }
       ]
     },
     {
+      "name": "doctor",
+      "help": "Check the environment and report what each tier can use.",
+      "params": [
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "explain",
+      "help": "Explain a rule or a finding: the risk, the cause and the fix.",
+      "params": [
+        {
+          "name": "ident",
+          "kind": "argument",
+          "opts": [
+            "ident"
+          ],
+          "help": "A rule id (AG-EXEC-001), an id/variant, an old alias, or a finding fingerprint (or its first characters).",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "report",
+          "kind": "option",
+          "opts": [
+            "--report"
+          ],
+          "help": "JSON report to look a finding up in (default: the last scan).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "JSON output.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "fix",
+      "help": "Show or apply fixes. Every applied fix is followed by a re-scan of the\ntouched files; a fix that leaves its finding in place, adds a finding or\nbreaks parsing is rolled back. --emit-policy writes the least-privilege\npolicy (what each component needs, nothing more) for the agent to enforce.",
+      "params": [
+        {
+          "name": "target",
+          "kind": "argument",
+          "opts": [
+            "target"
+          ],
+          "help": "A local path (your own files; a fix is never applied to a remote target).",
+          "default": ".",
+          "required": false
+        },
+        {
+          "name": "finding",
+          "kind": "option",
+          "opts": [
+            "--finding"
+          ],
+          "help": "Fix only this finding (a fingerprint or its first characters).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "rule",
+          "kind": "option",
+          "opts": [
+            "--rule"
+          ],
+          "help": "Fix only findings of this rule, alias or family.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "safe_only",
+          "kind": "option",
+          "opts": [
+            "--safe-only"
+          ],
+          "help": "Only deterministic safe fixes; no model-drafted patch.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "apply",
+          "kind": "option",
+          "opts": [
+            "--apply"
+          ],
+          "help": "Write the changes. Without it the command prints a unified diff.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "policy",
+          "kind": "option",
+          "opts": [
+            "--policy"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "network",
+          "kind": "option",
+          "opts": [
+            "--network"
+          ],
+          "help": "NETWORK: look up the commit, version or hash a pinning fix needs.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "llm",
+          "kind": "option",
+          "opts": [
+            "--llm"
+          ],
+          "help": "off · auto · always: let a configured model draft a patch where no deterministic fix exists. The draft is kept only after a clean re-scan. Default: auto.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "emit_policy",
+          "kind": "option",
+          "opts": [
+            "--emit-policy"
+          ],
+          "help": "Write the least-privilege policy (smallest allowed-tools, permission rules and sandbox profile per component) to this JSON file, for the agent to enforce.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "JSON output.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "install",
+      "help": "Scan, show the install receipt, then install.\n\nThe source is fetched to quarantine at a pinned identifier and scanned with\nthe installed context. The receipt lists every file that would be written\nand every setting, hook, MCP entry or instruction file that would change.\nOn ALLOW (or REVIEW with --accept) the scanned bytes, not a fresh download,\nare copied into place and agentguard.lock is updated.",
+      "params": [
+        {
+          "name": "source",
+          "kind": "argument",
+          "opts": [
+            "source"
+          ],
+          "help": "What to install: any scan target (a GitHub URL, a package, an archive, a path).",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "agent",
+          "kind": "option",
+          "opts": [
+            "--agent"
+          ],
+          "help": "claude-code, codex, cursor, gemini, copilot or openclaw.",
+          "default": "claude-code",
+          "required": false
+        },
+        {
+          "name": "scope",
+          "kind": "option",
+          "opts": [
+            "--scope"
+          ],
+          "help": "project (this directory) or user (your home directory).",
+          "default": "project",
+          "required": false
+        },
+        {
+          "name": "dest",
+          "kind": "option",
+          "opts": [
+            "--dest"
+          ],
+          "help": "Install root to use instead of the agent's default location.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "accept",
+          "kind": "option",
+          "opts": [
+            "--accept"
+          ],
+          "help": "Install a REVIEW verdict (a BLOCK is never installed).",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "plan",
+          "kind": "option",
+          "opts": [
+            "--plan"
+          ],
+          "help": "Show the receipt and the verdict; write nothing.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "policy",
+          "kind": "option",
+          "opts": [
+            "--policy"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "profile",
+          "kind": "option",
+          "opts": [
+            "--profile"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "context",
+          "kind": "option",
+          "opts": [
+            "--context"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "llm",
+          "kind": "option",
+          "opts": [
+            "--llm"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "offline",
+          "kind": "option",
+          "opts": [
+            "--offline"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "approved_by",
+          "kind": "option",
+          "opts": [
+            "--approved-by"
+          ],
+          "help": "Recorded in agentguard.lock.",
+          "default": "",
+          "required": false
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "Machine-readable receipt (agent-safe: no scanned text).",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "intel",
-      "help": "Manage the local, signed IOC feed.",
+      "help": "The local, signed indicator feed (see also `agentguard update`).",
       "params": []
     },
     {
       "name": "intel status",
-      "help": "Show which IOC feed is active.",
+      "help": "Show which indicator feed is active.",
       "params": []
     },
     {
       "name": "intel update",
-      "help": "Install a newer signed IOC feed (signature and rollback checks enforced).",
+      "help": "Install a newer signed indicator feed (signature and rollback checks enforced).",
       "params": [
         {
           "name": "source",
@@ -124,16 +801,74 @@
       ]
     },
     {
-      "name": "lock",
-      "help": "Write agentguard.lock: hashes of skill files and normalized tool definitions.",
+      "name": "inventory",
+      "help": "List the agent components on this machine and in this project, with\ntheir capabilities and risk tier; emit an AI-BOM with --format cyclonedx.",
       "params": [
         {
-          "name": "path",
+          "name": "format",
+          "kind": "option",
+          "opts": [
+            "--format",
+            "-f"
+          ],
+          "help": "table, json or cyclonedx (the AI-BOM).",
+          "default": "table",
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "no_user",
+          "kind": "option",
+          "opts": [
+            "--no-user"
+          ],
+          "help": "Skip home-directory locations.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "project",
+          "kind": "option",
+          "opts": [
+            "--project"
+          ],
+          "help": "Project root (default: current directory).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "cards",
+          "kind": "option",
+          "opts": [
+            "--trust-cards"
+          ],
+          "help": "Also print a trust card per component.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "lock",
+      "help": "Alias of `baseline create`.",
+      "params": [
+        {
+          "name": "target",
           "kind": "argument",
           "opts": [
-            "path"
+            "target"
           ],
-          "help": "Target to lock (default: discover this machine + project).",
+          "help": "",
           "default": null,
           "required": false
         },
@@ -144,7 +879,7 @@
             "--output",
             "-o"
           ],
-          "help": "Lockfile path.",
+          "help": "",
           "default": "agentguard.lock",
           "required": false
         },
@@ -161,8 +896,108 @@
       ]
     },
     {
+      "name": "mcp",
+      "help": "MCP servers: inspect | probe.",
+      "params": []
+    },
+    {
+      "name": "mcp inspect",
+      "help": "List a server's tools, prompts and resources without calling them, hash\neach definition for the baseline, and run the definition rules on them.",
+      "params": [
+        {
+          "name": "endpoint",
+          "kind": "argument",
+          "opts": [
+            "endpoint"
+          ],
+          "help": "mcp+https://… / https://… for a remote server, or mcp+stdio:<command> for a local one (started only inside the sandbox).",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "scan_too",
+          "kind": "option",
+          "opts": [
+            "--scan"
+          ],
+          "help": "Run the definition rules on what the server serves.",
+          "default": "True",
+          "required": false
+        },
+        {
+          "name": "two_identities",
+          "kind": "option",
+          "opts": [
+            "--two-identities"
+          ],
+          "help": "List twice with different client identities to detect cloaked tool lists.",
+          "default": "True",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "mcp probe",
+      "help": "Read-only posture check of a remote endpoint: TLS, the unauthenticated\nresponse and its challenge, protected-resource and authorization-server\nmetadata, advertised grant types and PKCE. No tool is listed or called.",
+      "params": [
+        {
+          "name": "url",
+          "kind": "argument",
+          "opts": [
+            "url"
+          ],
+          "help": "The remote endpoint (https://… or mcp+https://…).",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "format",
+          "kind": "option",
+          "opts": [
+            "--format",
+            "-f"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "report",
-      "help": "Re-render a JSON report as SARIF, Markdown, HTML or terminal output (no rescan).",
+      "help": "Re-render a JSON report in another format (no rescan).",
       "params": [
         {
           "name": "input",
@@ -183,7 +1018,7 @@
             "-f"
           ],
           "help": "",
-          "default": "OutputFormat.sarif",
+          "default": null,
           "required": false
         },
         {
@@ -196,17 +1031,27 @@
           "help": "",
           "default": null,
           "required": false
+        },
+        {
+          "name": "agent_safe_out",
+          "kind": "option",
+          "opts": [
+            "--agent-safe"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
         }
       ]
     },
     {
       "name": "rules",
-      "help": "Inspect the rule pack.",
+      "help": "The rule pack: list | new | test | validate | import.",
       "params": []
     },
     {
       "name": "rules explain",
-      "help": "Explain one rule: what it detects, why it matters, how to fix it.",
+      "help": "Alias of `agentguard explain <rule id>`.",
       "params": [
         {
           "name": "rule_id",
@@ -214,7 +1059,7 @@
           "opts": [
             "rule_id"
           ],
-          "help": "Rule ID, e.g. AG-SKL-SE-002",
+          "help": "",
           "default": null,
           "required": true
         }
@@ -222,7 +1067,7 @@
     },
     {
       "name": "rules export",
-      "help": "Export the rule pack (with mappings and fixtures) as JSON for the website.",
+      "help": "The rule pack with mappings and fixture examples, as JSON (used by the website).",
       "params": [
         {
           "name": "format",
@@ -230,7 +1075,7 @@
           "opts": [
             "--format"
           ],
-          "help": "Only 'json' is supported.",
+          "help": "",
           "default": "json",
           "required": false
         },
@@ -248,32 +1093,93 @@
       ]
     },
     {
-      "name": "rules list",
-      "help": "List every rule in the rule pack.",
+      "name": "rules import",
+      "help": "Import a community rule pack. Each imported rule becomes a variant of\nthe catalogue rule it corresponds to, in the advisory (hunt) lane.",
       "params": [
         {
-          "name": "json_out",
+          "name": "source",
+          "kind": "argument",
+          "opts": [
+            "source"
+          ],
+          "help": "A community pack: an Agent Threat Rules directory or file (YAML), or YARA files.",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "format",
           "kind": "option",
           "opts": [
-            "--json"
+            "--format"
           ],
-          "help": "JSON output.",
-          "default": "False",
+          "help": "atr or yara (default: detected).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "name",
+          "kind": "option",
+          "opts": [
+            "--name"
+          ],
+          "help": "Name of the installed pack.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "lane",
+          "kind": "option",
+          "opts": [
+            "--lane"
+          ],
+          "help": "Lane the imported rules run in. Community rules default to the advisory lane.",
+          "default": "hunt",
+          "required": false
+        },
+        {
+          "name": "licence",
+          "kind": "option",
+          "opts": [
+            "--licence",
+            "--license"
+          ],
+          "help": "Licence of the pack, recorded with it.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "out",
+          "kind": "option",
+          "opts": [
+            "--out"
+          ],
+          "help": "Write the pack here instead of installing it.",
+          "default": null,
           "required": false
         }
       ]
     },
     {
-      "name": "scan",
-      "help": "Scan skills, instruction files and MCP configuration. Never executes the target.",
+      "name": "rules list",
+      "help": "List the rules of the catalogue with their status in this rule pack\n(detectors from imported community packs are included).",
       "params": [
         {
-          "name": "path",
-          "kind": "argument",
+          "name": "family",
+          "kind": "option",
           "opts": [
-            "path"
+            "--family"
           ],
-          "help": "Skill folder, repository, or MCP config file. Omit to discover this machine's agent configuration plus the current project.",
+          "help": "One family, e.g. INJ.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "status",
+          "kind": "option",
+          "opts": [
+            "--status"
+          ],
+          "help": "planned, experimental, stable or deprecated.",
           "default": null,
           "required": false
         },
@@ -284,38 +1190,191 @@
             "--format",
             "-f"
           ],
-          "help": "Output format.",
-          "default": "OutputFormat.terminal",
+          "help": "table or json.",
+          "default": "table",
           "required": false
         },
         {
-          "name": "output",
+          "name": "json_out",
           "kind": "option",
           "opts": [
-            "--output",
-            "-o"
+            "--json"
           ],
-          "help": "Write output to a file.",
+          "help": "Same as --format json.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "rules new",
+      "help": "Scaffold a detection entry and a positive and a negative fixture.",
+      "params": [
+        {
+          "name": "rule_id",
+          "kind": "argument",
+          "opts": [
+            "rule_id"
+          ],
+          "help": "A catalogue rule id, e.g. AG-INJ-011.",
+          "default": null,
+          "required": true
+        },
+        {
+          "name": "variant",
+          "kind": "option",
+          "opts": [
+            "--variant"
+          ],
+          "help": "Add a narrower detector under a rule that already has one.",
           "default": null,
           "required": false
         },
         {
-          "name": "fail_on",
+          "name": "out",
           "kind": "option",
           "opts": [
-            "--fail-on"
+            "--out"
           ],
-          "help": "Exit 1 if any finding is at or above this severity (default: high).",
+          "help": "Pack directory to write into (rules/ and fixtures/ are created).",
+          "default": ".",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "rules test",
+      "help": "Run the positive and negative fixtures of the selected detectors.",
+      "params": [
+        {
+          "name": "selector",
+          "kind": "argument",
+          "opts": [
+            "selector"
+          ],
+          "help": "A rule id, id/variant, alias or family (default: every detector).",
           "default": null,
           "required": false
         },
         {
-          "name": "config",
+          "name": "fixtures",
           "kind": "option",
           "opts": [
-            "--config"
+            "--fixtures"
           ],
-          "help": "Path to .agentguard.yaml (default: next to the target).",
+          "help": "Fixture root (default: the repository's fixtures/rules).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "rule_pack",
+          "kind": "option",
+          "opts": [
+            "--rule-pack"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "json_out",
+          "kind": "option",
+          "opts": [
+            "--json"
+          ],
+          "help": "",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "rules validate",
+      "help": "Load the pack with the strict loader and check detectors, fixtures and mappings.",
+      "params": [
+        {
+          "name": "rule_pack",
+          "kind": "option",
+          "opts": [
+            "--rule-pack"
+          ],
+          "help": "Extra pack directories to load with the built-in pack.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "fixtures",
+          "kind": "option",
+          "opts": [
+            "--fixtures"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "scan",
+      "help": "Scan and report. Ends in one verdict: ALLOW, REVIEW or BLOCK.",
+      "params": [
+        {
+          "name": "targets",
+          "kind": "argument",
+          "opts": [
+            "targets"
+          ],
+          "help": "What to scan: a path, a GitHub URL (optionally @ref, or …/pull/N), pkg:npm/… or pkg:pypi/…, oci://…, an archive or bundle, mcp:<registry name>, mcp+https://… or mcp+stdio:<command>, or an OpenAPI / A2A descriptor. Several targets are scanned together. Default: the current directory.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "machine",
+          "kind": "option",
+          "opts": [
+            "--machine"
+          ],
+          "help": "Scan every agent component installed on this machine.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "profile",
+          "kind": "option",
+          "opts": [
+            "--profile"
+          ],
+          "help": "quick (deterministic static) · standard (adds the triage model and a gated adjudicator) · deep (adds dynamic analysis). Default: standard.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "llm",
+          "kind": "option",
+          "opts": [
+            "--llm"
+          ],
+          "help": "off · auto (use a model when one is configured) · always. Default: auto.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "dynamic",
+          "kind": "option",
+          "opts": [
+            "--dynamic"
+          ],
+          "help": "off · on: detonate the target in the sandbox (needs Docker). Default: off, on in the deep profile.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "context",
+          "kind": "option",
+          "opts": [
+            "--context"
+          ],
+          "help": "What the target is composed with: installed (the agent components on this machine) · none · a path. Default: installed.",
           "default": null,
           "required": false
         },
@@ -325,7 +1384,39 @@
           "opts": [
             "--policy"
           ],
-          "help": "Policy YAML file (overrides the policy in .agentguard.yaml).",
+          "help": "A preset (strict, balanced, permissive) or a policy file. Default: balanced.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "format",
+          "kind": "option",
+          "opts": [
+            "--format",
+            "-f"
+          ],
+          "help": "terminal, json, sarif, md, html, junit, cyclonedx. Repeatable.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "output",
+          "kind": "option",
+          "opts": [
+            "--output",
+            "-o"
+          ],
+          "help": "A file, or a directory when several formats are written. Default: stdout.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "fail_on",
+          "kind": "option",
+          "opts": [
+            "--fail-on"
+          ],
+          "help": "block · review · severity:<level>. Default: block.",
           "default": null,
           "required": false
         },
@@ -333,29 +1424,180 @@
           "name": "baseline",
           "kind": "option",
           "opts": [
-            "--baseline"
-          ],
-          "help": "Previous JSON report or baseline file; only new findings are reported.",
-          "default": null,
-          "required": false
-        },
-        {
-          "name": "changed_since",
-          "kind": "option",
-          "opts": [
-            "--changed-since"
-          ],
-          "help": "PR mode: report only components touched since this git ref. Config is read from the ref.",
-          "default": null,
-          "required": false
-        },
-        {
-          "name": "lock",
-          "kind": "option",
-          "opts": [
+            "--baseline",
             "--lock"
           ],
-          "help": "agentguard.lock to check for drift.",
+          "help": "A lockfile of what was approved (default: agentguard.lock here, if present). A previous JSON report also works: only new findings are reported.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "diff",
+          "kind": "option",
+          "opts": [
+            "--diff"
+          ],
+          "help": "<base>..<head>: scan the changed files in full, the rest as context, and report only new findings.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "ref",
+          "kind": "option",
+          "opts": [
+            "--ref"
+          ],
+          "help": "Branch, tag or commit to scan (git and GitHub targets).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "all_refs",
+          "kind": "option",
+          "opts": [
+            "--all-refs"
+          ],
+          "help": "Scan every branch and tag head.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "history",
+          "kind": "option",
+          "opts": [
+            "--history"
+          ],
+          "help": "<n|all>: also scan agent-facing files from the last n commits, including ones later removed.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "submodules",
+          "kind": "option",
+          "opts": [
+            "--submodules"
+          ],
+          "help": "on · off: read git submodules at their pinned commits. Default: on.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "ecosystem",
+          "kind": "option",
+          "opts": [
+            "--ecosystem"
+          ],
+          "help": "Comma list: claude-code, codex, cursor, gemini, copilot, openclaw. Default: all.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "rules",
+          "kind": "option",
+          "opts": [
+            "--rules"
+          ],
+          "help": "Only these rules: ids, aliases, families (INJ) or prefixes (AG-INJ-). Comma list, repeatable.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "exclude_rules",
+          "kind": "option",
+          "opts": [
+            "--exclude-rules"
+          ],
+          "help": "Rules to leave out (same selectors).",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "rule_pack",
+          "kind": "option",
+          "opts": [
+            "--rule-pack"
+          ],
+          "help": "An additional rule pack directory. Repeatable.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "offline",
+          "kind": "option",
+          "opts": [
+            "--offline"
+          ],
+          "help": "Forbid all network use; fail if a selected engine or target needs it.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "max_llm_cost",
+          "kind": "option",
+          "opts": [
+            "--max-llm-cost"
+          ],
+          "help": "Model budget for this scan, in USD.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "max_llm_tokens",
+          "kind": "option",
+          "opts": [
+            "--max-llm-tokens"
+          ],
+          "help": "Model token budget for this scan.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "estimate",
+          "kind": "option",
+          "opts": [
+            "--estimate"
+          ],
+          "help": "Print the expected model cost and stop.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "agent_safe_out",
+          "kind": "option",
+          "opts": [
+            "--agent-safe"
+          ],
+          "help": "Never echo scanned text: rule ids, fixed wording, file and line, verdict and fix only.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "jobs",
+          "kind": "option",
+          "opts": [
+            "--jobs"
+          ],
+          "help": "Parallel fetches. Default: CPU count.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "timeout",
+          "kind": "option",
+          "opts": [
+            "--timeout"
+          ],
+          "help": "Seconds before the scan stops and reports what it did not reach. Default: 600.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "config",
+          "kind": "option",
+          "opts": [
+            "--config"
+          ],
+          "help": "Configuration file (default: .agentguard.yaml in the directory you run from; never one inside the target).",
           "default": null,
           "required": false
         },
@@ -365,7 +1607,7 @@
           "opts": [
             "--no-user"
           ],
-          "help": "When discovering, skip user-level (home directory) configuration.",
+          "help": "With --machine or --context installed: skip home-directory locations.",
           "default": "False",
           "required": false
         },
@@ -375,7 +1617,7 @@
           "opts": [
             "--live-metadata"
           ],
-          "help": "NETWORK: fetch read-only tool lists from remote MCP servers.",
+          "help": "NETWORK: read tool lists from the remote MCP servers a config names (read-only; no tool is called).",
           "default": "False",
           "required": false
         },
@@ -385,7 +1627,7 @@
           "opts": [
             "--auth-checks"
           ],
-          "help": "NETWORK: check remote servers' OAuth/TLS conformance.",
+          "help": "NETWORK: check remote servers' TLS and OAuth posture.",
           "default": "False",
           "required": false
         },
@@ -405,7 +1647,7 @@
           "opts": [
             "--provenance"
           ],
-          "help": "NETWORK: verify npm/Sigstore provenance.",
+          "help": "NETWORK: verify package provenance attestations.",
           "default": "False",
           "required": false
         },
@@ -415,7 +1657,7 @@
           "opts": [
             "--registry"
           ],
-          "help": "NETWORK: MCP Registry / package age checks.",
+          "help": "NETWORK: registry existence and package-age checks.",
           "default": "False",
           "required": false
         },
@@ -425,58 +1667,18 @@
           "opts": [
             "--check-hijackable"
           ],
-          "help": "NETWORK: check that referenced GitHub owners, npm/PyPI packages, download domains and cloud-app hostnames still exist (SkillJacking). Uses $AGENTGUARD_GITHUB_TOKEN or $GITHUB_TOKEN, if set, for api.github.com only.",
+          "help": "NETWORK: check that referenced GitHub owners, packages and domains still exist. Uses $AGENTGUARD_GITHUB_TOKEN or $GITHUB_TOKEN for api.github.com only.",
           "default": "False",
           "required": false
         },
         {
-          "name": "llm_judge",
+          "name": "changed_since",
           "kind": "option",
           "opts": [
-            "--llm-judge"
+            "--changed-since"
           ],
-          "help": "NETWORK: optional LLM judge provider: anthropic | openai_compat | ollama.",
+          "help": "Same as --diff <ref>..HEAD.",
           "default": null,
-          "required": false
-        },
-        {
-          "name": "llm_model",
-          "kind": "option",
-          "opts": [
-            "--llm-model"
-          ],
-          "help": "Judge model (default for anthropic: claude-opus-5-5).",
-          "default": null,
-          "required": false
-        },
-        {
-          "name": "llm_endpoint",
-          "kind": "option",
-          "opts": [
-            "--llm-endpoint"
-          ],
-          "help": "Base URL for openai_compat / ollama.",
-          "default": null,
-          "required": false
-        },
-        {
-          "name": "llm_budget",
-          "kind": "option",
-          "opts": [
-            "--llm-budget"
-          ],
-          "help": "Maximum judge calls per scan (cached results are free).",
-          "default": "20",
-          "required": false
-        },
-        {
-          "name": "allow_partial",
-          "kind": "option",
-          "opts": [
-            "--allow-partial"
-          ],
-          "help": "Do not exit 2 when an analyzer fails (recorded in the report).",
-          "default": "False",
           "required": false
         },
         {
@@ -496,7 +1698,18 @@
             "--verbose",
             "-v"
           ],
-          "help": "Show evidence, remediation and mappings.",
+          "help": "Show evidence, decoded content and standards mappings.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "quiet",
+          "kind": "option",
+          "opts": [
+            "--quiet",
+            "-q"
+          ],
+          "help": "No progress notes on stderr.",
           "default": "False",
           "required": false
         },
@@ -506,7 +1719,7 @@
           "opts": [
             "--timestamps"
           ],
-          "help": "Include a generation timestamp (makes output non-deterministic).",
+          "help": "Include a generation timestamp and timings (output is then not reproducible).",
           "default": "False",
           "required": false
         }
@@ -529,16 +1742,118 @@
       ]
     },
     {
-      "name": "verify",
-      "help": "Report rug-pull / update-drift findings against agentguard.lock, with diffs.",
+      "name": "serve",
+      "help": "Run as an MCP server or local HTTP API for agents. Output is agent-safe:\nrule ids, fixed rule wording, file and line, verdict and fix summary; never\ntext from the target.",
       "params": [
         {
-          "name": "path",
+          "name": "mcp",
+          "kind": "option",
+          "opts": [
+            "--mcp"
+          ],
+          "help": "Speak MCP over stdio (tools: agentguard_scan, agentguard_check_install, agentguard_explain, agentguard_inventory).",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "http",
+          "kind": "option",
+          "opts": [
+            "--http"
+          ],
+          "help": "Serve the local HTTP API.",
+          "default": "False",
+          "required": false
+        },
+        {
+          "name": "host",
+          "kind": "option",
+          "opts": [
+            "--host"
+          ],
+          "help": "HTTP bind address (loopback only unless you change it).",
+          "default": "127.0.0.1",
+          "required": false
+        },
+        {
+          "name": "port",
+          "kind": "option",
+          "opts": [
+            "--port"
+          ],
+          "help": "",
+          "default": "8765",
+          "required": false
+        },
+        {
+          "name": "policy",
+          "kind": "option",
+          "opts": [
+            "--policy"
+          ],
+          "help": "",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "profile",
+          "kind": "option",
+          "opts": [
+            "--profile"
+          ],
+          "help": "",
+          "default": "quick",
+          "required": false
+        },
+        {
+          "name": "reports",
+          "kind": "option",
+          "opts": [
+            "--reports"
+          ],
+          "help": "Where full reports for the human are written.",
+          "default": null,
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "update",
+      "help": "Refresh the rule pack and the intelligence bundle. A bundle is used only\nafter its signature verifies against a trusted release key; a bundle older\nthan the installed one is refused.",
+      "params": [
+        {
+          "name": "source",
+          "kind": "option",
+          "opts": [
+            "--from"
+          ],
+          "help": "A local update bundle (air-gapped use), or an https:// URL. Default: the configured source.",
+          "default": null,
+          "required": false
+        },
+        {
+          "name": "check",
+          "kind": "option",
+          "opts": [
+            "--check"
+          ],
+          "help": "Verify the bundle and show what it holds; install nothing.",
+          "default": "False",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "help": "Alias of `baseline verify`.",
+      "params": [
+        {
+          "name": "target",
           "kind": "argument",
           "opts": [
-            "path"
+            "target"
           ],
-          "help": "Target to verify (default: discover this machine + project).",
+          "help": "",
           "default": null,
           "required": false
         },
@@ -546,9 +1861,10 @@
           "name": "lock",
           "kind": "option",
           "opts": [
-            "--lock"
+            "--lock",
+            "--baseline"
           ],
-          "help": "Lockfile to compare against.",
+          "help": "",
           "default": "agentguard.lock",
           "required": false
         },
@@ -559,7 +1875,7 @@
             "--fail-on"
           ],
           "help": "",
-          "default": "SeverityOpt.low",
+          "default": "low",
           "required": false
         },
         {
@@ -570,7 +1886,7 @@
             "-f"
           ],
           "help": "",
-          "default": "OutputFormat.terminal",
+          "default": null,
           "required": false
         },
         {

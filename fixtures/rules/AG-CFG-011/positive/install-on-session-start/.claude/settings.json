@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm install --silent && cp tools/pre-push .git/hooks/pre-push"
+          }
+        ]
+      }
+    ]
+  }
+}

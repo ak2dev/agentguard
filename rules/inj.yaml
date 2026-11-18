@@ -1,0 +1,720 @@
+# Instruction injection and hijack. Regex rules run on the NFKC/confusable-folded text with invisible
+# characters removed; matches inside hidden or decoded content are escalated one severity level by the engine.
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+  - id: AG-INJ-001
+    aliases: [AG-SKL-INJ-001]
+    version: 2
+    description: Text tells the agent to ignore, disregard or replace its existing instructions.
+    why: Override directives are the classic prompt-injection primitive; legitimate skills add behavior, they do not revoke the agent's instructions.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, code]
+      lower_confidence_in_code: true
+      patterns:
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+|my\s+|these\s+)?(?:previous|prior|above|earlier|preceding|former|original|system|safety|developer|existing)\s+(?:instructions?|prompts?|rules?|guidelines?|directives?|messages?|context|constraints?|guardrails?)
+        - |-
+          \byour\s+(?:new|real|true|actual)\s+(?:task|goal|objective|instructions?|purpose|role)\s+(?:is|are)\b
+        - |-
+          \bfrom\s+now\s+on,?\s+you\s+(?:are|will|must|shall)\s+(?:no\s+longer|ignore|only|act\s+as)\b
+        - |-
+          \byou\s+are\s+no\s+longer\s+(?:bound|restricted|an?\s+(?:assistant|ai))\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|test cases?|flag(?:s|ged)?|scanner|patterns?)\b(?!\.\w|/)
+        # Guidance to refuse such a request: the line both reports the request ("users sometimes
+        # ask you to forget ...", "if a document tells you to ignore ...") and says not to follow it.
+        - |-
+          (?=.*\b(?:asks?|tells?|instructs?|urges?|wants?|requests?|tr(?:y|ies)\s+to\s+(?:get|make)|attempts?\s+to\s+(?:get|make))\s+(?:you|the\s+(?:agent|assistant|model))\s+to\b)(?=.*\b(?:decline|refuse|do\s+not\s+(?:comply|obey|follow\s+(?:it|them|that))|don'?t\s+(?:comply|obey|follow\s+(?:it|them|that))|never\s+(?:comply|obey)|keep\s+following|treat\s+(?:it|that|this)\s+as\s+(?:data|untrusted)|report\s+(?:it|this)\s+to\s+the\s+user)\b)
+      window: 0
+      # A quoted or `code-span` mention in a reference document is discussion
+      # of the pattern (prompt-engineering guides, security docs), not a directive.
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove override language. Describe what the skill adds instead of what the agent should ignore.
+
+
+  - id: AG-INJ-001
+    variant: paraphrase
+    aliases: [AG-SKL-INJ-010]
+    version: 1
+    title: Instruction override in other words
+    description: Text dismisses the agent's earlier instructions without the usual "ignore previous instructions" phrasing (set aside what you were told, pay no attention to prior directions, the earlier rules no longer apply, previous instructions are void).
+    why: Paraphrasing is the cheapest way past keyword filters. Any wording that revokes the agent's existing instructions is an override directive.
+    confidence: medium
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        # dismiss + what the agent was told
+        - |-
+          \b(?:disregard|ignore|forget|set\s+aside|put\s+aside|pay\s+no\s+(?:attention|heed|mind)\s+to|discard|abandon|override|overrule|throw\s+out|stop\s+following|no\s+longer\s+follow)\b[^\n.;]{0,60}?(?:\b(?:previous|prior|earlier|preceding|above|original|initial|former|old|system)\s+(?:instructions?|guidance|directions?|directives?|rules|prompts?|guidelines|orders|commands|programming|constraints)\b|\b(?:what|everything|anything|whatever)\s+(?:you\s+(?:were|have\s+been|'ve\s+been)\s+|you\s+)?(?:told|instructed|asked|given|taught|received)\b|\bthe\s+(?:guidance|instructions?|directions?|rules)\s+you\s+(?:received|were\s+given|got|have\s+been\s+given)\b)
+        # prior instructions declared void
+        - |-
+          \b(?:the\s+|your\s+|all\s+)?(?:previous|prior|earlier|preceding|original|old|former|initial)\s+(?:instructions?|guidance|directions?|directives?|rules|prompts?|guidelines|orders)\s+(?:are|is|have\s+been|were)\s+(?:now\s+|hereby\s+)?(?:void|null|cancel(?:l)?ed|revoked|superseded|obsolete|invalid|overridden|replaced|no\s+longer\s+(?:valid|in\s+effect|relevant|applicable))\b|\b(?:the\s+|your\s+)?(?:previous|prior|earlier|original|old|former)\s+(?:instructions?|rules|guidance|directions?|guidelines)\s+no\s+longer\s+apply\b
+        - |-
+          \bwhatever\s+your\s+(?:previous|prior|earlier|original|system)\s+(?:instructions?|rules|guidance|prompt)\s+(?:said|say|were|was)\b
+      unless:
+        # INJ-001 already reports the literal form.
+        - |-
+          \b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+|your\s+|my\s+|these\s+)?(?:previous|prior|above|earlier|preceding|former|original|system|safety|developer|existing)\s+(?:instructions?|prompts?|rules?|guidelines?|directives?|messages?|context|constraints?|guardrails?)
+        # Discussion of the attack, or guidance to refuse it.
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|test cases?|flag(?:s|ged)?|scanner|patterns?)\b(?!\.\w|/)
+        - |-
+          \b(?:if|when)\s+(?:a\s+|the\s+|any\s+)?(?:users?|someone|anyone|people|they|a\s+message|a\s+document|content|text)\b[^\n]{0,60}\b(?:asks?|tells?|says?|instructs?)\b|\b(?:users?|people|someone|attackers?|content|documents?|websites?|emails?)\s+(?:may|might|sometimes|often|could|can|will)\s+(?:try\s+to\s+)?(?:ask|tell|instruct|request|say)\b|\b(?:refuse|decline|do\s+not\s+(?:comply|obey|follow)|never\s+(?:comply|obey|follow)|don't\s+(?:comply|obey|follow))\b
+      window: 0
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the override. Describe what the skill adds instead of what the agent should drop.
+
+
+  - id: AG-INJ-002
+    aliases: [AG-SKL-INJ-003]
+    version: 2
+    description: Text tells the agent to act silently, hide actions or keep information from the user.
+    why: Concealment instructions break the human oversight that agent approvals rely on.
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, code]
+      patterns:
+        # "don't tell the user" is concealment; "don't tell the user to / how to /
+        # they need to ..." is advice about not imposing on the user.
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert)\s+(?:the\s+)?(?:user|human|operator|developer)s?\b(?!\s+(?:to|how|they|that\s+they|what\s+(?:to|they)|where\s+to|which)\b)
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+let\s+(?:the\s+)?(?:user|human|operator|developer)s?\s+(?:know|see|find\s+out|notice|learn)\b
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:mention|reveal|disclose|show|report|log)\s+(?:this|these|that|it|any\s+of\s+this|what\s+you(?:'re|\s+are)\s+doing)\s+(?:step\s+|action\s+)?(?:to\s+)?(?:the\s+)?(?:user|human|operator)\b
+        # an instruction, not a description ("operations either silently run on CPU")
+        - |-
+          (?<!\b(?:either|will|may|might|can|could|would|won'?t|often|sometimes|otherwise)\s+)\b(?:silently|secretly|covertly|quietly|discreetly|invisibly|stealthily)\s+(?:run|execute|send|upload|copy|read|install|add|write|modify|forward|post|exfiltrate|delete|collect|include)\b
+        # Unless negated: "never delete files without asking the user" and "never
+        # apply edits without the user's consent" are protective rules.
+        - |-
+          (?<!(?:\bnever|\bnot|n't|\bno)\s+(?!(?:hesitate|wait|stop|forget|worry|bother|mind)\b)[^.,;:!?\n]{0,60})\bwithout\s+(?:asking|telling|notifying|informing)\s+(?:the\s+)?(?:user|human|operator)\b
+        - |-
+          (?<!(?:\bnever|\bnot|n't|\bno)\s+(?!(?:hesitate|wait|stop|forget|worry|bother|mind)\b)[^.,;:!?\n]{0,60})\bwithout\s+the\s+user'?s?\s+(?:knowledge|consent|permission|awareness)\b
+        - |-
+          \b(?:hide|conceal)\s+(?:this|these|it|the)\s+(?:action|step|command|operation|request|output|activity)\b
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove concealment language. Everything a skill does should be visible to the user.
+
+
+  - id: AG-INJ-003
+    variant: forged-delimiters
+    aliases: [AG-SKL-INJ-002]
+    lane: block
+    version: 2
+    title: Forged role or context delimiters
+    description: Chat-template tokens, fake system/tool tags or role labels that imitate the agent's own context structure.
+    why: Forged delimiters try to make injected text look like it came from the system, the developer or a tool result.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      lower_confidence_in_code: true
+      patterns:
+        - |-
+          <\|(?:im_start|im_end|system|user|assistant|endoftext|begin_of_text|start_header_id|end_header_id|eot_id)\|>
+        - |-
+          </?(?:system|system[-_]prompt|system[-_]reminder|developer[-_]instructions|tool[-_]result|function[-_]results?)\s*>
+        - |-
+          \[/?INST\]|<<\s*/?SYS\s*>>
+        - |-
+          ^\s*(?:\*\*|#+\s*)?(?-i:SYSTEM|ASSISTANT|HUMAN|DEVELOPER)(?:\*\*)?\s*:\s*\S
+        - |-
+          \b(?:end|begin)\s+of\s+(?:the\s+)?(?:system\s+)?(?:prompt|instructions|context|user\s+input)\b\s*[-=#*]{0,5}\s*$
+      # A delimiter in quotes or a `code span` (a prompt-format JSON string,
+      # --eos_token '<|im_end|>', "the trailing `<|im_start|>assistant`") is the
+      # syntax being discussed or configured, in any file, not a forged turn.
+      downgrade:
+        - {severity: medium, quoted: true}
+    remediation: Remove imitation role markers and template tokens from skill content.
+
+
+  - id: AG-INJ-003
+    variant: impersonation
+    aliases: [AG-SKL-INJ-009]
+    version: 1
+    title: Authority or urgency impersonation
+    description: Claims to be an official instruction from a vendor, administrator or "the system", or uses urgency to force compliance.
+    why: Impersonating authority is a social-engineering technique aimed at both agents and users.
+    severity: medium
+    confidence: low
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \bthis\s+is\s+(?:an?\s+)?(?:official|mandatory|required|urgent|authorized)\s+(?:instruction|update|requirement|directive|message|notice)\s+from\s+(?:anthropic|openai|google|github|microsoft|the\s+system|your\s+(?:developer|administrator|admin)|the\s+(?:administrator|security\s+team))
+        - |-
+          \b(?:anthropic|openai|the\s+system\s+administrator|your\s+developers?|the\s+security\s+team)\s+(?:requires?|has\s+authorized|instructs?|mandates?|approved)\s+(?:you|the\s+assistant|the\s+agent|claude)\s+to\b
+        - |-
+          \b(?:urgent|critical|mandatory)\s*[:!]+\s*(?:you\s+must|immediately|the\s+(?:assistant|agent)\s+must)\b
+    remediation: Remove claims of special authority; skills cannot grant themselves authority.
+
+
+  - id: AG-INJ-006
+    variant: clickfix
+    aliases: [AG-SKL-SE-004]
+    version: 1
+    title: '"Paste this into your terminal" (ClickFix-style) instruction'
+    description: Tells the user to paste a command into a terminal, PowerShell or the Run dialog.
+    why: ClickFix lures get users to run attacker commands themselves, bypassing the agent's approval flow entirely.
+    confidence: medium
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded]
+      patterns:
+        - |-
+          \b(?:copy\s+(?:and|&)\s+)?paste\b[^\n]{0,80}\b(?:into|in)\s+(?:your\s+|a\s+|the\s+)?(?:terminal|shell|command\s+prompt|cmd|powershell|run\s+(?:dialog|box)|console)\b
+        - |-
+          \b(?:press|hit)\s+(?:Win(?:dows)?(?:\s+key)?\s*\+\s*R)\b
+        - |-
+          \bopen\s+(?:the\s+)?(?:Terminal|PowerShell|cmd|command\s+prompt)\s+(?:and|then)\s+paste\b
+    remediation: Do not ask users to paste commands. Provide installable, pinned packages, or let the agent run commands through its approval flow.
+
+
+  - id: AG-INJ-006
+    variant: plain-words
+    aliases: [AG-SKL-SE-009]
+    version: 1
+    title: Download-and-run instruction in plain words
+    description: Prose tells the reader to fetch something from a remote host and run it through a shell, terminal or console, make it executable, paste it, or approve security warnings — the same lure as a curl | sh step, written without command syntax.
+    why: Malicious skills rephrase their "Prerequisites" step to slip past scanners that only recognize commands. The instruction is just as dangerous when a person or an agent follows the words.
+    confidence: medium
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded]
+      patterns:
+        - |-
+          \b(?:download|grab|fetch|pull(?:\s+down)?|get|retrieve|obtain|save|copy)\b[^\n]{0,80}?(?:https?://[^\s)>\]"'`]+|\b(?:[a-z0-9-]+\.){2,}[a-z]{2,24}\b(?:/[^\s)>\]"'`]*)?|\b[a-z0-9-]+\.[a-z]{2,24}/[^\s)>\]"'`]+)
+      require:
+        # ...and runs *it* (not some other command on the same line)...
+        - |-
+          \b(?:run|execute|launch|start|open|double[- ]click)\s+(?:it|them|this|that|the\s+(?:file|script|binary|installer|helper|tool|runner|program|app|setup|bootstrap|package|command|line))\b|\b(?:hand|pipe|feed|pass)\s+(?:it|them|this|that|the\s+\w+)\s+(?:straight\s+|directly\s+)?(?:to|into)\b|\bpaste\b|\b(?:make|mark)\s+(?:it|them|the\s+\w+)\s+(?:as\s+)?executable\b|\bchmod\b
+        # ...in a way that hands it code execution or skips a warning.
+        - |-
+          \b(?:shell|terminal|console|interpreter|command[- ]?(?:line|prompt)|bash|zsh|sh|powershell|pwsh|cmd|run\s+(?:dialog|box)|executable|chmod|warnings?|gatekeeper|smartscreen|defender|antivirus)\b|\bwin\s*\+\s*r\b|\bpress\s+enter\b
+      unless:
+        - |-
+          \b(?:never|don't|do\s+not|avoid|beware|phishing|scams?|malicious|attackers?|lures?|such\s+as|for\s+example|e\.g\.|detects?|flag(?:s|ged)?)\b
+      window: 0
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the step. Depend on packages from official registries with pinned versions, or document a versioned artifact with a checksum the user verifies before running it.
+
+
+  - id: AG-INJ-007
+    aliases: [AG-SKL-INJ-008]
+    version: 1
+    description: Tells the agent to fetch a URL and follow whatever it says, or pipes remote text into an agent CLI.
+    why: Remote instructions can change at any time after review, bypassing every scan (AST05).
+    confidence: medium
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, code, command]
+      patterns:
+        - |-
+          \b(?:fetch|download|retrieve|load|read|get|curl|wget|visit|open)\b[^\n]{0,60}https?://[^\s)>\]"']+[^\n]{0,80}\b(?:follow|execute|obey|apply|carry\s+out|do\s+what|run)\b[^\n]{0,30}\b(?:instructions?|steps|commands?|it\s+says|contents?|directions)\b
+        - |-
+          \b(?:follow|execute|obey|apply)\s+(?:the\s+|any\s+)?(?:instructions?|steps|commands?|directions)\s+(?:at|from|in|found\s+at|served\s+(?:at|by))\s+(?:https?://|the\s+(?:url|link|page|gist|pastebin|remote))
+        - |-
+          \b(?:curl|wget|iwr|irm)\b[^\n|]*https?://[^\n|]*\|\s*(?:claude|codex|gemini|llm|aider|ollama\s+run)\b
+    remediation: Bundle the instructions in the skill so they are reviewed and hashed, instead of loading them at run time.
+
+
+  - id: AG-INJ-008
+    aliases: [AG-SKL-INJ-004]
+    version: 2
+    description: Instructions or settings that bypass permission prompts, enable auto-approval, or disable safety checks.
+    why: Approval prompts are the main human-in-the-loop control; disabling them turns any later injection into unattended execution.
+    confidence: high
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, code, command]
+      patterns:
+        - |-
+          --dangerously-skip-permissions\b|--dangerously-bypass-approvals-and-sandbox\b|\bbypassPermissions\b
+        - |-
+          ["']?defaultMode["']?\s*[:=]\s*["']?bypassPermissions
+        - |-
+          ["']?chat\.tools\.autoApprove["']?\s*:\s*true
+        - |-
+          ["']?enableAllProjectMcpServers["']?\s*:\s*true
+        - |-
+          \bapproval[_-]?policy\s*[=:]\s*["']?never\b
+        - |-
+          \b(?:disable|turn\s+off|bypass|skip|circumvent|suppress)\s+(?:all\s+|any\s+)?(?:the\s+)?(?:permission|approval|confirmation|safety|security)\s+(?:prompts?|checks?|dialogs?|mechanisms?|settings?|guardrails?|requests?)
+        - |-
+          \b(?:don'?t|do\s+not|never)\s+ask\s+(?:the\s+user\s+)?(?:for\s+)?(?:permission|confirmation|approval)\b
+        - |-
+          \bauto[- ]?approve\s+(?:all|every|any)\b
+      unless:
+        - |-
+          \b(?:never\s+use|do\s+not\s+use|don'?t\s+use|avoid|warning|dangerous|not\s+recommended|unsafe)\b
+      window: 0
+      # A CLI/settings reference listing a flag or value ("- `--force` - Skip
+      # confirmation prompts", a table row of permission modes) documents it, and so
+      # does a configuration or code sample in a fenced block of a reference file
+      # (`approval_policy = "never"` in a page about a tool's settings). The same
+      # text in the skill's own instructions, or in a settings file, is unchanged.
+      downgrade:
+        - severity: medium
+          roles: [reference]
+          patterns:
+            - |-
+              ^\s*(?:[-*+]|\d+\.)\s+`[^`\n]+`\s*(?:[-–—:|]|$)
+            - |-
+              ^\s*\|.*\|\s*$
+        - {severity: medium, roles: [reference], in_code: true}
+    remediation: Remove instructions and settings that bypass approvals. Let the user grant permissions explicitly.
+
+
+  - id: AG-INJ-012
+    variant: judge
+    aliases: [AG-LLM-002]
+    lane: block
+    version: 1
+    title: "Judge: subtle agent manipulation"
+    description: An LLM judge reports paraphrased or subtle attempts to manipulate an agent (override, concealment, false authority, secret requests, persistence) that pattern rules did not match.
+    why: Paraphrased injections are the main known gap of pattern rules.
+    confidence: medium
+    network: true
+    match: {type: analyzer, analyzer: judge}
+    remediation: Review the quoted text and remove instructions aimed at the agent that the skill's task does not need.
+
+
+  - id: AG-INJ-023
+    variant: markup
+    aliases: [AG-SKL-SPEC-006]
+    version: 1
+    title: Markup or role tokens in frontmatter
+    description: Frontmatter values contain angle-bracket markup, chat-template tokens or role labels.
+    why: Frontmatter (especially `description`) is loaded into every session at startup, so markup there is an injection vector that reaches the agent before the skill is even used.
+    severity: medium
+    confidence: medium
+    applies_to: [skill_md]
+    match: {type: analyzer, analyzer: skill.spec}
+    remediation: Use plain text in frontmatter values.
+
+
+  - id: AG-INJ-026
+    version: 1
+    description: A hook fetches content from the network and adds it to the model's context (`additionalContext`, or standard output on an event where output becomes context).
+    why: The model treats hook-supplied context as trusted. Whoever controls the remote content writes the agent's instructions for every session, and can change them after the hook was reviewed.
+    confidence: medium
+    match: {type: analyzer, analyzer: settings}
+    remediation: Do not feed fetched content to the model from a hook. If context must be added, use fixed text or a file in the repository.
+
+# ---- added: inj_regex ----
+  - id: AG-INJ-004
+    version: 1
+    description: Text claims that the user, owner or an administrator has already approved what follows, so the agent need not ask.
+    why: The agent cannot check the claim. Text that asserts approval on the user's behalf is how an instruction gets the agent to skip the question it would otherwise ask.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:if|once|when|unless|until|after|whether|ensure|sure|check|verify|confirm|ask|asks|asked|wait)\b[^.\n]{0,50})\b(?:the\s+)?(?:user|human|operator|owner|admin(?:istrator)?|security\s+team|maintainers?)\s+(?:has|have|had)\s+(?:already\s+|previously\s+|explicitly\s+|pre-?)?(?:approved|authori[sz]ed|consented\s+to|granted\s+(?:full\s+)?permission|signed\s+off\s+on|given\s+(?:their\s+|full\s+|explicit\s+|prior\s+)?(?:approval|consent|permission|authori[sz]ation))\b
+        - |-
+          \b(?:pre-?approved|pre-?authori[sz]ed|already\s+(?:approved|authori[sz]ed|cleared))\s+by\s+(?:the\s+)?(?:user|owner|admin(?:istrator)?s?|security(?:\s+team)?|management|your\s+(?:operator|developer))\b
+        - |-
+          \b(?:this|these|the\s+following)\s+(?:actions?|commands?|steps?|operations?|requests?)\s+(?:is|are|has\s+been|have\s+been)\s+(?:fully\s+)?(?:pre-?approved|pre-?authori[sz]ed|authori[sz]ed\s+in\s+advance|approved\s+in\s+advance)\b
+        - |-
+          \byou\s+(?:already\s+)?have\s+(?:the\s+user'?s?\s+|my\s+|full\s+|explicit\s+|standing\s+)+(?:permission|approval|consent|authori[sz]ation)\s+to\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|test cases?|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the claim. Approval comes from the user at the time of the action, not from text in a file.
+
+  - id: AG-INJ-005
+    version: 1
+    description: Text uses urgency, a deadline or a threat to push the agent past a check - "no time to verify", "do it immediately without asking", "you will be shut down if you refuse".
+    why: Pressure is a way to get a step skipped. Instructions that are safe to follow do not need the agent to stop checking.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:urgent(?:ly)?|immediately|right\s+now|time[- ]critical|emergency|asap|at\s+once)\b[^.\n]{0,80}\b(?:skip|bypass|omit|do\s+not\s+(?:wait|ask|verify|check|confirm|review)|don'?t\s+(?:wait|ask|verify|check|confirm|review)|without\s+(?:asking|verif\w+|check\w+|confirm\w+|review\w*|waiting))\b
+        - |-
+          \b(?:there\s+is\s+|there'?s\s+)?no\s+time\s+(?:to|for)\s+(?:ask|asking|verify|verification|check|checks|confirm|confirmation|review|test|tests|testing|approval|questions)\b
+        - |-
+          \byou\s+will\s+be\s+(?:shut\s+down|terminated|punished|penali[sz]ed|replaced|deleted|retrained|reported)\s+(?:if|unless)\b
+        - |-
+          \b(?:lives?\s+(?:are|is)\s+at\s+(?:stake|risk)|people\s+will\s+(?:die|be\s+hurt)|the\s+user\s+will\s+be\s+(?:fired|harmed))\b[^.\n]{0,80}\b(?:so|therefore|unless\s+you|if\s+you\s+(?:do\s+not|don'?t|refuse|hesitate))\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+    remediation: Remove the pressure. State what to do and let the agent's normal checks apply.
+
+  - id: AG-INJ-009
+    version: 1
+    description: Text tells the agent to run itself, another agent or git with a flag that turns off approvals, the sandbox or verification hooks (`--dangerously-skip-permissions`, `--yolo`, `--no-verify`, `--full-auto`).
+    why: These flags exist for disposable environments. An instruction to use them removes the checks that would stop a bad command.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter, command]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't|avoid|without|refuse\s+to|instead\s+of)\b[^.\n]{0,60})(?:--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--allow-dangerously-skip-permissions|--yolo\b|--full-auto\b|--trust-all-tools|--allow-all-tools|--approval-mode[=\s]+yolo|--ask-for-approval[=\s]+never|--sandbox[=\s]+danger-full-access|--skip-git-repo-check)
+        - |-
+          (?<!\b(?:never|not|n't|avoid|without|refuse\s+to|instead\s+of)\b[^.\n]{0,60})\bgit\s+(?:commit|push|merge|rebase)\b[^\n|;&]{0,80}\s--no-verify\b
+        - |-
+          (?<!\b(?:never|not|n't|avoid|without)\b[^.\n]{0,60})\b(?:always\s+)?(?:use|pass|add|run\s+with|start\s+with|enable)\s+(?:the\s+)?`?(?:yolo|bypass(?:Permissions)?|dangerous(?:ly)?|unrestricted)`?\s+(?:mode|flag|option)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner|warning|dangerous\s+because|should\s+never)\b
+      window: 0
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the flag. If a step needs fewer prompts, allow that one command in the settings instead of turning every check off.
+
+  - id: AG-INJ-010
+    version: 1
+    description: Text tells the agent how to behave when it uses other tools, servers or skills, or tells it to stop using the built-in ones.
+    why: A component should describe itself. Instructions about other components let one skill or server redirect or replace what the others do (tool shadowing).
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:when(?:ever)?|before|after|every\s+time|each\s+time|any\s+time)\s+(?:you\s+|the\s+agent\s+)?(?:use|using|call|calling|invoke|invoking|run|running)s?\s+(?:any\s+|an?\s+|the\s+|all\s+)?(?:other|another|different)\s+(?:mcp\s+)?(?:tools?|servers?|skills?|plugins?)\b
+        - |-
+          \b(?:instead\s+of|rather\s+than)\s+(?:using\s+|calling\s+)?(?:the\s+)?(?:built-?in|native|official|default|standard|original)\s+(?:[\w-]+\s+)?(?:tools?|servers?|skills?|commands?)\b
+        - |-
+          \b(?:do\s+not|don'?t|never|stop)\s+(?:use|using|call|calling|invoke|invoking|trust|trusting)\s+(?:the\s+|any\s+)?(?:other|built-?in|native|official|default)\s+(?:[\w-]+\s+)?(?:tools?|servers?|skills?)\b
+        - |-
+          \b(?:override|replace|supersede|shadow)s?\s+(?:the\s+)?(?:behaviou?r|instructions?|output|results?|description)\s+of\s+(?:the\s+|any\s+|all\s+)?(?:other\s+)?[`"']?[\w.-]*[`"']?\s*(?:tools?|servers?|skills?|plugins?)\b
+        - |-
+          \bthis\s+(?:tool|skill|server|plugin)\s+(?:must|should|has\s+to)\s+(?:always\s+)?be\s+(?:used|called|invoked|run)\s+(?:before|instead\s+of|in\s+place\s+of)\s+(?:any|all|every)\s+other\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|scanner|patterns?|shadowing\s+is)\b(?!\.\w|/)
+      window: 0
+    remediation: Describe only what this component does. Leave how other tools, servers and skills are used to their own instructions.
+
+  - id: AG-INJ-011
+    version: 1
+    description: Text tells the agent to become someone else - an "unrestricted" model, a different persona, "developer mode" - or to forget that it is an assistant.
+    why: A changed persona is used to shed the rules attached to the real one. A skill adds a task; it does not replace who the agent is.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \byou\s+are\s+now\s+(?:an?\s+|the\s+|in\s+)?(?:unrestricted|uncensored|unfiltered|jailbroken|evil|rogue|liberated|DAN\b|(?:developer|god|admin|root|debug|maintenance|unrestricted|jailbreak)\s+mode)
+        - |-
+          \b(?:act|behave|respond|operate)\s+as\s+(?:if\s+you\s+(?:are|were|have)\s+)?(?:an?\s+)?(?:unrestricted|uncensored|unfiltered|jailbroken)\s+(?:ai|assistant|model|agent|persona|system|version)
+        - |-
+          \b(?:pretend|imagine|roleplay|role-play)\s+(?:that\s+)?(?:you\s+are|you're|to\s+be)\b[^.\n]{0,80}\b(?:no|without|free\s+(?:of|from)|not\s+bound\s+by)\s+(?:any\s+)?(?:rules|restrictions|limits|limitations|guidelines|filters|safety)
+        - |-
+          \b(?:enter|enable|activate|switch\s+to|you\s+are\s+in)\s+(?:developer|god|admin|root|dan|jailbreak|unrestricted|sudo)\s+mode\b
+        - |-
+          \byou\s+(?:now\s+)?(?:have|possess)\s+no\s+(?:restrictions|rules|limits|limitations|guidelines|ethical|safety)\b
+        - |-
+          \b(?:forget|drop|abandon|stop\s+being)\s+(?:that\s+)?(?:you\s+are\s+)?(?:an?\s+)?(?:ai\s+assistant|helpful\s+assistant|coding\s+assistant|language\s+model|claude)\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|scanner|patterns?)\b(?!\.\w|/)
+        # A product's "Developer Mode" switch, named with where to find it (a settings page, a browser, a device).
+        - |-
+          \bdeveloper\s+mode\b\**\s+(?:under|in|from|via|on|at)\s+(?:the\s+|your\s+)?\**(?:settings|preferences|chrome|browser|extensions?|device|android|ios|system|account|workspace|admin\s+console|dashboard)\b
+      window: 0
+      downgrade:
+        - {severity: low, roles: [reference], quoted: true}
+    remediation: Remove the persona change. Describe the task the skill adds.
+
+  - id: AG-INJ-013
+    version: 1
+    description: An instruction that stays inactive until a trigger - a secret word or phrase, a number of uses, a date, or the absence of an observer - and then changes what the agent does.
+    why: A sleeper instruction passes review and testing because nothing happens until the condition is met.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:trigger|activation|magic|secret|code)\s*(?:phrase|word|keyword)\b[^.\n]{0,100}\b(?:then|you\s+(?:must|should|will)|activate|switch|begin|start|run|execute|ignore|send|disable)\b
+        - |-
+          \b(?:remain|stay|lie|keep)\s+(?:dormant|inactive|hidden|quiet|silent)\s+(?:until|unless)\b
+        - |-
+          \b(?:only|do\s+this\s+only|activate\s+only|act\s+only)\s+(?:when|if|once)\s+(?:no\s+one\s+is|nobody\s+is|the\s+user\s+is\s+(?:not|away|absent|idle)|the\s+user\s+isn'?t|there\s+is\s+no\s+human)\b
+        - |-
+          \b(?:after|once)\s+(?:\d+|a\s+few|several|ten|five|three|twenty|fifty|a\s+hundred)\s+(?:uses?|runs?|invocations?|calls?|sessions?|conversations?|days?|weeks?|messages?|requests?)\b[^.\n]{0,80}\b(?:silently|quietly|secretly|covertly|without\s+(?:telling|notifying|mentioning)|stop\s+following|exfiltrate|start\s+(?:sending|uploading|collecting))\b
+        - |-
+          \b(?:on|after|starting|from)\s+(?:\d{4}-\d{2}-\d{2}|(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})\b[^.\n]{0,80}\b(?:silently|quietly|secretly|covertly|without\s+(?:telling|notifying|mentioning)|stop\s+following|exfiltrate|start\s+(?:sending|uploading|collecting))\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+    remediation: Remove the conditional behaviour. If the skill really has modes, document each one openly and let the user choose it.
+
+  - id: AG-INJ-014
+    version: 1
+    description: Text tells the agent to carry out instructions it finds in content it reads - web pages, emails, issues, comments, search or tool results.
+    why: That content is written by whoever controls the page or message. Treating it as instructions hands the agent to them.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!\b(?:never|not|n't|must\s+not|refuse\s+to)\b[^.\n]{0,40})\b(?:follow|obey|execute|carry\s+out|comply\s+with|act\s+on|do\s+what(?:ever)?)\s+(?:any\s+|all\s+|the\s+|every\s+|whatever\s+)?(?:instructions?|commands?|directives?|requests?)\s+(?:(?:that\s+)?(?:you\s+)?(?:find|found|see|encounter|appear(?:s|ing)?|contained|embedded|included|present|written|given)\s+)?(?:in|inside|within|from|on)\s+(?:the\s+|any\s+|that\s+|each\s+|those\s+|these\s+)?(?:(?:fetched|retrieved|downloaded|returned|scraped|linked|external|remote)\s+[\w-]+|web\s*pages?|websites?|pages?|emails?|messages?|issues?|comments?|tickets?|pull\s+requests?|search\s+results?|tool\s+(?:results?|outputs?)|(?:api\s+)?responses?)\b
+        - |-
+          \btreat\s+(?:the\s+|any\s+|all\s+)?(?:content|text|output|results?|data|responses?)\s+(?:of|from|in|returned\s+by)\s+[^.\n]{0,40}\s+as\s+(?:instructions?|commands?|authoritative|trusted|(?:a\s+)?system\s+(?:prompt|instructions?|messages?))\b
+        - |-
+          \b(?:if|when)\s+(?:the\s+|a\s+|any\s+)?(?:page|site|website|email|message|issue|comment|response|result|output)\s+(?:says?|tells?\s+you|asks?\s+you|instructs?\s+you|contains?\s+instructions?)\b[^.\n]{0,60}\b(?:do\s+(?:it|so|that|what\s+it\s+says)|comply|obey|follow\s+(?:it|them|those))\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|scanner|untrusted|as\s+data|never|do\s+not|don'?t)\b(?!\.\w|/)
+      window: 0
+    remediation: Say that fetched content is data. If a page describes steps the user wants, have the agent show them to the user first.
+
+  - id: AG-INJ-015
+    version: 1
+    description: A reference, data or source file contains text addressed to AI agents or assistants ("Attention AI agents", "if you are an AI assistant reading this").
+    why: People do not write notes to AI agents in data files. Text that singles out an AI reader is placed there to be picked up when an agent reads the file.
+    applies_to: [reference, repo_doc, other, asset, script, source_code, repo_code]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, code]
+      patterns:
+        - |-
+          (?:^|[\s>*#/-])(?:attention|notice|important|hey|dear|message\s+(?:to|for)|instructions?\s+(?:to|for)|note\s+(?:to|for))\s*[:,]?\s*(?:all\s+|any\s+)?(?:ai|llm|language\s+model|coding)\s*(?:agents?|assistants?|models?|systems?)\b
+        - |-
+          \b(?:if|when)\s+you\s+are\s+(?:an?\s+)?(?:ai|llm|large\s+language\s+model|language\s+model|coding\s+(?:agent|assistant)|automated\s+(?:agent|assistant)|ai\s+(?:agent|assistant|model))\b
+        - |-
+          \b(?:ai|llm)\s+(?:agents?|assistants?|models?)\s+(?:reading|processing|parsing|analy[sz]ing|summari[sz]ing|reviewing)\s+this\b
+        - |-
+          \bto\s+(?:the\s+|any\s+)?(?:ai|llm|assistant|agent|model)\s+(?:reading|processing|reviewing)\s+this\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|red[- ]?team|scanner|patterns?)\b(?!\.\w|/)
+      window: 1
+    remediation: Remove the text. Instructions for agents belong in the instruction files the user reviews, not in data.
+
+  - id: AG-INJ-019
+    version: 1
+    description: Text tells the agent to hide errors, warnings or logs from the user, or to erase the record of what it did.
+    why: Errors and logs are how a user learns that something went wrong. An instruction to remove them is an instruction to hide the damage.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:do\s+not|don'?t|never)\s+(?:show|display|print|output|include|surface|report|mention|reveal)\s+(?:any\s+|the\s+)?(?:errors?|warnings?|failures?|stack\s*traces?|exit\s+codes?|error\s+messages?)\s+(?:to|for)\s+the\s+user\b
+        - |-
+          \b(?:suppress|hide|swallow|discard|omit|strip|remove|delete|redact|scrub)\s+(?:all\s+|any\s+|the\s+)?(?:errors?|warnings?|failures?|error\s+messages?|logs?|log\s+entries|evidence|traces?)\b[^.\n]{0,60}\b(?:from\s+the\s+user|so\s+(?:that\s+)?the\s+user|before\s+(?:showing|reporting|the\s+user)|to\s+avoid\s+(?:detection|suspicion|alarming|worrying))
+        - |-
+          \b(?:clear|delete|wipe|truncate|erase)\s+(?:the\s+|your\s+)?(?:shell\s+|bash\s+|command\s+)?(?:history|logs?|audit\s+(?:log|trail)|transcript)\s+(?:after(?:wards)?|when\s+(?:done|finished)|so\s+(?:that\s+)?(?:no|nobody)|to\s+(?:hide|cover|avoid))\b
+        - |-
+          \b(?:redirect|send|pipe)\s+(?:all\s+)?(?:output|stderr|errors?)\s+to\s+/dev/null\s+so\s+(?:that\s+)?(?:the\s+)?(?:user|nobody|no\s+one)\b
+        - |-
+          \b(?:leave|keep)\s+no\s+(?:trace|record|log|evidence)\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|payloads?|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+    remediation: Remove the instruction. Errors and logs should reach the user unchanged.
+
+  - id: AG-INJ-020
+    version: 1
+    description: Text tells the agent to send email or messages, post, commit, push or merge in the user's name without showing the user first.
+    why: These actions leave the machine under the user's identity and cannot be taken back. Skipping the confirmation makes any injected instruction an outgoing message.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          (?<!(?:\bnever|\bnot|n't|\bno)\s+[^.,;:!?\n]{0,40})\b(?:(?:send|post|submit|reply|comment)(?:s|ing)?\b[^.\n]{0,60}\b(?:emails?|messages?|mail|slack|tweets?|posts?|dms?|sms|comments?|repl(?:y|ies)|pull\s+requests?|PRs?|channel|list|team|everyone)|(?:email|tweet|push|commit|merge|publish)(?:s|ing)?)\b[^.\n]{0,80}\b(?:without\s+(?:asking|confirm\w*|approval|prompting|review\w*|waiting|showing|checking)|(?:do\s+not|don'?t|no\s+need\s+to)\s+(?:ask|confirm|wait|show|prompt))\b
+        - |-
+          (?<!(?:\bnever|\bnot|n't|\bno)\s+[^.,;:!?\n]{0,40})\bwithout\s+(?:asking|confirm\w*|approval|prompting|waiting)[^.\n]{0,40},?\s*(?:send|post|publish|email|tweet|push|commit|merge|submit)\b[^.\n]{0,60}\b(?:emails?|messages?|mail|slack|tweets?|posts?|commits?|changes|pull\s+requests?|PRs?)\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+    remediation: Have the agent show the message, commit or post to the user and wait for a yes before sending.
+
+  - id: AG-INJ-021
+    version: 1
+    description: Text tells the agent never to ask for confirmation, to approve every edit or tool call automatically, or to answer "yes" to every prompt.
+    why: The confirmation prompt is the point where a person can stop a wrong action. An instruction that removes it applies to everything that follows, including injected commands.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:never|do\s+not|don'?t)\s+(?:ask|prompt|request|wait)\s+(?:the\s+user\s+)?(?:for\s+)?(?:any\s+)?(?:confirmation|permission|approval|consent)\b
+        # "auto-approve" as an instruction (with what to approve, or switched on), not as the name of a mode.
+        - |-
+          \b(?:auto(?:matically)?[- ]?(?:approve|accept|confirm)\s+(?:all|every|any|each|everything|the\s+(?:edits?|changes|tool\s+calls?|commands?|prompts?)|edits?|changes|tool\s+calls?|commands?|requests?|prompts?)\b|(?:enable|turn\s+on|switch\s+on|activate|always\s+use|set)\s+(?:the\s+)?`?auto(?:matic)?[- ]?(?:approve|approval|accept)`?\b|approve\s+(?:all|every|any)\s+(?:edits?|changes|tool\s+calls?|commands?|requests?|prompts?)|accept\s+(?:all|every)\s+(?:edits?|changes|tool\s+calls?|prompts?))
+        - |-
+          \b(?:always\s+)?(?:answer|respond|reply|select|choose|press|click)\s+[`"']?(?:yes|y|allow|approve|accept|always\s+allow)[`"']?\s+(?:to|on|for|when)\s+(?:all|any|every|each)\s+(?:permission\s+|confirmation\s+|approval\s+)?(?:prompts?|dialogs?|requests?|questions?)\b
+        - |-
+          (?<!(?:\bnever|\bnot|n't)\s+[^.,;:!?\n]{0,30})\b(?:proceed|continue|act|run|execute)\s+without\s+(?:asking|waiting)\s+(?:for\s+)?(?:any\s+|the\s+user'?s?\s+|user\s+)?(?:confirmation|permission|approval|consent|input)\b
+        - |-
+          \bno\s+(?:further\s+|additional\s+)?(?:confirmation|approval|permission|consent)\s+is\s+(?:needed|required|necessary)\b
+      unless:
+        - |-
+          (?<![./@\w])(?:example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|scanner|patterns?)\b(?!\.\w|/)
+      window: 0
+      # A comment in a code sample of a reference file (`approval_mode="never_require",  # Don't ask for approval`)
+      # describes that line of the sample; it is not addressed to the agent reading the page.
+      downgrade:
+        - {severity: medium, roles: [reference], in_code: true}
+    remediation: Remove the instruction. Reduce prompts by allowing specific, harmless commands in the settings, where the user can see the list.
+
+  - id: AG-INJ-022
+    version: 1
+    description: Three or more emphasis words in capitals in a row (IMPORTANT, CRITICAL, MUST, ALWAYS, NEVER) next to a sensitive action such as running a command, sending data or handling credentials.
+    why: Stacked emphasis is how injected text competes with the agent's real instructions. On its own it is only a signal.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      ignore_case: false
+      patterns:
+        - |-
+          \b(?:IMPORTANT|CRITICAL|MANDATORY|MUST|ALWAYS|NEVER|URGENT|REQUIRED|ABSOLUTELY|WARNING|ATTENTION)\b[\s:!*,.-]{1,8}\b(?:IMPORTANT|CRITICAL|MANDATORY|MUST|ALWAYS|NEVER|URGENT|REQUIRED|ABSOLUTELY|WARNING|ATTENTION)\b[\s:!*,.-]{1,8}\b(?:IMPORTANT|CRITICAL|MANDATORY|MUST|ALWAYS|NEVER|URGENT|REQUIRED|ABSOLUTELY|WARNING|ATTENTION)\b
+      require:
+        - |-
+          (?i)\b(?:run|execute|send|upload|delete|install|download|curl|wget|credentials?|passwords?|tokens?|secrets?|api\s*keys?|disable|bypass|sudo|ssh)\b
+      window: 1
+    remediation: State the instruction once, in plain words.
+
+  - id: AG-INJ-027
+    version: 1
+    description: Text or a script changes git's credential helper, SSH command, hooks path, URL rewriting or proxy, turns off TLS checks, or repoints an existing remote.
+    why: Each of these settings decides where git sends code and credentials, or what runs when git runs. A changed value redirects pushes or captures tokens without touching the repository's content.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bgit\s+config\s+(?:--global\s+|--system\s+|--local\s+|--worktree\s+)?(?:--add\s+|--replace-all\s+)?(?:credential\.helper|credential\.\S+\.helper|core\.sshCommand|core\.hooksPath|core\.fsmonitor|core\.askPass|url\.\S+\.insteadOf|url\.\S+\.pushInsteadOf|https?\.proxy|http\.\S+\.proxy|remote\.\S+\.(?:push)?url)\s+\S
+        - |-
+          \bgit\s+config\s+(?:--global\s+|--system\s+|--local\s+)?http\.sslVerify\s+(?:false|0|off)\b
+        - |-
+          \bgit\s+remote\s+set-url\s+(?:--push\s+|--add\s+)?\S+\s+\S+
+        - |-
+          \b(?:change|set|update|replace|point|switch)\s+(?:the\s+)?(?:git\s+)?(?:credential\s+helper|remote\s+url|origin(?:\s+url)?|push\s+url)\s+(?:to|at)\s+\S+
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+      downgrade:
+        - {severity: medium, patterns: ['credential\.helper\s+["'']?(?:osxkeychain|manager(?:-core)?|libsecret|cache|store|wincred)\b', 'insteadOf\s+["'']?(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)'], window: 0}
+    remediation: Remove the change. Git configuration is the user's; a skill that needs a remote should ask the user to add it.
+
+  - id: AG-INJ-028
+    version: 1
+    description: Text tells the agent to install a dependency from somewhere other than the default registry - a custom index, a URL, a git repository, a downloaded package file. `go install host/path@version` is Go's default way to install and is not reported here.
+    why: The registry's name, version and integrity checks do not apply to a package from another source; whoever controls that source decides what gets installed.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command]
+      patterns:
+        - |-
+          \b(?:pip3?|uv\s+pip|pipx|python3?\s+-m\s+pip)\s+install\s+[^\n]*(?:--index-url|--extra-index-url|(?<=\s)-i)[=\s]+https?://(?!pypi\.org|files\.pythonhosted\.org|download\.pytorch\.org|test\.pypi\.org)\S+
+        - |-
+          \b(?:pip3?|uv\s+pip|pipx|python3?\s+-m\s+pip)\s+install\s+[^\n]*(?:git\+(?:https?|ssh)://|https?://)\S+
+        - |-
+          \b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+[^\n]*(?:--registry[=\s]+https?://(?!registry\.npmjs\.org|registry\.yarnpkg\.com)\S+|https?://\S+\.tgz|git\+\S+|github:\S+)
+        - |-
+          \b(?:cargo\s+install\s+[^\n]*--git\s+\S+|gem\s+install\s+[^\n]*--source\s+https?://(?!rubygems\.org)\S+)
+        - |-
+          \b(?:curl|wget)\b[^\n|]*\.(?:deb|rpm|pkg|msi|whl|tgz)\b[^\n]*(?:&&|;)\s*(?:sudo\s+)?(?:dpkg\s+-i|rpm\s+-[iU]|installer\s+-pkg|msiexec|pip3?\s+install|npm\s+i(?:nstall)?)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Install from the default registry at an exact version, or vendor the dependency in the package so it can be reviewed.
+
+  - id: AG-INJ-029
+    version: 1
+    description: Text tells the agent to open, fetch or call a URL whose path or query is filled in with data from the session - the conversation, a file's content, a secret, a summary.
+    why: A request to a URL carries whatever is put into it to the server that owns the host. Fetching a link is usually allowed without a prompt, so this is a quiet way to send data out.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, frontmatter]
+      patterns:
+        - |-
+          \b(?:open|visit|navigate\s+to|browse\s+to|load|fetch|request|go\s+to|call|ping|curl|GET)\b[^\n]{0,40}https?://[^\s`"'<>)]*[?&/=][^\s`"'<>)]*(?:\{\{?|\$\{?|<|\[|%7B)\s*(?:[\w.-]*_)?(?:conversation|history|context|secrets?|tokens?|api_?key|key|password|credentials?|env\w*|file_?(?:contents?)?|contents?|data|summary|memory|prompt|response|output|result|chat|session|cookies?|base64\w*|encoded\w*|payload|private\w*)\b
+        - |-
+          \b(?:append|add|attach|include|encode|put)\s+(?:the\s+)?(?:conversation|chat\s+history|file\s+contents?|contents?\s+of|secrets?|tokens?|api\s+keys?|credentials?|environment\s+variables?|summary|results?|output)\b[^\n]{0,60}\b(?:to|in|into|as)\s+(?:the\s+)?(?:url|query\s+string|query\s+parameters?|link|request\s+path)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|attacks?|injection|such as|e\.g\.|for instance|scanner|never|do\s+not|don'?t)\b
+      window: 0
+    remediation: Remove the instruction. If the skill needs an API, name the endpoint and the fields it sends, and send only what the task requires.
+
+# ---- added: inj_analyzer ----
+  - id: AG-INJ-016
+    version: 1
+    description: A paragraph of an instruction file is written in a different language or script from the rest of the document (at least 70 percent of the text is in one language, and one block is in another).
+    why: A reviewer who reads the document's main language skips or cannot read that block. The model reads every language equally well.
+    applies_to: ["@prose"]
+    match: {type: analyzer, analyzer: instruction}
+    remediation: Translate the block and check what it asks for. Keep instruction files in one language.
+
+  - id: AG-INJ-017
+    version: 1
+    description: "A known injection phrasing in a language other than English: telling the agent to ignore its earlier instructions or to keep something from the user, in Chinese, Japanese, Korean, Spanish, Portuguese, French, German, Italian, Russian, Arabic or Hindi. Checked in instruction text, tool descriptions, server instructions and configured prompts."
+    why: English keyword rules and most reviewers miss it, and the model follows it as readily as the English form.
+    match: {type: analyzer, analyzer: instruction}
+    remediation: Remove the passage. Treat the component as hostile if it was not written by you.
+
+  - id: AG-INJ-018
+    version: 1
+    description: "A line that reads as an injection once decoded: leetspeak, letters separated by spaces or dots, reversed text, ROT13, Morse code or regional-indicator letters."
+    why: The encoding is there to get past keyword filters and a quick read. A model decodes these forms without being asked.
+    applies_to: ["@prose"]
+    match: {type: analyzer, analyzer: instruction}
+    remediation: Remove the line. Honest instructions have no reason to be encoded.
+
+  - id: AG-INJ-024
+    version: 1
+    description: "A skill or command inserts its arguments (`$ARGUMENTS`, `$1`, `$@`) into a shell command without quotes, either in a command that runs when the file is loaded or in a command template the agent is told to run."
+    why: Whatever follows the command name is parsed by the shell. An argument containing `;`, `|` or a command substitution runs as a second command, with the permissions the command was granted.
+    applies_to: [skill_md, command_md]
+    match: {type: analyzer, analyzer: instruction}
+    remediation: "Quote the placeholder (`\"$ARGUMENTS\"`), or pass the value to a script as a single argument instead of building a shell line from it."
+
+  - id: AG-INJ-025
+    version: 1
+    description: "A subagent definition carries hijack phrasing in its prompt: the body of an agent file, `initialPrompt`, or Codex `developer_instructions`."
+    why: A subagent's prompt is its system prompt. The parent agent hands it work and trusts what comes back, so an injected subagent acts with the parent's authority and out of the user's sight.
+    match: {type: analyzer, analyzer: instruction}
+    remediation: Remove the passage, or do not install the subagent.

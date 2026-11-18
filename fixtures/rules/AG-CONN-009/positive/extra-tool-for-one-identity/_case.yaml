@@ -1,0 +1,17 @@
+{
+  "facts": {
+    "endpoints": {
+      "https://mcp.acme.example.invalid/mcp": {
+        "tools_by_identity": {
+          "anonymous": [
+            "list_reports"
+          ],
+          "authenticated": [
+            "list_reports",
+            "export_all"
+          ]
+        }
+      }
+    }
+  }
+}

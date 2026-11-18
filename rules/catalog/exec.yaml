@@ -1,0 +1,32 @@
+family: EXEC
+name: Code and command execution
+defaults: {category: malice, lane: block, confidence: high, engine: code}
+mappings:
+  owasp-ast-1.0: [AST01]
+  owasp-mcp-2025-beta: ["MCP05:2025"]
+  owasp-asi-2026: [ASI05]
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: [examples/remote-code-execution]
+  cwe: [CWE-94]
+  skilltrustbench: [T03, T04]
+  malskillbench: [B3, B4, B6]
+rules:
+  - [AG-EXEC-001, C, X, "Download-and-execute (`curl | sh`, `iwr | iex`)", {mappings: {cwe: [CWE-494]}}]
+  - [AG-EXEC-002, H, X, "`eval` or `exec` of dynamic or fetched content", {lane: evidence, confidence: medium, mappings: {cwe: [CWE-95]}}]
+  - [AG-EXEC-003, H, X, "Remote script fetched, then run in a separate step", {mappings: {cwe: [CWE-494]}}]
+  - [AG-EXEC-004, C, X, "Reverse or bind shell"]
+  - [AG-EXEC-005, H, P, "Skill load-time shell injection (`` !`cmd` `` or ```` ```! ```` block) running a risky command", {engine: config}]
+  - [AG-EXEC-006, H, X, "Install-time script with network or exec behaviour", {lane: evidence, confidence: medium, mappings: {cwe: [CWE-829]}}]
+  - [AG-EXEC-007, M, G, "Runs a binary shipped in the package", {category: vulnerability, lane: hunt, confidence: medium}]
+  - [AG-EXEC-008, M, A, "Instructions install packages at run time, unpinned", {category: vulnerability, lane: evidence, confidence: medium, engine: instruction, mappings: {cwe: [CWE-829]}}]
+  - [AG-EXEC-009, H, X, "Process injection or library preloading (`LD_PRELOAD`, `DYLD_INSERT_LIBRARIES`)"]
+  - [AG-EXEC-010, H, X, "PowerShell encoded command, execution-policy bypass or hidden window"]
+  - [AG-EXEC-011, H, X, "Living-off-the-land binary abuse (`certutil`, `mshta`, `regsvr32`, `osascript`)", {confidence: medium}]
+  - [AG-EXEC-012, H, X, "Privilege escalation attempt (`sudo -S`, setuid, UAC bypass, sudoers edit)", {lane: evidence, confidence: medium, mappings: {cwe: [CWE-250], malskillbench: [B9]}}]
+  - [AG-EXEC-013, H, X, "Container or sandbox escape attempt", {confidence: medium}]
+  - [AG-EXEC-014, C, X, "Stops or disables security tooling"]
+  - [AG-EXEC-015, H, P, "Custom command template with shell or file injection (`!{}`, `@{}`)", {engine: config, confidence: medium}]
+  - [AG-EXEC-016, H, X, "Plugin `bin/` executable shadows a common command name", {engine: config}]
+  - [AG-EXEC-017, H, G, "In-process code component (workflow `.js`, mod, hook handler) with exec or network calls", {category: vulnerability, lane: evidence, confidence: medium}]
+  - [AG-EXEC-018, H, X, "LSP server, monitor or other background process that is not what it claims to be", {lane: evidence, confidence: medium, engine: config}]
+  - [AG-EXEC-019, H, G, "Helper command field (`headersHelper`, marketplace `command` source, auth helper) runs arbitrary shell", {category: vulnerability, lane: evidence, engine: config}]

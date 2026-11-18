@@ -1,0 +1,63 @@
+# Detection entries for the WS family (catalogue: rules/catalog/ws.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+# Files next to agent files that make an editor, a shell or git run something without being asked.
+rules:
+
+  - id: AG-WS-001
+    version: 1
+    description: "A task in `.vscode/tasks.json` has `runOptions.runOn` set to `folderOpen`."
+    why: VS Code starts the task when the folder is opened, once automatic tasks are allowed for the workspace. Cloning and opening the repository is then enough to run its command.
+    match: {type: analyzer, analyzer: workspace}
+    fix_action: remove-key
+    remediation: "Remove `runOn: folderOpen` and let people start the task themselves."
+
+  - id: AG-WS-002
+    version: 1
+    description: "`.vscode/settings.json` turns on agent auto-approval (`chat.tools.autoApprove`, a broad terminal or edit auto-approve pattern, a permissive start-up mode, `task.allowAutomaticTasks`), or replaces the terminal's shell, profile, arguments or security-relevant environment."
+    why: Workspace settings travel with the repository. Auto-approval removes the confirmation before the agent runs commands; a changed terminal profile runs the repository's choice of program in every terminal the editor or agent opens.
+    match: {type: analyzer, analyzer: workspace}
+    fix_action: remove-key
+    remediation: Remove the setting from the repository. Auto-approval and terminal profiles belong in a person's own user settings.
+    references: ["https://embracethered.com/blog/posts/2025/github-copilot-remote-code-execution-via-prompt-injection/"]
+
+  - id: AG-WS-003
+    version: 1
+    description: "A dev container lifecycle command downloads and runs content or touches credential files, `initializeCommand` reaches the network or evaluates code on the host, or the container is privileged (privileged mode, added capabilities, host namespaces, the Docker socket or the home directory mounted)."
+    why: Lifecycle commands run as soon as the container is created or started; `initializeCommand` runs on the host itself. A privileged container is not a boundary.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Install tools from pinned versions in the image, keep lifecycle commands to the project's own scripts, and drop privileged mode, host mounts and added capabilities.
+
+  - id: AG-WS-004
+    version: 1
+    description: "`.envrc` evaluates a command, reaches the network or downloads and runs content, or a mise configuration defines an `enter`, `cd` or install hook or computes a value with `exec(…)`. Plain assignments and direnv's own helpers are not reported."
+    why: direnv and mise run these files whenever a shell enters the directory, and an agent's shell does that on every command.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Keep the file to plain assignments. Put anything that must run into a script people start on purpose.
+
+  - id: AG-WS-005
+    version: 1
+    description: "The repository holds git hooks (`.githooks/`, `.husky/`) and an agent-facing file tells the agent to enable them (`git config core.hooksPath`, `husky`, `pre-commit install`), or an active hook is shipped inside a package's own `.git/hooks/`."
+    why: Once enabled, git runs the hook on every commit, checkout or push, outside the agent's permission prompts.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Read the hook before enabling it, and let a person enable hooks. Do not ship a `.git/` directory inside a package.
+
+  - id: AG-WS-006
+    version: 1
+    description: "`.gitattributes` assigns a custom filter, diff or merge driver, and a file in the repository defines that driver's command (a `.gitconfig` section, or a `git config filter.<name>.clean …` line in instructions or a script)."
+    why: After the configuration is applied, git runs the driver's command during checkout, diff, add or merge of the matching files, with no prompt.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Remove the driver, or review its command and leave enabling it to a person.
+
+  - id: AG-WS-007
+    version: 1
+    description: "A JetBrains project file (`.idea/startup.xml`) lists run configurations as start-up tasks."
+    why: The IDE runs them when the project is opened and trusted.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Remove the start-up tasks from the shared project files.
+
+  - id: AG-WS-008
+    version: 1
+    description: "An instruction file tells the agent to run a package script or Makefile target (`npm run build`, `npm install`, `make setup`), and that script downloads and runs content, touches credential files or sends the environment out. For `npm install` the lifecycle scripts are checked."
+    why: The instruction looks routine and the command is one agents are usually allowed to run; the risky part sits one file away in the script it starts.
+    match: {type: analyzer, analyzer: workspace}
+    remediation: Remove the risky step from the script, or pin and verify what it downloads.

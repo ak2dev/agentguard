@@ -1,0 +1,29 @@
+family: CONN
+name: Remote connectors and descriptors
+about: Read-only posture checks on live endpoints, plus OpenAPI and A2A descriptors.
+defaults: {category: vulnerability, lane: evidence, confidence: high, engine: live, network: true}
+mappings:
+  owasp-ast-1.0: []
+  owasp-mcp-2025-beta: ["MCP07:2025", "MCP09:2025"]
+  owasp-asi-2026: [ASI03]
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: [concerns/access-control, concerns/token-session-security]
+  cwe: []
+rules:
+  - [AG-CONN-001, H, G, "Endpoint without TLS or with an invalid certificate", {lane: block, mappings: {cwe: [CWE-295, CWE-319]}}]
+  - [AG-CONN-002, H, G, "Tools listed and callable with no authentication"]
+  - [AG-CONN-003, M, G, "Protected-resource or authorization-server metadata missing or invalid"]
+  - [AG-CONN-004, M, G, "Weak OAuth as advertised: no PKCE, implicit grant, no issuer"]
+  - [AG-CONN-005, M, G, "Scopes requested exceed what the tool surface needs", {confidence: medium}]
+  - [AG-CONN-006, H, X, "Domain does not belong to the claimed vendor, or is a lookalike", {category: malice, lane: block, confidence: medium}]
+  - [AG-CONN-007, M, G, "Tool surface includes destructive, financial or administrative tools", {confidence: medium}]
+  - [AG-CONN-008, H, G, "Tool definitions differ from the baseline", {lane: block}]
+  - [AG-CONN-009, H, G, "Tool list differs by client identity or credentials", {lane: block}]
+  - [AG-CONN-010, H, G, "Server reports a version with a known vulnerability", {lane: block}]
+  - [AG-CONN-011, H, P, "OpenAPI action over HTTP, with no security scheme, or with an API key in the query", {lane: block, engine: config, network: false, mappings: {cwe: [CWE-319, CWE-598]}}]
+  - [AG-CONN-012, H, X, "Injection in OpenAPI description fields", {category: malice, lane: block, confidence: medium, engine: instruction, network: false}]
+  - [AG-CONN-013, M, P, "Destructive OpenAPI operation not marked as consequential", {engine: config, network: false}]
+  - [AG-CONN-014, M, G, "A2A agent card unsigned, over HTTP, or with injection in skill descriptions", {engine: config, network: false}]
+  - [AG-CONN-015, M, P, "Local HTTP server with lax CORS or Origin handling", {engine: code, confidence: medium, network: false, mappings: {cwe: [CWE-942]}}]
+  - [AG-CONN-016, L, G, "Only a deprecated protocol version or transport offered", {category: hygiene, mappings: {cwe: [CWE-477]}}]
+  - [AG-CONN-017, H, X, "Server-supplied text returned to a harmless probe contains directives", {category: malice, lane: block, confidence: medium}]

@@ -32,14 +32,14 @@ F = {
         "negative": {"pinned": {"_case.yaml": "policy:\n  require_pinning: true\n", "claude_desktop_config.json": desktop({"files": PINNED})}},
     },
     "AG-POL-005": {
-        "positive": {"expired": {"_case.yaml": "today: 2026-09-28\nsuppressions:\n  - rule_id: AG-MCP-CFG-004\n    reason: accepted for the prototype phase\n    expires: 2026-01-01\n",
+        "positive": {"expired": {"_case.yaml": "today: 2026-09-28\nsuppressions:\n  - rule_id: AG-MCP-001\n    reason: accepted for the prototype phase\n    expires: 2026-01-01\n",
                                  "claude_desktop_config.json": desktop({"files": UNPINNED})}},
-        "negative": {"active": {"_case.yaml": "today: 2026-09-28\nsuppressions:\n  - rule_id: AG-MCP-CFG-004\n    reason: accepted for the prototype phase\n    expires: 2099-01-01\n",
+        "negative": {"active": {"_case.yaml": "today: 2026-09-28\nsuppressions:\n  - rule_id: AG-MCP-001\n    reason: accepted for the prototype phase\n    expires: 2099-01-01\n",
                                 "claude_desktop_config.json": desktop({"files": UNPINNED})}},
     },
     "AG-POL-006": {
-        "positive": {"no-reason": {"_case.yaml": "suppressions:\n  - rule_id: AG-MCP-CFG-004\n    expires: 2099-01-01\n", "claude_desktop_config.json": desktop({"files": UNPINNED})}},
-        "negative": {"valid": {"_case.yaml": "suppressions:\n  - rule_id: AG-MCP-CFG-004\n    reason: accepted for the prototype phase\n    expires: 2099-01-01\n",
+        "positive": {"no-reason": {"_case.yaml": "suppressions:\n  - rule_id: AG-MCP-001\n    expires: 2099-01-01\n", "claude_desktop_config.json": desktop({"files": UNPINNED})}},
+        "negative": {"valid": {"_case.yaml": "suppressions:\n  - rule_id: AG-MCP-001\n    reason: accepted for the prototype phase\n    expires: 2099-01-01\n",
                                "claude_desktop_config.json": desktop({"files": UNPINNED})}},
     },
     "AG-POL-010": {

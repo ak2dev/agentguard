@@ -13,7 +13,7 @@ const high = bench.overall.high;
 const held = bench.by_split.heldout.high;
 const heldBenign = held.tn + held.fp;
 const perf = bench.performance.perf_check;
-const count = (...prefixes: string[]) => ruleData.rules.filter((r) => prefixes.some((p) => r.id.startsWith(`${p}-`))).length;
+const count = (...families: string[]) => ruleData.rules.filter((r) => families.includes(r.family)).length;
 const standards = [
   "OWASP Top 10 for Agentic Applications 2026", "OWASP MCP Top 10", "OWASP Agentic Skills Top 10",
   "OWASP Top 10 for LLM Applications 2026", "CWE", "OWASP AIVSS v0.8", "SARIF 2.1.0", "CycloneDX 1.6", "GitHub code scanning",
@@ -50,10 +50,10 @@ const flows = [
     steps: [["Spec", "check"], ["Hidden text", "eye"], ["Injection", "alert"], ["Lures", "code"], ["Exfiltration", "send"]],
     note: "Every rule ships with an unsafe and a safe fixture.",
     tiers: [
-      { name: "Injection & lures", sub: "for instruction-layer attacks", n: count("AG-SKL-INJ", "AG-SKL-SE"), chips: ["Override directives", "Pipe-to-shell", "ClickFix pastes", "Fake prompts"] },
-      { name: "Hidden text", sub: "decoded and rescanned", n: count("AG-SKL-HID"), chips: ["Unicode tags", "Bidi controls", "Zero-width", "HTML comments"] },
-      { name: "Credentials & egress", sub: "for what leaves your machine", n: count("AG-SKL-CRED", "AG-SKL-EXF"), chips: ["Credential stores", "Env dumps", "Exfiltration sinks", "DNS exfiltration"] },
-      { name: "Bundles & spec", sub: "for what ships alongside", n: count("AG-SKL-BND", "AG-SKL-SPEC", "AG-SKL-PRIV", "AG-SKL-TYP", "AG-SKL-EXEC", "AG-SKL-MIS"), chips: ["Native binaries", "Hidden scripts", "Typosquats", "allowed-tools"] },
+      { name: "Injection & lures", sub: "for instruction-layer attacks", n: count("INJ", "MANIP"), chips: ["Override directives", "Pipe-to-shell", "ClickFix pastes", "Other languages"] },
+      { name: "Hidden content", sub: "decoded and rescanned", n: count("OBF", "MM"), chips: ["Unicode tags", "Bidi controls", "Text in images", "Hidden PDF text"] },
+      { name: "Credentials & egress", sub: "for what leaves your machine", n: count("CRED", "EXF"), chips: ["Credential stores", "Env dumps", "Exfiltration sinks", "DNS exfiltration"] },
+      { name: "Execution & privilege", sub: "for what ships alongside", n: count("EXEC", "PRIV", "PERSIST", "META"), chips: ["Loaders", "Memory writes", "Typosquats", "allowed-tools"] },
     ],
   },
   {
@@ -64,9 +64,9 @@ const flows = [
     steps: [["STDIO", "code"], ["Secrets", "key"], ["Poisoning", "alert"], ["Shadowing", "layers"], ["Code taint", "scan"]],
     note: "agentguard lock pins tool definitions; verify shows any drift as a diff.",
     tiers: [
-      { name: "Client configs", sub: "for how a server starts", n: count("AG-MCP-CFG"), chips: ["Shell strings", "Unpinned runners", "Literal secrets", "Docker socket"] },
-      { name: "Tool metadata", sub: "for what the model reads", n: count("AG-MCP-META"), chips: ["Tool poisoning", "Shadowing", "Side-channel params", "Hidden Unicode"] },
-      { name: "Server code", sub: "for where parameters go", n: count("AG-CODE"), chips: ["Shell & eval", "SQL", "File paths", "Outbound requests"] },
+      { name: "MCP servers", sub: "configs, tools and drift", n: count("MCP"), chips: ["Shell strings", "Tool poisoning", "Shadowing", "Rug pulls"] },
+      { name: "Remote connectors", sub: "for what an endpoint exposes", n: count("CONN"), chips: ["No authentication", "Tool-list cloaking", "OpenAPI & A2A", "TLS"] },
+      { name: "Server code", sub: "for where parameters go", n: count("VULN"), chips: ["Shell & eval", "SQL", "File paths", "Outbound requests"] },
     ],
   },
   {
@@ -77,9 +77,9 @@ const flows = [
     steps: [["Discover", "scan"], ["Changed only", "git"], ["Baseline", "layers"], ["SARIF", "file"], ["Gate", "lock"]],
     note: "Exit code 1 at or above --fail-on; 2 on any scanner error, never a silent pass.",
     tiers: [
-      { name: "Lock & verify", sub: "for drift after approval", n: count("AG-SC"), chips: ["Tool drift", "Lockfile", "IOC feed", "Provenance"] },
-      { name: "Policy", sub: "for your allowlist", n: count("AG-POL"), chips: ["Deny & allow", "Pinning", "Expiring suppressions"] },
-      { name: "Toxic flows", sub: "for the whole session", n: count("AG-FLOW"), chips: ["Lethal trifecta", "Code execution", "Memory writes"] },
+      { name: "Supply chain", sub: "for drift after approval", n: count("SUPPLY"), chips: ["Tool drift", "Lockfile", "IOC feed", "Provenance"] },
+      { name: "Agentic CI", sub: "for agents in your workflows", n: count("CI"), chips: ["Prompt injection", "Write permissions", "Untrusted triggers"] },
+      { name: "Toxic flows", sub: "for the whole session", n: count("FLOW"), chips: ["Lethal trifecta", "Composition", "Memory writes"] },
     ],
   },
 ];
@@ -201,7 +201,7 @@ const strip = [
   <section class="section" aria-labelledby="evidence-title">
     <div class="section-head">
       <h2 id="evidence-title">Check <span class="typed" data-typed data-final={flows[0].phrase}><span class="typed-text">everything your agent reads</span></span></h2>
-      <p>(Evidence, not verdicts. Never a “safe” badge.)</p>
+      <p>(One verdict, with its evidence. Never a “safe” badge.)</p>
     </div>
     <div class="seg" data-tabs>
       <div role="tablist" aria-label="What Agent Guard checks" hidden>
@@ -267,7 +267,7 @@ const strip = [
       <Tile span="span-4" tone="orange">
         <Icon name="globe" />
         <h3>One scan for skills, configs and servers</h3>
-        <p>SKILL.md bundles, AGENTS.md and Cursor rules, MCP client configs, tool manifests and server code: one engine, one rule pack of {meta.rule_count} rules, one report.</p>
+        <p>Skills, plugins, AGENTS.md and Cursor rules, agent settings and hooks, MCP configs and server code, agentic CI: one engine, {meta.rule_count} rules in {meta.families} families, one verdict.</p>
       </Tile>
       <Tile span="span-4">
         <Icon name="shield" />
@@ -277,14 +277,14 @@ const strip = [
       <Tile span="span-8" class="term-tile">
         <div class="tt">
           <h3>Findings you can act on</h3>
-          <p>Every finding has a rule ID, severity and confidence, the file and line, a redacted snippet, a fix, and its standards mapping.</p>
+          <p>Every finding has a rule ID, severity, confidence and lane, the file and line, a redacted snippet, a fix, and its standards mapping. The report ends in one verdict: ALLOW, REVIEW or BLOCK.</p>
         </div>
         <div class="terminal-wrap" role="img" aria-label="Example terminal output of agentguard scan listing three findings">
           <div class="terminal">
             <p>Scanning ./skills with {meta.rule_count} rules…</p>
-            <p><span class="dot"></span><span class="hi">2 critical · 1 high · 3 medium</span></p>
-            <p class="tline">↳ <span class="tag">AG-SKL-SE-002</span> → pipe-to-shell in “Prerequisites” · SKILL.md:8</p>
-            <p class="tline">↳ <span class="tag">AG-SKL-CRED-003</span> → credential read + egress · scripts/sync.py:3</p>
+            <p><span class="dot"></span><span class="hi">BLOCK · score 91 · tier L2 · coverage 100%</span></p>
+            <p class="tline">↳ <span class="tag">AG-EXEC-001</span> → pipe-to-shell in “Prerequisites” · SKILL.md:8</p>
+            <p class="tline">↳ <span class="tag">AG-EXF-001</span> → credential read + egress · scripts/sync.py:3</p>
             <p class="tline">↳ <span class="tag">AG-FLOW-001</span> → fetch → agent → slack · lethal trifecta</p>
             <p class="hi last">⠿ Writing SARIF for code scanning…</p>
           </div>

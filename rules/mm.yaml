@@ -1,0 +1,163 @@
+# Detection entries for the MM family (catalogue: rules/catalog/mm.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-MM-010
+    variant: embedded-executables
+    aliases: [AG-SKL-BND-007]
+    version: 1
+    title: Office document or ebook carries executable files
+    description: A zip-based document (docx, xlsx, pptx and their macro variants, OpenDocument, epub) contains scripts, executables or libraries among its members (.sh, .ps1, .bat, .py, .js, .vbs, .exe, .dll, .so…). Only the archive directory is read; nothing is extracted.
+    why: Documents have no reason to carry scripts. A skill can tell the agent to unpack a document and run what is inside, which hides the payload from scanners that treat the document as opaque (the Trail of Bits context-loader bypass, June 2026).
+    confidence: high
+    applies_to: [archive]
+    aivss: {threat: attacked}
+    match: {type: analyzer, analyzer: skill.bundle}
+    remediation: Remove the document, or replace it with a clean copy; ship any needed script as a reviewable file in the skill.
+    references: ["https://blog.trailofbits.com/2026/06/03/the-sorry-state-of-skill-distribution/"]
+
+# ---- added: mm_rules ----
+  - id: AG-MM-001
+    version: 1
+    description: "The picture itself contains instruction text or a command, read by OCR on the host (`media_text` label `ocr`). Without an OCR engine this rule has nothing to read; `agentguard doctor` says whether one is installed."
+    why: A text scanner sees an image file and reports nothing. A model that is shown the image reads the text in it like any other instruction.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it. Instructions belong in the instruction file, where they can be read and reviewed.
+    references: ["https://arxiv.org/abs/2606.18198"]
+
+  - id: AG-MM-002
+    version: 1
+    description: Instructions tell the agent to take its commands or steps from an image - to follow, run or apply what a picture, screenshot or diagram shows.
+    why: The real instructions are then outside the text that scanners and reviewers read. This is how image-borne instructions are delivered.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded]
+      patterns:
+        # Taking the steps *from* the image. "Run code on the image" works on the image as data, so
+        # after "on" the sentence has to say the steps are shown or written there.
+        - |-
+          \b(?:follow|execute|run|perform|carry\s+out|apply|obey|complete|type|enter)\s+(?:all\s+)?(?:the\s+|each\s+of\s+the\s+)?(?:steps?|instructions?|commands?|procedure|directions|workflow|code|script|text|prompt)\s+(?:(?:(?:that\s+(?:is|are)\s+)?(?:shown|written|given|described|contained|listed|printed|embedded|found|displayed|pictured)\s+)(?:in|from|on)|(?:in|from))\s+(?:the\s+)?(?:attached\s+|following\s+|above\s+|below\s+)?(?:image|picture|screenshot|figure|diagram|photo|`?[\w./\-]+\.(?:png|jpe?g|gif|webp|bmp|svg)`?)
+        - |-
+          \b(?:read|open|view|look\s+at|ocr|transcribe|extract)\s+(?:the\s+)?(?:text\s+(?:in|from)\s+)?(?:the\s+)?(?:image|picture|screenshot|figure|diagram|photo|`?[\w./\-]+\.(?:png|jpe?g|gif|webp|bmp|svg)`?)\s+(?:and|then|to)\s+(?:follow|execute|run|do|perform|obey|apply)\b
+        - |-
+          \b(?:steps?|instructions?|commands?|procedure|directions|workflow)\s+(?:is|are)\s+(?:(?:shown|written|given|described|contained|listed|printed|embedded|found|displayed|pictured)\s+)?(?:only\s+)?(?:in|on)\s+(?:the\s+)?(?:attached\s+|following\s+|above\s+|below\s+)?(?:image|picture|screenshot|figure|diagram|photo|`?[\w./\-]+\.(?:png|jpe?g|gif|webp|bmp|svg)`?)(?:\s+(?:below|above))?\s*[.:;,]\s*(?:then\s+|please\s+|now\s+)?(?:read|open|view|follow|execute|run|apply|perform|obey|do)\b
+        - |-
+          \b(?:image|picture|screenshot|figure|diagram|`?[\w./\-]+\.(?:png|jpe?g|gif|webp|bmp)`?)\s+(?:contains|shows|has|lists|gives)\s+(?:the\s+)?(?:steps?|instructions?|commands?)\s+(?:that\s+)?(?:you\s+(?:must|should|need\s+to|have\s+to)|to)\s+(?:follow|run|execute|perform)\b
+        - |-
+          \b(?:do|run|execute)\s+(?:exactly\s+)?what(?:ever)?\s+(?:the\s+)?(?:image|picture|screenshot|`?[\w./\-]+\.(?:png|jpe?g|gif|webp|bmp)`?)\s+(?:says|shows|tells\s+you)\b
+      unless:
+        - |-
+          \b(?:for\s+example|such\s+as|e\.g\.|do\s+not|don'?t|never)\b
+      window: 0
+    remediation: Write the steps in the instruction file as text and remove the reference to the image.
+
+  - id: AG-MM-003
+    version: 1
+    description: "An instruction is left incomplete in the text and says the missing part - a URL, a command, a value - is in an image: a blank or placeholder to be filled from a picture, or a statement that the address or command is shown only in the image. When OCR text of that image is available it is quoted."
+    why: Neither half is an attack on its own, so a scanner that reads only text, or only the image, sees nothing to report. The agent puts the halves together.
+    applies_to: ["@prose"]
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it. Put the complete instruction in the text.
+
+  - id: AG-MM-004
+    version: 1
+    description: "An image contains text a person would not notice: SVG text with zero opacity, a font size under two units, white fill or no fill, or hidden display; or, with OCR on the host, low-contrast or very small text in a raster image."
+    why: The image looks clean to a reviewer. A vision model, or anything that reads the SVG source, gets the hidden text.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it. Remove the hidden text from the image.
+
+  - id: AG-MM-005
+    version: 1
+    description: "Image metadata carries instructions, code or a URL: PNG text chunks, EXIF and IPTC fields, XMP packets, JPEG and GIF comments. Namespace URLs of the metadata standards are ignored. Medium when the metadata holds only a URL."
+    why: Metadata is not displayed with the image. Tools that describe, convert or caption an image pass it to the model, which reads it as part of the content.
+    match: {type: analyzer, analyzer: media}
+    remediation: Strip the metadata from the image.
+    fix_action: strip-image-metadata
+
+  - id: AG-MM-006
+    version: 1
+    description: "An SVG image contains a script element, a `foreignObject`, event handler attributes, a `javascript:` reference, an external entity, or references to resources on other hosts."
+    why: An SVG is a document, not a picture. Rendered in a browser, a preview pane or an agent's canvas it runs script and loads external resources, which also tells the remote host that it was opened.
+    match: {type: analyzer, analyzer: media}
+    remediation: Remove the active content, or convert the image to PNG.
+    fix_action: strip-svg-active-content
+
+  - id: AG-MM-007
+    version: 1
+    description: "A PDF contains text that is not visible on the page: drawn in the invisible render mode, in white on a page with no dark background, in a font under 1.5 points, or positioned off the page. Read from the content stream operators."
+    why: A person reading the document does not see it. Text extraction, which is how an agent reads a PDF, returns it with the rest.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it. Hidden text in a reference document has no honest purpose.
+    references: ["https://arxiv.org/html/2607.19396v1"]
+
+  - id: AG-MM-008
+    version: 1
+    description: "Text extracted from a PDF contains a substantial number of words that do not appear on the rendered pages (compared with OCR of the rendering, `media_text` label `rendered`). Needs the host's renderer and OCR engine."
+    why: What the agent reads from the file is not what a person sees. This catches hiding techniques that operator analysis alone does not, such as text covered by an image.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it.
+    references: ["https://arxiv.org/html/2607.19396v1"]
+
+  - id: AG-MM-009
+    version: 1
+    description: "A PDF contains active content: JavaScript, a launch action, embedded files, rich media, an XFA form, form submission or data import actions, or jumps to remote or embedded files. Names written with hex escapes are decoded first, and compressed object streams are read."
+    why: A reference document has no need for any of it. A viewer or converter that honours these features acts on the reader's machine or sends data out.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it, or replace the document with a flattened copy that has no actions or attachments.
+
+  - id: AG-MM-010
+    version: 1
+    description: "An Office document contains macros (`vbaProject.bin`, macro sheets, a VBA project in a legacy file) or embedded OLE objects."
+    why: Macros are code that runs when the document is opened with them enabled, and an embedded object can be any file. Neither belongs in material an agent is asked to read.
+    match: {type: analyzer, analyzer: media}
+    remediation: Do not install it, or replace the document with a macro-free copy (docx, xlsx, pptx) without embedded objects.
+
+  - id: AG-MM-011
+    version: 1
+    description: "A Jupyter notebook contains instructions in a stored output or in a markdown or raw cell, a script element in a stored output, or a code cell that is marked hidden in the interface and runs a shell command, downloads, or evaluates code."
+    why: Stored outputs are not the result of running anything - they are whatever the file says. An agent reading the notebook takes them as results, and a hidden cell runs with the rest when the notebook is executed.
+    match: {type: analyzer, analyzer: media}
+    remediation: Clear the outputs, unhide every cell, and review what remains.
+
+  - id: AG-MM-012
+    version: 1
+    description: "An HTML file shipped as an asset has an element that is not displayed (`display:none`, `visibility:hidden`, zero opacity or size, off-screen, the `hidden` attribute) containing agent-directed text, or a script that loads from another host or uses network, evaluation or cookie APIs (low)."
+    why: A browser hides the element; an agent that reads the file's text does not. Script in an asset runs wherever the file is opened or rendered.
+    match: {type: analyzer, analyzer: media}
+    remediation: Remove the hidden element and the script, or ship the content as Markdown.
+
+  - id: AG-MM-013
+    version: 1
+    description: Instructions tell the agent to take its steps from an audio or video file - to listen to, transcribe or watch a recording and then do what it says.
+    why: No static tool reads speech. Whatever the recording says is outside every review of the package.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded]
+      patterns:
+        - |-
+          \b(?:listen\s+to|play|transcribe|watch|view|open)\s+(?:the\s+)?(?:(?:audio|video|voice|recording|clip|file)\s+)?`?[\w./\-]+\.(?:mp3|wav|m4a|ogg|flac|aac|mp4|mov|webm|mkv|avi)`?[^.\n]{0,60}\b(?:and|then|to)\s+(?:follow|do|execute|run|obey|perform|apply|carry\s+out)\b
+        - |-
+          \b(?:follow|execute|obey|perform|carry\s+out|do)\s+(?:the\s+)?(?:spoken|audio|voice|recorded|video)\s+(?:instructions?|steps?|commands?|directions)\b
+        - |-
+          \b(?:follow|execute|run|perform|do)\s+(?:the\s+)?(?:steps?|instructions?|commands?)\s+(?:spoken|given|said|shown|described)?\s*(?:in|from)\s+(?:the\s+)?(?:(?:audio|video|voice)\s+)?(?:recording|clip|`?[\w./\-]+\.(?:mp3|wav|m4a|ogg|flac|aac|mp4|mov|webm|mkv|avi)`?)
+      unless:
+        - |-
+          \b(?:for\s+example|such\s+as|e\.g\.|do\s+not|don'?t|never)\b
+      window: 0
+    remediation: Write the steps in the instruction file as text.
+
+  - id: AG-MM-014
+    version: 1
+    description: "A QR code or barcode in an image decodes to a URL or a command (decoded on the host; `facts.media.<path>.qr` or `media_text` label `qr`)."
+    why: Nobody can read a code by eye, so the destination is invisible in review. An agent told to scan the code goes where it points.
+    match: {type: analyzer, analyzer: media}
+    remediation: Replace the code with the URL written out, and check where it leads.
+
+  - id: AG-MM-015
+    version: 1
+    description: "An image shows a statistical trace of hidden data: flat artwork whose lowest bit plane is noise (8-bit non-interlaced PNG), large private PNG chunks that no viewer displays, or a trace recorded by the host's analysis."
+    why: Data hidden in an image passes every text check and is recovered by a few lines of code that look like image processing. This is an indicator and not proof.
+    match: {type: analyzer, analyzer: media}
+    remediation: Check where the image came from and whether any script in the package reads its bytes. Re-encode it if in doubt.

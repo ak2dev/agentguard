@@ -1,40 +1,73 @@
 name: Agent Guard
-description: Scan AI agent skills, instruction files and MCP configuration, and upload findings to GitHub code scanning. Never executes scanned code.
+description: Scan AI agent skills, plugins, instruction files, agent settings and MCP configuration. Fails the job on a BLOCK verdict, annotates the changed lines and uploads SARIF to code scanning. Never executes scanned code.
 author: Agent Guard contributors
 branding:
   icon: shield
   color: blue
 
 inputs:
-  path:
-    description: Directory or file to scan (relative to the workspace).
+  targets:
+    description: What to scan, separated by spaces (paths relative to the workspace, or any other scan target).
     default: "."
-  fail-on:
-    description: Fail the step when a finding is at or above this severity (critical, high, medium, low, info).
-    default: high
+  diff:
+    description: "`<base>..<head>`: scan the changed files in full, the rest as context, and fail only on new findings. Empty on a pull request means the pull request's own base and head (see `pr-mode`). Needs `fetch-depth: 0`."
+    default: ""
   pr-mode:
-    description: "On pull requests, report only components touched by the PR (needs `fetch-depth: 0`). Config is read from the base commit."
+    description: On pull requests, use the pull request's base and head as `diff` when `diff` is empty. Configuration, the lockfile and inline suppressions are then taken from the base commit.
+    default: "true"
+  policy:
+    description: A preset (strict, balanced, permissive) or a policy file.
+    default: balanced
+  profile:
+    description: quick (deterministic static analysis) or standard. No model is called unless you set `llm`.
+    default: quick
+  llm:
+    description: off, auto or always. A model needs its API key in the job's environment.
+    default: "off"
+  fail-on:
+    description: "What fails the step: block, review, or severity:<level>."
+    default: block
+  format:
+    description: Format of the file written to `output` (sarif, json, md, html, junit, cyclonedx).
+    default: sarif
+  output:
+    description: Where to write that file.
+    default: agentguard.sarif
+  upload-sarif:
+    description: "Upload the SARIF file to GitHub code scanning (needs the `security-events: write` permission)."
+    default: "true"
+  annotations:
+    description: Print the findings that decide the verdict as inline annotations on the changed lines.
     default: "true"
   check-hijackable:
-    description: "NETWORK (opt-in): check that referenced GitHub owners, npm/PyPI packages, download domains and cloud-app hostnames still exist (SkillJacking, `--check-hijackable`). When on, the workflow token is sent to api.github.com, and nowhere else, for the GitHub owner lookups."
+    description: "NETWORK (opt-in): check that referenced GitHub owners, npm/PyPI packages, download domains and cloud-app hostnames still exist. When on, the workflow token is sent to api.github.com, and nowhere else, for the GitHub owner lookups."
     default: "false"
-  upload-sarif:
-    description: Upload results to GitHub code scanning.
-    default: "true"
-  sarif-file:
-    description: Where to write the SARIF file.
-    default: agentguard.sarif
   python-version:
     description: Python used to run Agent Guard.
     default: "3.12"
+  path:
+    description: Older name of `targets`.
+    default: ""
+  sarif-file:
+    description: Older name of `output`.
+    default: ""
 
 outputs:
   exit-code:
-    description: 0 = nothing at/above the threshold, 1 = findings at/above it, 2 = scanner error.
+    description: "0: ALLOW or below the threshold. 1: REVIEW at or above it. 2: BLOCK. 3: content could not be analysed and the policy requires full coverage. 64: usage error. 70: internal error."
     value: ${{ steps.scan.outputs.exit-code }}
+  verdict:
+    description: ALLOW, REVIEW or BLOCK.
+    value: ${{ steps.annotate.outputs.verdict }}
+  score:
+    description: Risk score, 0 to 100.
+    value: ${{ steps.annotate.outputs.score }}
   report:
     description: Path of the JSON report.
     value: agentguard-report.json
+  sarif:
+    description: Path of the SARIF file.
+    value: ${{ steps.scan.outputs.sarif }}
 
 runs:
   using: composite
@@ -51,41 +84,66 @@ runs:
       id: scan
       shell: bash
       env:
-        AG_PATH: ${{ inputs.path }}
-        AG_FAIL_ON: ${{ inputs.fail-on }}
+        AG_TARGETS: ${{ inputs.path != '' && inputs.path || inputs.targets }}
+        AG_DIFF: ${{ inputs.diff }}
         AG_PR_MODE: ${{ inputs.pr-mode }}
-        AG_SARIF: ${{ inputs.sarif-file }}
         AG_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        AG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        AG_POLICY: ${{ inputs.policy }}
+        AG_PROFILE: ${{ inputs.profile }}
+        AG_LLM: ${{ inputs.llm }}
+        AG_FAIL_ON: ${{ inputs.fail-on }}
+        AG_FORMAT: ${{ inputs.format }}
+        AG_OUTPUT: ${{ inputs.sarif-file != '' && inputs.sarif-file || inputs.output }}
         AG_CHECK_HIJACKABLE: ${{ inputs.check-hijackable }}
         # The workflow token, only when the network check is on (used for api.github.com only).
         AGENTGUARD_GITHUB_TOKEN: ${{ inputs.check-hijackable == 'true' && github.token || '' }}
       run: |
         set +e
-        args=(scan "$AG_PATH" --format json --output agentguard-report.json --fail-on "$AG_FAIL_ON")
-        if [ "$AG_PR_MODE" = "true" ] && [ -n "$AG_BASE_SHA" ]; then
-          args+=(--changed-since "$AG_BASE_SHA")
+        read -r -a targets <<< "$AG_TARGETS"
+        diff="$AG_DIFF"
+        if [ -z "$diff" ] && [ "$AG_PR_MODE" = "true" ] && [ -n "$AG_BASE_SHA" ] && [ -n "$AG_HEAD_SHA" ]; then
+          diff="$AG_BASE_SHA..$AG_HEAD_SHA"
         fi
-        if [ "$AG_CHECK_HIJACKABLE" = "true" ]; then
-          args+=(--check-hijackable)
-        fi
+        args=(scan "${targets[@]}" --profile "$AG_PROFILE" --llm "$AG_LLM" --context none --policy "$AG_POLICY"
+              --fail-on "$AG_FAIL_ON" --format json --output agentguard-report.json --quiet)
+        if [ -n "$diff" ]; then args+=(--diff "$diff"); fi
+        if [ "$AG_CHECK_HIJACKABLE" = "true" ]; then args+=(--check-hijackable); fi
         agentguard "${args[@]}"
         code=$?
         echo "exit-code=$code" >> "$GITHUB_OUTPUT"
         if [ -f agentguard-report.json ]; then
-          agentguard report --input agentguard-report.json --format sarif --output "$AG_SARIF"
-          agentguard report --input agentguard-report.json --format markdown >> "$GITHUB_STEP_SUMMARY"
+          agentguard report --input agentguard-report.json --format sarif --output agentguard.sarif
+          echo "sarif=agentguard.sarif" >> "$GITHUB_OUTPUT"
+          if [ "$AG_FORMAT" != "sarif" ] || [ "$AG_OUTPUT" != "agentguard.sarif" ]; then
+            agentguard report --input agentguard-report.json --format "$AG_FORMAT" --output "$AG_OUTPUT"
+          fi
+          agentguard report --input agentguard-report.json --format md >> "$GITHUB_STEP_SUMMARY"
         fi
         exit 0
 
+    - name: Annotate
+      id: annotate
+      if: ${{ always() && hashFiles('agentguard-report.json') != '' }}
+      shell: bash
+      env:
+        AG_ANNOTATIONS: ${{ inputs.annotations }}
+      run: |
+        if [ "$AG_ANNOTATIONS" = "true" ]; then
+          python -m agentguard.cli.github agentguard-report.json
+        else
+          python -m agentguard.cli.github agentguard-report.json > /dev/null
+        fi
+
     - name: Upload SARIF
-      if: ${{ always() && inputs.upload-sarif == 'true' && hashFiles(inputs.sarif-file) != '' }}
+      if: ${{ always() && inputs.upload-sarif == 'true' && hashFiles('agentguard.sarif') != '' }}
       uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
       with:
-        sarif_file: ${{ inputs.sarif-file }}
+        sarif_file: agentguard.sarif
         category: agentguard
 
-    - name: Enforce threshold
+    - name: Enforce the verdict
       shell: bash
       env:
         AG_CODE: ${{ steps.scan.outputs.exit-code }}
-      run: exit "${AG_CODE:-2}"
+      run: exit "${AG_CODE:-70}"

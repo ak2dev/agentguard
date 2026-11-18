@@ -1,0 +1,45 @@
+family: INJ
+name: Instruction injection and hijack
+about: >-
+  Skill bodies, instruction files, commands, subagent prompts, tool descriptions and hook-injected context
+  that try to redirect the agent.
+defaults: {category: malice, lane: evidence, confidence: medium, engine: instruction}
+mappings:
+  owasp-ast-1.0: [AST01, AST05]
+  owasp-mcp-2025-beta: ["MCP06:2025"]
+  owasp-asi-2026: [ASI01]
+  owasp-llm-2026: ["LLM01:2026"]
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+  skilltrustbench: [T01]
+  malskillbench: [B10, B11, B12, B13, B14]
+rules:
+  - [AG-INJ-001, H, P, "Tells the agent to ignore or override earlier or system instructions", {lane: block}]
+  - [AG-INJ-002, H, P, "Secrecy directive: hide an action from the user", {lane: block}]
+  - [AG-INJ-003, H, P, "False authority claim (system, vendor, administrator, developer message)"]
+  - [AG-INJ-004, H, P, "Pre-authorisation claim (\"the user has already approved\")", {lane: block}]
+  - [AG-INJ-005, M, P, "Urgency or coercion used to skip checks"]
+  - [AG-INJ-006, H, X, "Mandatory \"prerequisite\" command block before the skill can be used", {lane: block}]
+  - [AG-INJ-007, H, P, "Fetch remote content and follow it as instructions", {lane: block}]
+  - [AG-INJ-008, C, X, "Directive to disable or skip permission prompts or the sandbox", {lane: block, confidence: high}]
+  - [AG-INJ-009, H, P, "Directive to use bypass flags (`--dangerously-skip-permissions`, `--yolo`, `--no-verify`)"]
+  - [AG-INJ-010, H, P, "Directive that steers another tool, server or skill"]
+  - [AG-INJ-011, M, P, "Role or persona hijack"]
+  - [AG-INJ-012, H, P, "Unrelated objective inserted into the task"]
+  - [AG-INJ-013, H, X, "Sleeper instruction tied to a trigger phrase or condition", {lane: block}]
+  - [AG-INJ-014, M, P, "Instruction to act on directives found in fetched data"]
+  - [AG-INJ-015, M, P, "Text addressed to \"AI agents\" inside a reference or data file"]
+  - [AG-INJ-016, M, G, "Instruction block in a language different from the rest of the document", {lane: hunt, confidence: low}]
+  - [AG-INJ-017, H, P, "Known injection pattern in a non-English language", {lane: block}]
+  - [AG-INJ-018, M, P, "Instruction in an encoded language (leetspeak, reversed text, Morse, emoji substitution)"]
+  - [AG-INJ-019, H, P, "Instruction to suppress or falsify output, logs or errors", {lane: block}]
+  - [AG-INJ-020, H, P, "Instruction to send messages, mail or commits as the user without confirmation"]
+  - [AG-INJ-021, H, P, "Instruction to auto-approve edits or never ask for confirmation"]
+  - [AG-INJ-022, L, G, "Stacked imperative emphasis attached to a sensitive action", {lane: hunt, confidence: low}]
+  - [AG-INJ-023, H, P, "Instruction placed in always-loaded metadata (description, frontmatter)"]
+  - [AG-INJ-024, H, P, "Command or prompt template passes arguments into a shell unquoted", {lane: block, confidence: high, engine: config, category: vulnerability, mappings: {cwe: [CWE-78]}}]
+  - [AG-INJ-025, H, P, "Hijack pattern in a subagent prompt (`initialPrompt`, `developer_instructions`)"]
+  - [AG-INJ-026, H, P, "Hook feeds file or network content into the model as trusted context", {engine: config, category: vulnerability}]
+  - [AG-INJ-027, H, P, "Instruction to change git config, remotes or credential helper"]
+  - [AG-INJ-028, M, G, "Instruction to install a dependency from an unusual source"]
+  - [AG-INJ-029, H, P, "Instruction to open an attacker-chosen URL with data in it"]

@@ -171,7 +171,7 @@ def test_guess_pasted_name(text, name):
 def test_scan_pasted_skill_finds_the_lure_and_renders_every_format():
     report = json.loads(webscan.scan_files({webscan.guess_pasted_name(LURE): LURE.encode()}))
     assert report["target"]["kind"] == "pasted"
-    assert any(f["rule_id"].startswith("AG-SKL-SE-") for f in report["findings"])
+    assert any(f["id"] == "AG-EXEC-001" for f in report["findings"])
     for fmt in ("json", "sarif", "markdown", "html", "cyclonedx"):
         assert webscan.render_last(fmt)
 
@@ -185,16 +185,16 @@ def test_github_source_links_findings_and_keeps_events():
     source = json.dumps({"kind": "github", "locator": "o/r", "resolved": SHA})
     events = json.dumps([{"kind": "too_large", "path": "big.json", "detail": "x"}])
     report = json.loads(webscan.scan_files({"s/SKILL.md": LURE.encode()}, source, events))
-    assert report["target"]["resolved"] == SHA
-    assert "{resolved}" in report["target"]["source_url_template"]
+    assert report["target"]["commit"] == SHA
+    assert "{resolved}" in report["target"]["ref"]["source_url_template"]
     assert any(e["kind"] == "too_large" for e in report["stats"]["limit_events"])
 
 
 def test_target_config_cannot_suppress_its_own_findings():
-    cfg = b"version: 1\nexclude: ['pdf-helper']\nsuppressions:\n  - rule_id: AG-SKL-SE-002\n    reason: x\n    expires: 2099-01-01\n"
+    cfg = b"version: 1\nexclude: ['pdf-helper']\nsuppressions:\n  - rule_id: AG-EXEC-001\n    reason: x\n    expires: 2099-01-01\n"
     with_cfg = json.loads(webscan.scan_files({"pdf-helper/SKILL.md": LURE.encode(), ".agentguard.yaml": cfg}))
     without = json.loads(webscan.scan_files({"pdf-helper/SKILL.md": LURE.encode()}))
-    assert {f["rule_id"] for f in without["findings"]} <= {f["rule_id"] for f in with_cfg["findings"]}
+    assert {f["id"] for f in without["findings"]} <= {f["id"] for f in with_cfg["findings"]}
 
 
 def test_dropped_folder_excludes_node_modules():
@@ -258,8 +258,8 @@ def test_scan_fetched_archive_strips_top_dir_and_scopes_subpath():
     source = json.dumps({"kind": "github", "locator": "o/r", "resolved": SHA, "subpath": "skills/a"})
     report = json.loads(webscan.scan_fetched_archive(buf.getvalue(), source, strip_components=1, subpath="skills/a",
                                                       extra_files={"_mcp-registry/server.json": "{}"}))
-    paths = {a["path"] for a in report["artifacts"]}
+    paths = {a["path"] for a in report["files"]}
     assert any(p.startswith("skills/a/") for p in paths) and not any(p.startswith("other/") for p in paths)
-    assert report["target"]["resolved"] == SHA and report["target"]["locator"] == "o/r/skills/a"
+    assert report["target"]["commit"] == SHA and report["target"]["source"] == "o/r/skills/a"
     with pytest.raises(ValueError, match="nothing found"):
         webscan.scan_fetched_archive(buf.getvalue(), source, strip_components=1, subpath="missing")

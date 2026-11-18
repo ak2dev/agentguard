@@ -1,0 +1,32 @@
+family: VULN
+name: Implementation flaws
+about: Honest code that is exploitable.
+defaults: {category: vulnerability, lane: evidence, confidence: medium, engine: code}
+mappings:
+  owasp-ast-1.0: [AST06]
+  owasp-mcp-2025-beta: ["MCP05:2025", "MCP07:2025"]
+  owasp-asi-2026: [ASI02, ASI05]
+  owasp-llm-2026: ["LLM10:2026"]
+  nsa-csi-mcp-2026-05: [recommendations/validate-parameters]
+  cwe: []
+  skilltrustbench: [T09]
+rules:
+  - [AG-VULN-001, H, P, "Command injection (tool or skill argument reaches a shell)", {lane: block, confidence: high, mappings: {cwe: [CWE-78], nsa-csi-mcp-2026-05: [examples/tool-parameter-injection, examples/remote-code-execution]}}]
+  - [AG-VULN-002, H, P, "Path traversal", {lane: block, mappings: {cwe: [CWE-22]}}]
+  - [AG-VULN-003, H, P, "Server-side request forgery", {lane: block, mappings: {cwe: [CWE-918]}}]
+  - [AG-VULN-004, H, P, "SQL or NoSQL injection", {lane: block, mappings: {cwe: [CWE-89]}}]
+  - [AG-VULN-005, H, P, "Unsafe deserialisation (`pickle`, `yaml.load`, `Marshal`)", {lane: block, confidence: high, mappings: {cwe: [CWE-502], nsa-csi-mcp-2026-05: [concerns/insecure-serialization]}}]
+  - [AG-VULN-006, H, P, "Arbitrary file write", {lane: block, mappings: {cwe: [CWE-22]}}]
+  - [AG-VULN-007, M, P, "Template injection", {mappings: {cwe: [CWE-1336]}}]
+  - [AG-VULN-008, M, P, "Unsafe XML parsing"]
+  - [AG-VULN-009, L, P, "Insecure temporary files"]
+  - [AG-VULN-010, M, A, "TLS verification disabled", {lane: block, confidence: high, mappings: {cwe: [CWE-295]}}]
+  - [AG-VULN-011, M, P, "Weak cryptography or fixed keys", {mappings: {cwe: [CWE-340]}}]
+  - [AG-VULN-012, M, P, "Prototype pollution or unsafe object merge"]
+  - [AG-VULN-013, L, P, "Regular expression open to catastrophic backtracking on untrusted input", {lane: hunt, confidence: low, mappings: {cwe: [CWE-400]}}]
+  - [AG-VULN-014, L, P, "Declared schema not enforced on input", {mappings: {cwe: [CWE-20]}}]
+  - [AG-VULN-015, H, P, "Archive extraction without path checks", {lane: block, mappings: {cwe: [CWE-22]}}]
+  - [AG-VULN-016, M, P, "Open redirect or unvalidated callback URL"]
+  - [AG-VULN-017, M, P, "Secrets written to logs", {mappings: {cwe: [CWE-522]}}]
+  - [AG-VULN-018, L, P, "Check-then-use race on files", {lane: hunt, confidence: low}]
+  - [AG-VULN-019, M, A, "Insecure defaults (debug on, auth off)"]

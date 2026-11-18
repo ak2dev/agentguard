@@ -1,0 +1,21 @@
+family: HYG
+name: Hygiene
+defaults: {category: hygiene, lane: evidence, confidence: high, engine: config}
+mappings:
+  owasp-ast-1.0: []
+  owasp-mcp-2025-beta: []
+  owasp-asi-2026: []
+  owasp-llm-2026: []
+  nsa-csi-mcp-2026-05: []
+  cwe: []
+rules:
+  - [AG-HYG-001, L, G, "`SKILL.md` or manifest missing"]
+  - [AG-HYG-002, I, G, "No licence"]
+  - [AG-HYG-003, I, G, "Dead links or references"]
+  - [AG-HYG-004, I, G, "`SKILL.md` over the recommended size"]
+  - [AG-HYG-005, I, G, "Deprecated format in use", {mappings: {cwe: [CWE-477]}}]
+  - [AG-HYG-006, I, G, "No description or usage guidance"]
+  - [AG-HYG-007, I, G, "No version or changelog"]
+  - [AG-HYG-008, I, G, "Files in the package that nothing references"]
+  - [AG-HYG-009, L, G, "Install steps that are not reproducible", {confidence: medium}]
+  - [AG-HYG-010, L, G, "Persistent changes with no documented removal", {confidence: medium}]

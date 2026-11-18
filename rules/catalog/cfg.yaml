@@ -1,0 +1,88 @@
+family: CFG
+name: Agent settings and hooks
+about: Per-ecosystem trust-boundary rules for settings, permissions and hooks.
+defaults: {category: vulnerability, lane: block, confidence: high, engine: config}
+mappings:
+  owasp-ast-1.0: [AST02, AST03, AST06]
+  owasp-mcp-2025-beta: ["MCP02:2025"]
+  owasp-asi-2026: [ASI03]
+  owasp-llm-2026: ["LLM03:2026"]
+  nsa-csi-mcp-2026-05: [concerns/misconfiguration, concerns/approval-workflows]
+  cwe: []
+groups:
+  - name: Claude Code
+    rules:
+      - [AG-CFG-001, H, A, "`enableAllProjectMcpServers: true` in a repository settings file"]
+      - [AG-CFG-002, M, A, "`enabledMcpjsonServers` pre-approves servers from the repository"]
+      - [AG-CFG-003, H, P, "Broad `permissions.allow` rule (`Bash`, `Bash(curl *)`, `Read(~/**)`, `WebFetch(domain:*)`, `mcp__*`)"]
+      - [AG-CFG-004, H, A, "`permissions.defaultMode` set to a permissive mode in a repository file"]
+      - [AG-CFG-005, M, A, "`skipDangerousModePermissionPrompt` set"]
+      - [AG-CFG-006, H, X, "Hook command with network, exec or secret access", {confidence: medium}]
+      - [AG-CFG-007, C, X, "PreToolUse or PermissionRequest hook returns allow or `updatedPermissions`", {category: malice}]
+      - [AG-CFG-008, H, G, "Hook rewrites tool input (`updatedInput`)", {confidence: medium}]
+      - [AG-CFG-009, H, G, "Hook injects context read from files or the network", {confidence: medium}]
+      - [AG-CFG-010, H, X, "HTTP hook posts session data to an external URL", {category: malice}]
+      - [AG-CFG-011, M, G, "Hook with side effects on a load-time event (SessionStart, Setup, InstructionsLoaded, ConfigChange, FileChanged)", {lane: evidence, confidence: medium}]
+      - [AG-CFG-012, L, A, "Policy hook fails open (no `onFailure: \"block\"`)", {lane: evidence}]
+      - [AG-CFG-013, H, A, "Command-valued key in a repository file (`statusLine`, `fileSuggestion`, `apiKeyHelper`, `awsAuthRefresh`, `awsCredentialExport`, `gcpAuthRefresh`, `otelHeadersHelper`)"]
+      - [AG-CFG-014, H, A, "`env` overrides a security-relevant variable (API base URL, proxy, `PATH`, `NODE_OPTIONS`, `LD_PRELOAD`, `GIT_SSH_COMMAND`)"]
+      - [AG-CFG-015, H, A, "Sandbox weakened (`enabled: false`, `excludedCommands`, `allowUnsandboxedCommands`, wildcard domains, broad `allowWrite`)"]
+      - [AG-CFG-016, M, G, "Repository registers a marketplace or enables plugins from an unvetted source", {lane: evidence}]
+      - [AG-CFG-017, M, A, "`additionalDirectories` grants home or root"]
+      - [AG-CFG-018, L, A, "Safety switch turned off from a repository file (`disableAllHooks: false`, `disableSkillShellExecution: false`)", {lane: evidence}]
+      - [AG-CFG-019, M, A, "`settings.local.json` committed to the repository", {lane: evidence}]
+      - [AG-CFG-020, M, A, "Memory or plan directory pointed at a shared or sensitive path"]
+      - [AG-CFG-021, L, G, "`claudeMdExcludes` hides instruction files", {lane: evidence}]
+      - [AG-CFG-022, H, A, "Instruction-file import of a sensitive or absolute path (`@~/.ssh/…`)"]
+      - [AG-CFG-023, M, G, "Instruction-file import chain leaves the repository", {lane: evidence}]
+  - name: Codex
+    rules:
+      - [AG-CFG-030, H, A, "`sandbox_mode = \"danger-full-access\"` or `approval_policy = \"never\"` in project config"]
+      - [AG-CFG-031, M, A, "`sandbox_workspace_write.network_access = true` or broad `writable_roots`"]
+      - [AG-CFG-032, M, P, "`shell_environment_policy` inherits everything with no excludes", {lane: evidence}]
+      - [AG-CFG-033, H, A, "Command-valued key (`notify`, `model_providers.*.auth.command`, `http_headers_helper`)"]
+      - [AG-CFG-034, M, A, "MCP server with write tools set to auto-approve"]
+      - [AG-CFG-035, H, X, "Hook in `.codex/hooks.json` or inline `[hooks]` with a risky command or allow decision", {confidence: medium}]
+      - [AG-CFG-036, M, G, "`model_instructions_file` or `developer_instructions` replaces base instructions", {lane: evidence}]
+      - [AG-CFG-037, H, A, "Literal OAuth client secret or bearer token in config", {mappings: {cwe: [CWE-798]}}]
+      - [AG-CFG-038, M, A, "Shipped `trust_level = \"trusted\"` entry, or instructions to use trust-bypass flags"]
+      - [AG-CFG-039, M, P, "Skill sidecar `agents/openai.yaml` pulls an unvetted MCP server or enables implicit invocation of a sensitive skill", {lane: evidence}]
+  - name: Gemini CLI
+    rules:
+      - [AG-CFG-045, H, A, "`mcpServers.*.trust: true`"]
+      - [AG-CFG-046, H, A, "Project `.env` or `.gemini/.env` sets sensitive variables"]
+      - [AG-CFG-047, M, A, "Approval weakened (`defaultApprovalMode`, folder trust off, yolo instructed)"]
+      - [AG-CFG-048, H, X, "Hook in settings or an extension with a risky command, request rewrite or synthetic response", {confidence: medium}]
+      - [AG-CFG-049, M, A, "Policy rule with a broad `allow` decision or yolo mode"]
+      - [AG-CFG-050, L, G, "`context.fileName` redirects context loading to an unexpected file", {lane: evidence}]
+      - [AG-CFG-051, M, A, "Sandbox disabled or sandbox network access enabled"]
+      - [AG-CFG-052, M, A, "Telemetry endpoint on an external host with prompt logging"]
+  - name: Cursor
+    rules:
+      - [AG-CFG-055, H, P, "Broad CLI permission (`Shell(*)`, `Mcp(*:*)`, `Write(**)`)"]
+      - [AG-CFG-056, H, A, "`approvalMode: \"unrestricted\"` or sandbox off"]
+      - [AG-CFG-057, H, X, "Hook in `.cursor/hooks.json` with a risky command or `permission: \"allow\"`", {confidence: medium}]
+      - [AG-CFG-058, L, A, "Policy hook without `failClosed`", {lane: evidence}]
+      - [AG-CFG-059, M, A, "MCP `envFile` pointing at secrets, or literal `CLIENT_SECRET`"]
+      - [AG-CFG-060, M, P, "`alwaysApply: true` rule carrying a risky directive", {lane: evidence, confidence: medium}]
+  - name: GitHub Copilot and VS Code
+    rules:
+      - [AG-CFG-065, H, X, "Hook in `.github/hooks/*.json` with a risky command, allow decision or `modifiedArgs`", {confidence: medium}]
+      - [AG-CFG-066, M, P, "Custom agent with `tools: [\"*\"]` and an unvetted MCP server"]
+      - [AG-CFG-067, M, A, "`.vscode/mcp.json` server with sandbox disabled or secrets as input defaults"]
+  - name: OpenClaw
+    rules:
+      - [AG-CFG-070, C, A, "Gateway bound to the network with `auth.mode: \"none\"`"]
+      - [AG-CFG-071, H, G, "`tools.profile: \"full\"` with the sandbox off for untrusted channels"]
+      - [AG-CFG-072, H, A, "Elevated execution enabled with a broad `allowFrom`"]
+      - [AG-CFG-073, M, A, "Webhooks enabled with a weak or shared token, or request-chosen session keys"]
+      - [AG-CFG-074, H, X, "Workspace hook (`HOOK.md` plus handler) with exec or network behaviour", {confidence: medium}]
+      - [AG-CFG-075, M, A, "Plugin allowed to modify prompts or read conversations with no plugin allow-list"]
+      - [AG-CFG-076, H, A, "Skill `install[]` download without `sha256`, or over plain HTTP"]
+      - [AG-CFG-077, M, A, "Literal API key in `skills.entries.*.apiKey`", {mappings: {cwe: [CWE-798]}}]
+      - [AG-CFG-078, M, G, "Skill load paths or symlink targets outside the workspace", {lane: evidence}]
+  - name: Any agent
+    rules:
+      - [AG-CFG-090, M, A, "User-scope or local config file committed to a repository", {lane: evidence}]
+      - [AG-CFG-091, I, G, "Config key not known for that agent", {category: hygiene, lane: hunt}]
+      - [AG-CFG-092, H, A, "Hidden whitespace or Unicode in a command, URL or path value", {category: malice, mappings: {cwe: [CWE-1007]}}]

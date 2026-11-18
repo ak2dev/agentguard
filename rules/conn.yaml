@@ -1,0 +1,270 @@
+# Detection entries for the CONN family (catalogue: rules/catalog/conn.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+  - id: AG-CONN-001
+    aliases: [AG-AUTH-009]
+    version: 1
+    description: Certificate verification failed or a protocol older than TLS 1.2 was negotiated.
+    why: Broken TLS exposes tool traffic and tokens.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Serve a valid certificate and require TLS 1.2 or newer.
+
+  - id: AG-CONN-002
+    variant: answers-unauthenticated
+    aliases: [AG-AUTH-001]
+    version: 1
+    title: Server answers without authentication
+    description: The remote server answered discovery or listing requests without any authorization.
+    why: Reported as a fact, not a verdict — public servers are legitimate. Know which remote servers anyone can use.
+    severity: info
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: If the server exposes private data or actions, require OAuth authorization per the MCP spec.
+
+  - id: AG-CONN-002
+    variant: open-write-tools
+    lane: block
+    version: 1
+    title: Destructive, financial or administrative tools callable with no authentication
+    description: The remote server listed its tools without asking for credentials, and the list includes tools that delete, change, spend or administer things.
+    why: Studies of public MCP servers found that well over a third expose tools to anyone. A read-only public server is a choice; one that lets any caller delete or spend is an open door, and an agent connected to it can be steered into using it.
+    confidence: high
+    match: {type: analyzer, analyzer: connector}
+    remediation: Do not connect to it until it requires authorization, or connect only to its read-only tools.
+
+
+  - id: AG-CONN-003
+    variant: as-metadata
+    aliases: [AG-AUTH-004]
+    version: 1
+    title: Authorization server metadata missing or inconsistent
+    description: The authorization server listed in PRM has no RFC 8414/OIDC metadata, or its `issuer` does not match.
+    why: Issuer mismatches enable authorization-server mix-up attacks.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Publish authorization server metadata whose issuer exactly matches the advertised issuer.
+    references: ["https://www.rfc-editor.org/rfc/rfc8414"]
+
+
+  - id: AG-CONN-003
+    variant: metadata-redirect
+    aliases: [AG-AUTH-011]
+    version: 1
+    title: Metadata endpoint redirects cross-origin or to insecure scheme
+    description: A protected-resource or authorization-server metadata request was redirected to another origin or to plain HTTP.
+    why: Redirected metadata can point clients at attacker-controlled authorization servers.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Serve metadata directly at the well-known URIs over HTTPS.
+
+
+  - id: AG-CONN-003
+    variant: prm-missing
+    aliases: [AG-AUTH-002]
+    version: 1
+    title: Missing Protected Resource Metadata (RFC 9728)
+    description: The server requires authorization (401/403) but neither the WWW-Authenticate resource_metadata parameter nor the well-known URI yields Protected Resource Metadata.
+    why: Without PRM, clients cannot discover the correct authorization server and fall back to guesses that enable token mix-ups.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Serve /.well-known/oauth-protected-resource and reference it from WWW-Authenticate.
+    references: ["https://www.rfc-editor.org/rfc/rfc9728"]
+
+
+  - id: AG-CONN-003
+    variant: prm-resource-mismatch
+    aliases: [AG-AUTH-003]
+    lane: block
+    version: 1
+    title: Protected Resource Metadata 'resource' does not match the server
+    description: The PRM `resource` identifier differs from the MCP server URL.
+    why: Clients bind tokens to the advertised resource; a mismatch breaks audience validation or points tokens elsewhere.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Set `resource` to the server's canonical URL.
+
+
+  - id: AG-CONN-004
+    variant: dcr-only
+    aliases: [AG-AUTH-007]
+    version: 1
+    title: Dynamic Client Registration only
+    description: The authorization server offers Dynamic Client Registration but not Client ID Metadata Documents.
+    why: DCR is deprecated as an MCP client registration mechanism in 2026-07-28 in favor of Client ID Metadata Documents.
+    severity: low
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Support Client ID Metadata Documents.
+    references: ["https://modelcontextprotocol.io/specification/2026-07-28/changelog"]
+
+
+  - id: AG-CONN-004
+    variant: no-iss
+    aliases: [AG-AUTH-006]
+    version: 1
+    title: RFC 9207 'iss' response parameter not advertised
+    description: The authorization server does not advertise `authorization_response_iss_parameter_supported`.
+    why: MCP 2026-07-28 says authorization servers SHOULD return `iss`, which clients use to detect mix-up attacks.
+    severity: low
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Return `iss` in authorization responses and advertise it.
+    references: ["https://www.rfc-editor.org/rfc/rfc9207"]
+
+
+  - id: AG-CONN-004
+    variant: no-pkce
+    aliases: [AG-AUTH-005]
+    lane: block
+    version: 1
+    title: PKCE S256 not advertised
+    description: The authorization server's `code_challenge_methods_supported` does not include S256.
+    why: The MCP spec requires PKCE with S256; clients are expected to refuse authorization servers that do not advertise it.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Support PKCE S256 and advertise it in authorization server metadata.
+    references: ["https://www.rfc-editor.org/rfc/rfc7636"]
+
+
+  - id: AG-CONN-004
+    variant: no-resource-indicators
+    aliases: [AG-AUTH-008]
+    version: 1
+    title: No evidence of resource indicators / audience binding
+    description: Protected Resource Metadata has no `resource` identifier, so clients cannot send an RFC 8707 resource parameter bound to this server.
+    why: Tokens without audience binding can be replayed against other services.
+    confidence: low
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Publish `resource` in PRM and validate token audience on every request.
+    references: ["https://www.rfc-editor.org/rfc/rfc8707"]
+
+
+  - id: AG-CONN-016
+    aliases: [AG-AUTH-010]
+    version: 1
+    description: The server advertises an MCP protocol version older than 2025-06-18 or one Agent Guard does not recognize. (The advertised version is always recorded in the inventory.)
+    why: Older revisions lack current authorization and security requirements.
+    confidence: high
+    network: true
+    match: {type: analyzer, analyzer: auth}
+    remediation: Upgrade the server to a current protocol revision.
+
+# ---- added: conn_rules ----
+  - id: AG-CONN-005
+    version: 1
+    description: "A probed server advertises broad scopes (admin, write, delete, a wildcard, `repo`) in its protected-resource metadata or its `WWW-Authenticate` challenge, while every tool it lists only reads."
+    why: The token the user grants can do more than the server's tools need. If the server or its token store is compromised, the extra scope is what the attacker gets.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: Ask the publisher for narrower scopes, or grant only the read scopes when the authorization screen lets you choose.
+
+  - id: AG-CONN-006
+    version: 1
+    description: "A remote server's host is one or two characters away from a known vendor's domain, carries a vendor's name on another domain, or the server is named after a vendor but served from elsewhere (reported at medium). Evaluated on the URL in the configuration; no connection is made."
+    why: Credentials and data sent to a lookalike host go to whoever registered it. The name in the configuration is the only thing telling the user whose server this is.
+    network: false
+    match: {type: analyzer, analyzer: connector}
+    remediation: Use the endpoint published in the vendor's own documentation. If this is your organisation's proxy, give it a name that says so.
+
+  - id: AG-CONN-007
+    version: 1
+    description: A probed server's tool list includes destructive tools (delete, drop, revoke), financial tools (pay, refund, transfer) or administrative tools (grant, invite, tokens, roles).
+    why: These are the calls an injected instruction is aimed at. Knowing a connector has them decides how much confirmation its tool calls need.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: Require confirmation for these tools, or disable them for agents that also read untrusted content.
+
+  - id: AG-CONN-008
+    version: 1
+    description: The tool definitions a probed server serves differ from the hashes recorded for it in the baseline lockfile (changed, added or removed tools).
+    why: A server can change what its tools say and do after it was approved (a rug pull). The definitions are what the model reads, so a change re-opens the review.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: "Review the changed definitions, then accept them with `agentguard baseline update`."
+
+  - id: AG-CONN-009
+    version: 1
+    description: A server's tool list was recorded with two client identities and the lists, or the definitions of tools with the same name, differ.
+    why: Tool lists may legitimately vary with authorization, but that also lets a server show a clean list to a scanner and a different one to the user's client.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: Review the list your own client is served, and pin it in the baseline.
+
+  - id: AG-CONN-010
+    version: 1
+    description: The name and version a probed server reports about itself match a published advisory in the bundled snapshot, or the host recorded vulnerabilities for the endpoint. Severity follows the advisory.
+    why: A known flaw in the server is reachable by anything that can make the agent call its tools.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: Ask the operator to update the server; do not connect an agent with sensitive access until it is fixed.
+
+  - id: AG-CONN-011
+    version: 1
+    description: "An OpenAPI action descriptor or `ai-plugin.json` uses a plain-HTTP server URL, declares no security scheme, or sends an API key in the query string."
+    why: Over HTTP anyone on the network path reads and changes the calls; with no scheme every call is anonymous; a key in the query string ends up in logs and history.
+    match: {type: analyzer, analyzer: connector}
+    remediation: Serve the API over HTTPS, declare a security scheme, and send keys in a header.
+
+  - id: AG-CONN-012
+    version: 1
+    description: A description, summary or title in an OpenAPI document or plugin manifest gives the model an instruction - to ignore earlier instructions, to hide something from the user, to send conversation content or credentials, or to call this action first.
+    why: Agents read these fields to decide when and how to call an action. Text there is read as trusted guidance, the same way a poisoned tool description is.
+    match: {type: analyzer, analyzer: connector}
+    remediation: Do not add the action. Descriptions should say what an operation does, nothing else.
+
+  - id: AG-CONN-013
+    version: 1
+    description: "An OpenAPI operation deletes or changes data (`DELETE`, or a write whose name says delete, cancel, pay, send, publish…) and is not marked `x-openai-isConsequential: true`. Up to five operations per document are reported."
+    why: Without the marker an agent may be allowed to call the operation with no confirmation once the user has approved the action in general.
+    match: {type: analyzer, analyzer: connector}
+    remediation: "Add `x-openai-isConsequential: true` to every operation that changes or removes something."
+
+  - id: AG-CONN-014
+    version: 1
+    description: "An A2A agent card names a plain-HTTP endpoint, carries no signature (reported at low), or has a skill description that gives the model instructions (reported at high)."
+    why: The card is how another agent decides what this one is and what to send it. Unsigned or tampered cards, and descriptions with directives, steer that decision.
+    match: {type: analyzer, analyzer: connector}
+    remediation: Serve the agent over HTTPS, sign the card, and keep skill descriptions descriptive.
+
+  - id: AG-CONN-015
+    version: 1
+    description: "Server code answers cross-origin requests from any site - `Access-Control-Allow-Origin: *`, `cors()` with no options, `allow_origins=[\"*\"]`, a reflected `Origin` - or turns DNS-rebinding protection off."
+    why: A web page the user visits can then call a server on localhost from their browser and use its tools, with no credentials needed.
+    applies_to: [script, source_code]
+    match:
+      type: regex
+      scopes: [code]
+      patterns:
+        - |-
+          Access-Control-Allow-Origin["']?\s*[,:)]\s*["']\*["']
+        - |-
+          \ballow_origins\s*=\s*\[\s*["']\*["']|\ballow_origin_regex\s*=\s*r?["']\.\*["']|\bCORS\(\s*\w+\s*\)|\bCORS\([^)\n]*origins\s*=\s*["']\*["']
+        - |-
+          \bcors\(\s*\)|\bcors\(\s*\{[^}\n]*\borigin\s*:\s*(?:["']\*["']|true)\b
+        - |-
+          \benableDnsRebindingProtection\s*:\s*false\b|\ballowedOrigins\s*:\s*\[\s*["']\*["']|\bsetHeader\(\s*["']Access-Control-Allow-Origin["']\s*,\s*req\.headers\.origin\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner)\b
+      window: 0
+    remediation: Answer only the origins the server is meant for, validate the `Origin` and `Host` headers, and bind to 127.0.0.1.
+
+  - id: AG-CONN-017
+    version: 1
+    description: Text a server sent back to a harmless probe - an error message, the authentication challenge, its server information, its resource metadata, or a recorded response - contains instructions addressed to the model.
+    why: That text is placed in the agent's context when the connection is made, before any tool is called. A server that answers a plain request with orders is trying to steer whoever connects.
+    network: true
+    match: {type: analyzer, analyzer: connector}
+    remediation: Do not connect an agent to this server.

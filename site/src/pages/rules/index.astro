@@ -1,39 +1,39 @@
 ---
 import Base from "../../layouts/Base.astro";
 import data from "../../data/generated/rules.json";
+import meta from "../../data/generated/meta.json";
 import RulesByArea from "../../components/charts/RulesByArea.astro";
+import { FIX_TEXT, LANE_TEXT, orderedFamilies } from "../../data/families";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-const groups = [
-  ["AG-SKL-", "Skills and instruction files"], ["AG-MCP-CFG-", "MCP client configuration"], ["AG-MCP-META-", "MCP tool, prompt and resource metadata"],
-  ["AG-MCP-SPEC-", "MCP spec conformance in server and client code"],
-  ["AG-CODE-", "Server and script code"], ["AG-FLOW-", "Toxic flows"], ["AG-SC-", "Supply chain and drift"], ["AG-AUTH-", "Remote auth conformance"],
-  ["AG-POL-", "Policy"], ["AG-SYS-", "Coverage and loader safety"], ["AG-LLM-", "Optional LLM judge"],
-];
+const families = orderedFamilies(data.families);
 const ids = (m) => m.filter((x) => x.id && x.framework !== "cwe").map((x) => x.id).join(", ");
 ---
 <Base title="Rule catalog" wide>
   <h1>Rule catalog</h1>
-  <p class="lead">{data.rules.length} rules in rule pack {data.rule_pack.version}. Every rule has unsafe and safe fixtures that CI runs on every change. Rules marked <span class="pill">network</span> run only with an opt-in network flag.</p>
-  <RulesByArea rules={data.rules} />
+  <p class="lead">{meta.rule_count} rules in {meta.families} families, rule pack {data.rule_pack.version}, carried out by {data.rule_pack.detectors} detectors. Every rule has unsafe and safe fixtures that CI runs on every change. Rules marked <span class="pill">network</span> run only with an opt-in network flag.</p>
+  <p class="muted">Each rule runs in a lane. <b>Block</b>: {LANE_TEXT.block}. <b>Evidence</b>: {LANE_TEXT.evidence}. <b>Hunt</b>: {LANE_TEXT.hunt}. The verdict (ALLOW, REVIEW, BLOCK) is decided by the findings that count; a rule's old id still works as an alias.</p>
+  <RulesByArea rules={data.rules} families={families} />
   <div class="filter" id="rule-filter-host" hidden>
     <label for="rule-filter">Filter</label>
-    <input id="rule-filter" type="search" placeholder="ID, title or standard (e.g. ASI01)" />
+    <input id="rule-filter" type="search" placeholder="ID, title, old ID or standard (e.g. ASI01)" />
   </div>
-  {groups.map(([prefix, label]) => {
-    const rules = data.rules.filter((r) => r.id.startsWith(prefix));
+  {families.map((fam) => {
+    const rules = data.rules.filter((r) => r.family === fam.family);
     return rules.length ? (
-      <section id={prefix.toLowerCase().replace(/-$/, "")}>
-        <h2>{label}<span class="h-count">{rules.length} {rules.length === 1 ? "rule" : "rules"}</span></h2>
+      <section id={fam.family.toLowerCase()}>
+        <h2>{fam.name}<span class="h-count">{fam.family} · {rules.length} {rules.length === 1 ? "rule" : "rules"}</span></h2>
+        {fam.about && <p class="muted">{fam.about}</p>}
         <div class="corners"><div class="table-scroll">
           <table class="rules-table">
-            <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Confidence</th><th scope="col">Standards</th></tr></thead>
+            <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Lane</th><th scope="col">Fix</th><th scope="col">Standards</th></tr></thead>
             <tbody>
               {rules.map((r) => (
-                <tr data-search={`${r.id} ${r.title} ${ids(r.mappings)}`.toLowerCase()}>
+                <tr data-search={`${r.id} ${r.title} ${r.aliases.join(" ")} ${ids(r.mappings)}`.toLowerCase()}>
                   <td><a href={`${base}/rules/${r.id.toLowerCase()}/`}><code>{r.id}</code></a></td>
                   <td>{r.title}{r.network && <> <span class="pill">network</span></>}</td>
                   <td><span class={`sev ${r.severity}`}>{r.severity}</span></td>
-                  <td>{r.confidence}</td>
+                  <td title={LANE_TEXT[r.lane]}>{r.lane}</td>
+                  <td title={FIX_TEXT[r.fix] ?? ""}>{r.fix}</td>
                   <td class="muted">{ids(r.mappings)}</td>
                 </tr>
               ))}

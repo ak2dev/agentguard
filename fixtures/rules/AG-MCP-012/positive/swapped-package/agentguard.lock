@@ -1,0 +1,36 @@
+{
+  "artifacts": [
+    {
+      "accepted_findings": [],
+      "approved_at": "",
+      "approved_by": "",
+      "capabilities": [],
+      "ecosystem": "claude-desktop",
+      "external_refs": {},
+      "id": "mcp:weather",
+      "launch": {
+        "args": [
+          "-y",
+          "@acme/weather-mcp@1.4.2"
+        ],
+        "command": "npx",
+        "sha256": "cbc6248764bd6d9a2f28ea7c656e2b171cff480e75153efeccea97b02b4f1691"
+      },
+      "name": "weather",
+      "review_by": "",
+      "risk_tier": "L2",
+      "root": "claude_desktop_config.json",
+      "source": "pasted",
+      "tree_sha256": "fce052c63fa76f5933353b6e3c06759a0c504f89dcd1487b862e7a614f377418",
+      "type": "mcp-server",
+      "verdict": "ALLOW"
+    }
+  ],
+  "generated_by": {
+    "engine": "0.2.0.dev0",
+    "intel": "",
+    "rule_pack": "0.1.0"
+  },
+  "lock_version": 2,
+  "tool_hash_version": 2
+}

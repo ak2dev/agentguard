@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from ..core.intel.feed import FeedError, IntelFeed, load_trusted_keys, verify_feed
-from ..core.rules.pack import data_dirs
+from ..core.rules.pack import bundled_dirs
 
 
 def data_home() -> Path:
@@ -30,14 +30,40 @@ def data_home() -> Path:
 
 
 def bundled_intel_dir() -> Path:
-    rules_dir, _ = data_dirs()
+    rules_dir, _ = bundled_dirs()
     return rules_dir.parent / "intel"
 
 
-def trusted_keys() -> dict[str, bytes]:
+def user_keys_dir() -> Path:
+    """Where the user may add release keys of their own (an organisation's mirror, for example). It is in
+    the user's configuration directory, never in a scanned target."""
+    override = os.environ.get("AGENTGUARD_CONFIG_HOME")
+    if override:
+        return Path(override) / "keys"
+    if sys.platform == "win32":
+        return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "agentguard" / "keys"
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "agentguard" / "keys"
+
+
+def trusted_keys(strict: bool = False) -> dict[str, bytes]:
+    """Keys a feed or an update bundle may be signed with: the ones shipped with Agent Guard, then the
+    user's own. A user key never replaces a shipped key of the same name. A malformed user key file is
+    ignored unless `strict`."""
     kdir = bundled_intel_dir() / "keys"
     files = {p.name: p.read_bytes() for p in sorted(kdir.glob("*.pub.json"), key=lambda p: p.name)} if kdir.is_dir() else {}
-    return load_trusted_keys(files)
+    keys = load_trusted_keys(files)
+    udir = user_keys_dir()
+    if udir.is_dir():
+        for p in sorted(udir.glob("*.pub.json"), key=lambda p: p.name):
+            try:
+                extra = load_trusted_keys({p.name: p.read_bytes()})
+            except (FeedError, OSError):
+                if strict:
+                    raise FeedError(f"{p} is not a valid public key file") from None
+                continue
+            for key_id, pub in extra.items():
+                keys.setdefault(key_id, pub)
+    return keys
 
 
 def _state_file() -> Path:

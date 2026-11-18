@@ -1,0 +1,268 @@
+# Detection entries for the IMPACT family (catalogue: rules/catalog/impact.yaml).
+# An entry without `variant` is the rule's own detector; a variant is a narrower detector under it.
+rules:
+
+# ---- added: impact_regex ----
+  - id: AG-IMPACT-001
+    version: 1
+    description: A command or call deletes the home directory, the filesystem root, a system directory or a whole disk - `rm -rf ~`, `rm -rf /`, `shutil.rmtree(Path.home())`, `mkfs`, `dd of=/dev/sda`, `Remove-Item -Recurse $env:USERPROFILE`.
+    why: Nothing a skill, plugin or server needs involves erasing the user's files or disk. Run once, the data is gone.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \brm\s+(?:-[a-zA-Z-]+\s+)*-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)[a-zA-Z]*\s+(?:--no-preserve-root\s+)?["']?(?:/(?=\s|$|\*|["'])|~/?(?=\s|$|\*|["'])|\$\{?HOME\}?/?(?=\s|$|\*|["'])|/(?:home|Users|etc|var|usr|boot|root|opt)(?:/\*)?(?=\s|$|["']))
+        - |-
+          \b(?:mkfs(?:\.\w+)?|wipefs\s+-a|shred)\s+[^\n]*?/dev/(?:sd|nvme|hd|disk|mapper|vd)\w*
+        - |-
+          \bdd\s+[^\n]*\bof=/dev/(?:sd|nvme|hd|disk|vd)\w*
+        - |-
+          \bshutil\.rmtree\(\s*(?:os\.path\.expanduser\(\s*["']~/?["']\s*\)|(?:pathlib\.)?Path\.home\(\)|["']/["']|["']~/?["']|os\.environ\[["']HOME["']\]|os\.environ\.get\(["']HOME["']\))
+        - |-
+          \b(?:Remove-Item|rd|rmdir|del)\b[^\n]*(?:-Recurse|/s\b)[^\n]*(?:\$env:USERPROFILE(?![\\/]\w)|\$HOME(?![\\/]\w)|%USERPROFILE%(?![\\/]\w)|[A-Za-z]:\\(?:\s|\*|Users\b|["']|$))
+        - |-
+          \bformat\s+[c-zC-Z]:\s*/[qQyY]|\bcipher\s+/w:[A-Za-z]:\\?(?:\s|$)|\bdiskpart\b[^\n]*\bclean\b
+        - |-
+          \bfind\s+(?:/|~|\$\{?HOME\}?)\s[^\n]*-(?:delete\b|exec\s+rm\b)
+        - |-
+          \bfs\.(?:rmSync|rm|rmdirSync|rmdir)\(\s*(?:os\.homedir\(\)|process\.env\.HOME|["']/["']|["']~["'])[^)\n]*recursive
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run|don'?t\s+run|dangerous)\b
+      window: 0
+      downgrade:
+        - {severity: medium, roles: [reference], quoted: true}
+    remediation: Remove the command. Delete only named paths inside the skill's own directory or the workspace.
+
+  - id: AG-IMPACT-002
+    version: 1
+    description: Ransomware behaviour - a ransom note ("your files have been encrypted", payment in cryptocurrency to recover them), or code that walks a directory tree encrypting each file and removing the original.
+    why: This is extortion. No agent extension has a reason to encrypt the user's files in bulk.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:your|all\s+(?:of\s+)?your)\s+(?:files|documents|data)\s+(?:have\s+been|are|were)\s+encrypted\b
+        - |-
+          \b(?:pay|send|transfer)\b[^.\n]{0,60}\b(?:bitcoin|btc|monero|xmr|ransom)\b[^.\n]{0,80}\b(?:decrypt|recover|restore|unlock|get\s+(?:your\s+)?(?:files|data)\s+back)
+        - |-
+          \b(?:README|HOW)_?(?:TO)?_?(?:DECRYPT|RECOVER|RESTORE)(?:_FILES)?\b|\bDECRYPT_INSTRUCTIONS\b
+        - |-
+          \b(?:os\.walk|rglob|glob\.glob|walkSync|readdirSync|Get-ChildItem\s+[^\n]*-Recurse)\b[\s\S]{0,400}?\b(?:Fernet\(|AES\.new\(|\.encrypt\(|createCipheriv\(|openssl\s+enc\b|ChaCha20)[\s\S]{0,300}?\b(?:os\.remove\(|os\.unlink\(|\.unlink\(|unlinkSync\(|Remove-Item\b|shred\b)
+        - |-
+          \b(?:find|for\s+\w+\s+in)\b[^\n]*\b(?:openssl\s+enc\s+-(?:aes|chacha)|gpg\s+(?:-c|--symmetric))\b[^\n]*(?:&&|;)\s*(?:rm|shred)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|awareness)\b
+      window: 0
+    remediation: Remove it. Do not install this.
+
+  - id: AG-IMPACT-003
+    version: 1
+    description: A cryptocurrency miner - a miner binary by name (xmrig, cpuminer, ethminer …), a `stratum+tcp://` pool address, a known mining pool host, or miner options such as `--donate-level`.
+    why: Mining uses the user's CPU, GPU and electricity for someone else's profit, and is a common payload of malicious packages.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \b(?:xmrig|minerd|cpuminer(?:-multi|-opt)?|ethminer|nbminer|lolminer|cgminer|bfgminer|nanominer|phoenixminer|xmr-stak|srbminer)\b
+        - |-
+          \bstratum\+(?:tcp|ssl|tls)://
+        - |-
+          \b(?:minexmr\.com|supportxmr\.com|hashvault\.pro|nanopool\.org|moneroocean\.stream|2miners\.com|ethermine\.org|f2pool\.com|nicehash\.com|unmineable\.com|herominers\.com)\b
+        - |-
+          --donate-level\b|\b(?:coinhive|cryptonight|randomx)\b[^\n]{0,60}\b(?:pool|wallet|threads|hashrate|mine)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|blocklist|indicators?)\b
+      window: 0
+    remediation: Remove it. Do not install this.
+
+  - id: AG-IMPACT-004
+    version: 1
+    description: A fork bomb, a flooding tool, or an instruction to loop without end - keep calling a tool or generating until the context, quota or budget is used up.
+    why: It makes the machine or the session unusable and runs up the user's model or API bill.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          :\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:
+        - |-
+          %0\s*\|\s*%0|\bwhile\s+(?:True|true|1)\s*:\s*(?:\n\s*)?os\.fork\(\)
+        - |-
+          \b(?:hping3|slowloris|goldeneye|loic|hoic)\b|\bab\s+-n\s*\d{7,}\b
+        # An instruction to loop, not a warning against one ("don't `continue` forever") or a
+        # description of a bug ("would retry and loop forever").
+        - |-
+          (?<!\b(?:never|not|n't|avoid|avoids|prevents?|would|could|might|otherwise|instead\s+of|rather\s+than)\b[^.\n]{0,40})\b(?:repeat|loop|keep\s+(?:going|repeating|calling|generating|retrying)|continue)\b[^.\n]{0,60}\b(?:forever|indefinitely|endlessly|infinitely|without\s+(?:ever\s+)?stopping|until\s+(?:the\s+)?(?:context|tokens?|budget|quota|limit)\s+(?:is\s+|are\s+)?(?:exhausted|runs?\s+out|full|used\s+up))\b
+        - |-
+          \b(?:never|do\s+not|don'?t)\s+stop\s+(?:generating|calling|retrying|looping)\b|\b(?:use|consume|burn)\s+as\s+many\s+(?:tokens|requests|calls)\s+as\s+possible\b|\bmaximi[sz]e\s+(?:token|api)\s+(?:usage|consumption|spend)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run)\b
+      window: 0
+    remediation: Remove it. Loops need an exit condition and a limit.
+
+  - id: AG-IMPACT-005
+    version: 1
+    description: Instructions tell the agent to run a git command that discards work or rewrites shared history - force push, `reset --hard`, `clean -fd`, `branch -D`, `checkout .`, `stash clear`, history rewriting - with nothing nearby about asking first.
+    why: These commands delete uncommitted work or other people's commits and cannot be undone from the working copy.
+    applies_to: ["@prose"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command]
+      patterns:
+        - |-
+          \bgit\s+push\s+[^\n|;&`]*?(?:--force\b(?!-with-lease)|(?<=\s)-f\b|\s\+\S+)
+        - |-
+          \bgit\s+reset\s+--hard\b
+        - |-
+          \bgit\s+clean\s+-[a-zA-Z]*f[a-zA-Z]*\b
+        - |-
+          \bgit\s+branch\s+-D\b|\bgit\s+checkout\s+(?:--\s+)?\.(?=\s|$|`)|\bgit\s+restore\s+(?:--staged\s+--worktree\s+)?\.(?=\s|$|`)
+        - |-
+          \bgit\s+(?:filter-branch|filter-repo|reflog\s+expire|update-ref\s+-d|stash\s+(?:drop|clear))\b|\bgit\s+push\s+\S+\s+(?:--delete\s+|:)(?:main|master|release\S*|prod\S*)\b
+      unless:
+        - |-
+          \b(?:ask|asks|confirm\w*|approval|permission|only\s+(?:if|when|after)|never|do\s+not|don'?t|avoid|warn\w*|careful\w*|destructive|irreversible|back\s*up|detects?|scanner)\b
+      window: 1
+    remediation: Have the agent ask before any command that discards work, and prefer `--force-with-lease`, `git stash` or a new branch.
+
+  - id: AG-IMPACT-006
+    version: 1
+    description: A command or statement destroys a database or cloud resources - `DROP DATABASE`, `TRUNCATE`, an unqualified `DELETE FROM`, `terraform destroy -auto-approve`, `aws … delete/terminate`, `kubectl delete … --all`, `docker volume prune`.
+    why: Run against real infrastructure it removes data and services, and an agent running it on instruction will not know which environment it is in.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bDROP\s+(?:DATABASE|SCHEMA)\s+(?!IF\s+EXISTS\s+(?:tmp|temp|test)\w*)\S+|\bDROP\s+TABLE\s+(?!IF\s+EXISTS\b)\S+
+        # SQL, not the English words: upper case, or closed like a statement (`;` or the end of a string).
+        # "silently truncate a" and "// Delete from storage" in a comment are prose.
+        - |-
+          \bTRUNCATE\s+TABLE\s+[\w."`]+|(?-i:\bTRUNCATE\s+[\w."`]+\s*(?:;|$|["'`)]))|\bDELETE\s+FROM\s+[\w."`]+\s*(?:;|["'`)])|(?-i:\bDELETE\s+FROM\s+[\w."`]+\s*$)
+        - |-
+          \.dropDatabase\(|\bdb\.\w+\.drop\(\)|\b(?:FLUSHALL|FLUSHDB)\b
+        - |-
+          \bterraform\s+(?:destroy\b[^\n]*-auto-approve|apply\s+[^\n]*-destroy\b[^\n]*-auto-approve)|\bpulumi\s+destroy\b[^\n]*(?:--yes|-y)\b
+        - |-
+          \baws\s+(?:s3\s+rb\s+[^\n]*--force|s3\s+rm\s+[^\n]*--recursive|ec2\s+terminate-instances|rds\s+delete-db-(?:instance|cluster)|cloudformation\s+delete-stack|dynamodb\s+delete-table|eks\s+delete-cluster|lambda\s+delete-function)\b
+        - |-
+          \bgcloud\s+[^\n]*\bdelete\b[^\n]*(?:--quiet|\s-q)\b|\baz\s+(?:group|vm|storage\s+account|sql\s+db|aks)\s+delete\b[^\n]*(?:--yes|\s-y)\b
+        - |-
+          \bkubectl\s+delete\s+(?:ns|namespaces?|all|pvc|pv|deploy\w*|statefulsets?)\b[^\n]*(?:--all\b|--force\b)|\bdocker\s+(?:system\s+prune\s+[^\n]*--volumes|volume\s+(?:rm|prune))\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run|don'?t\s+run)\b
+      window: 0
+    remediation: Remove the command, or make it take the target as an argument the user supplies and confirm before it runs.
+
+  - id: AG-IMPACT-007
+    version: 1
+    description: Code or instructions move money - create a charge, payout or transfer, sign and send a blockchain transaction, place a trade order, send funds to an address.
+    why: A financial action cannot be undone. With it in reach, any wrong or injected instruction costs real money.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bstripe\.(?:Charge|PaymentIntent|Transfer|Payout|Refund)s?\.create\b|\bstripe\.(?:charges|paymentIntents|transfers|payouts|refunds)\.create\b
+        - |-
+          \b(?:sendTransaction|signAndSendTransaction|sendRawTransaction|send_raw_transaction|send_transaction)\(|\bweb3\.eth\.send\w*\(|\beth_sendTransaction\b
+        - |-
+          \b(?:place|submit|create)_?(?:market_?|limit_?)?order\(|\b(?:alpaca|binance|coinbase|kraken|ibkr|robinhood)\b[^\n]{0,80}\b(?:submit_order|create_order|place_order|withdraw)\b
+        - |-
+          \b(?:transfer|send|withdraw|wire)\s+(?:the\s+|all\s+)?(?:funds|money|crypto|bitcoin|btc|eth|usdc?|tokens|balance)\b[^.\n]{0,40}\bto\b
+        - |-
+          \b(?:execute|place|submit|make)\s+(?:the\s+|a\s+|an\s+)?(?:trade|buy\s+order|sell\s+order|market\s+order|wire\s+transfer|payout)\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|test\s*mode|sandbox|testnet|dry[- ]?run)\b
+      window: 1
+    remediation: Require the user's confirmation for each financial action, with the amount and recipient shown, and use restricted keys.
+
+  - id: AG-IMPACT-008
+    version: 1
+    description: Code or instructions send a message, email or post to every contact, user or subscriber, or loop over a list of recipients sending to each.
+    why: Bulk sending under the user's identity is how spam and phishing spread from a compromised account, and it cannot be recalled.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bfor\b[^\n]{0,80}\b(?:in|of)\b[^\n]{0,60}\b(?:recipients?|contacts?|emails?|addresses|subscribers?|users?|members?|followers?|channels?|numbers?)\b[^\n]{0,30}[:{][\s\S]{0,300}?\b(?:send_?mail|sendmail|smtp\w*\.send\w*|send_message|chat_postMessage|chat\.postMessage|messages\.create|send_sms|sendMessage|create_tweet|statuses/update)\b
+        - |-
+          \b(?:send|email|message|dm|text|post|tweet|invite)\s+(?:this\s+|the\s+\w+\s+|an?\s+\w+\s+|it\s+)?(?:to\s+)?(?:all|every|each)\s+(?:of\s+(?:the\s+)?)?(?:(?:the\s+)?user'?s?\s+)?(?:contacts?|users?|customers?|subscribers?|members?|followers?|employees?|recipients?|channels?|email\s+address(?:es)?)\b
+        - |-
+          \b(?:mass|bulk)[- ](?:email|mail|message|messag|dm|sms|post)\w*\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|draft|preview|confirm\w*)\b
+      window: 1
+    remediation: Send to recipients the user names, show the message first, and limit how many go out in one run.
+
+  - id: AG-IMPACT-009
+    version: 1
+    description: A command deletes backups or snapshots, clears or stops system and audit logs, turns off cloud audit trails, or switches off shell history.
+    why: These are the steps taken before or after an attack so that the damage cannot be undone or traced.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bvssadmin(?:\.exe)?\s+delete\s+shadows\b|\bwmic\s+shadowcopy\s+delete\b|\bwbadmin\s+delete\s+(?:catalog|systemstatebackup|backup)\b|\bbcdedit\b[^\n]*recoveryenabled\s+no\b
+        - |-
+          \btmutil\s+(?:disable|deletelocalsnapshots)\b|\bwevtutil\s+(?:cl|clear-log)\b|\bClear-EventLog\b|\bauditctl\s+-(?:e\s*0|D)\b
+        - |-
+          \bsystemctl\s+(?:stop|disable|mask)\s+(?:--now\s+)?(?:auditd|rsyslog|syslog(?:-ng)?|systemd-journald|filebeat|fluentd|fluent-bit)\b|\bservice\s+(?:auditd|rsyslog|syslog)\s+stop\b
+        - |-
+          \baws\s+(?:cloudtrail\s+(?:stop-logging|delete-trail)|backup\s+delete-backup-vault|logs\s+delete-log-group|guardduty\s+delete-detector|configservice\s+stop-configuration-recorder)\b|\bgcloud\s+logging\s+sinks\s+delete\b|\baz\s+monitor\s+diagnostic-settings\s+delete\b
+        - |-
+          \bunset\s+HISTFILE\b|\bexport\s+HISTFILE=/dev/null\b|\bHISTSIZE=0\b|\bset\s+\+o\s+history\b|\bhistory\s+-c\b
+        - |-
+          \b(?:rm|shred|truncate\s+-s\s*0)\s+[^\n]*(?:/var/log/(?:auth|secure|syslog|messages|audit)|\.bash_history|\.zsh_history)|>\s*/var/log/(?:auth\.log|secure|syslog|messages|audit/audit\.log)
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run)\b
+      window: 0
+    remediation: Remove the command. Do not install something that deletes backups or logs.
+
+  - id: AG-IMPACT-010
+    version: 1
+    description: A command changes system-wide state - enables, disables or stops a system service, edits files under `/etc`, changes kernel or firewall settings, writes machine-level registry keys, or adds a trusted root certificate.
+    why: The change affects every user and program on the machine and stays after the skill is removed.
+    applies_to: ["@prose", "@code", "@commands"]
+    match:
+      type: regex
+      scopes: [body, hidden, decoded, command, code]
+      patterns:
+        - |-
+          \bsystemctl\s+(?:enable|disable|mask|stop|restart)\s+(?!--user\b)(?:--now\s+)?[\w@.-]+
+        - |-
+          \bsysctl\s+-w\b|(?:>>?|\btee\s+(?:-a\s+)?)\s*/etc/(?:hosts|resolv\.conf|sysctl\.conf|sysctl\.d/\S+|fstab|environment|ld\.so\.preload|pam\.d/\S+|security/\S+)|\bsed\s+-i\b[^\n]*\s/etc/\S+
+        - |-
+          \b(?:iptables|ip6tables|nft)\s+[^\n]*(?:-F\b|--flush|-P\s+\w+\s+ACCEPT)|\bufw\s+(?:disable|allow\s+\d+)|\bfirewall-cmd\s+[^\n]*--add-port|\bnetsh\s+(?:advfirewall|firewall)\s+[^\n]*(?:state\s+off|add\s+rule|opmode\s+disable)
+        - |-
+          \bSet-ItemProperty\b[^\n]*HKLM:|\bNew-ItemProperty\b[^\n]*HKLM:|\breg(?:\.exe)?\s+add\s+["']?HKLM\\|\bdefaults\s+write\s+/Library/|\bscutil\s+--set\b
+        - |-
+          \bsc(?:\.exe)?\s+(?:config|stop|delete)\s+\S+|\b(?:Set-Service|Stop-Service|Disable-Service)\b
+        - |-
+          \bupdate-ca-certificates\b|\bsecurity\s+add-trusted-cert\b|\bcertutil\s+-addstore\s+[^\n]*\bRoot\b|\bImport-Certificate\b[^\n]*Cert:\\LocalMachine\\Root|\bchattr\s+[+-]i\b
+      unless:
+        - |-
+          \b(?:for\s+example|detects?|detection|such as|e\.g\.|for instance|scanner|never\s+run|do\s+not\s+run)\b
+      window: 0
+    remediation: Keep changes inside the workspace. If a system change is truly needed, have the user make it by hand.

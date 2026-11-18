@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "files": {
+      "command": "node",
+      "args": [
+        "server.js"
+      ],
+      "sandboxEnabled": false
+    }
+  }
+}

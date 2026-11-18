@@ -1,4 +1,4 @@
-// AG-SKL-BND-004. Rule-pack data: compiled with includes disabled.
+// AG-EXF-001 (variant binary-yara, formerly AG-SKL-BND-004). Rule-pack data: compiled with includes disabled.
 // An executable that names several credential stores AND carries an upload
 // channel. Either half alone is common in benign tools (browser automation,
 // chat integrations); together they are the shape of an information stealer.
@@ -6,7 +6,7 @@
 rule ag_bundled_credential_harvester
 {
     meta:
-        agentguard_rule = "AG-SKL-BND-004"
+        agentguard_rule = "AG-EXF-001"
         description = "Executable naming credential stores together with a chat-bot or webhook upload endpoint"
 
     strings:

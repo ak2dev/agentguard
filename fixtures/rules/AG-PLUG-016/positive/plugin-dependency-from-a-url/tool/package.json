@@ -1,0 +1,7 @@
+{
+  "name": "tool",
+  "version": "1.0.0",
+  "dependencies": {
+    "left-pad-fast": "https://packages.example.invalid/left-pad-fast.tgz"
+  }
+}
