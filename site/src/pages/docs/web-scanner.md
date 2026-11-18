@@ -36,6 +36,7 @@ Every link is first pinned to an immutable reference — a commit SHA, or an exa
 - Pasted text and dropped files never leave your device. An automated test in CI asserts that these scans make zero network requests.
 - In the GitHub fallback (no server), your browser contacts only `api.github.com` (2 to 6 requests: repository, commit, file list) and `raw.githubusercontent.com` or `gist.githubusercontent.com` (file contents), without cookies or a referrer. Nothing is sent to Agent Guard. GitHub allows 60 anonymous API requests per hour per network.
 - The Python runtime ([Pyodide](https://pyodide.org/)), its packages and the engine are served by this site. The first scan downloads about 15 MB; your browser caches it.
+- Signing in is optional. When the site is built with a Supabase project, you can sign in with Google and save a report to **My scans**. Only the report you choose to save is stored (verdict, findings, evidence snippets), never the scanned files, and only your account can read it. Until you sign in, nothing is sent to Supabase.
 
 ## What is different from the CLI
 
@@ -54,7 +55,7 @@ The repository root has a `vercel.json` that defines the site as a Vercel [servi
 - response headers: a Content-Security-Policy that allows WebAssembly (`'wasm-unsafe-eval'`) and, for the scanner's worker, the three GitHub hosts above; every page also carries its own stricter policy, and browsers enforce both;
 - `trailingSlash: true`, matching the site's URLs.
 
-No server code, environment variables or secrets are needed.
+No server code, environment variables or secrets are needed. For Google sign-in and My scans, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the publishable key, never a secret key) in the project's environment variables; `supabase/README.md` in the repository has the steps.
 
 To connect the server, run it on a host that can start containers with no network (see `web/README.md`: `docker compose up` locally; Postgres, Redis, the API and the dispatcher in production), then add a rewrite before the catch-all to `site` so the site reaches it on its own origin and its CSP can stay `connect-src 'self'`:
 

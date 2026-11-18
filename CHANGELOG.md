@@ -4,6 +4,12 @@
 
 First public version.
 
+### Sign in with Google and My scans (November 2026)
+
+- **Optional accounts on the website,** through Supabase. `/signin/` signs in with Google (OAuth authorization code with PKCE, written without a client library in `site/public/js/account.js`); Apple, GitHub, SSO and email sign-in are shown as coming soon. Signed in, each report on `/scan/` has **Save to My scans**, and `/account/` lists, opens and deletes the saved reports. Only the report is saved, never the scanned files, and only when the user asks.
+- **Database:** `supabase/migrations/` creates `saved_scans` under row-level security (each user reads, saves and deletes only their own rows; no access for `anon`; INSERT limited to content columns; 200 reports per user). Setup steps: `supabase/README.md`.
+- **Off unless configured:** without `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY` at build time the site is unchanged. The build refuses a secret or `service_role` key. A signed-out visit sends nothing to Supabase; `vercel.json` allows `*.supabase.co` and each page's own CSP narrows it to the configured project. The privacy page describes what is stored.
+
 ### Rebuilt to the full project plan (November 2026)
 
 The scanner now covers the whole plan: every agent ecosystem's files, a 450-rule catalogue in 23 families, one verdict per scan, and the engines, integrations and tools around it. The sections after this one describe the earlier state of 0.1.0 and use the earlier rule ids, which still work as aliases.

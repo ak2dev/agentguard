@@ -9,6 +9,7 @@ import "../styles/global.css";
 import Wordmark from "../components/Wordmark.astro";
 import Logo from "../components/Logo.astro";
 import HeaderMenus from "../components/HeaderMenus.astro";
+import { auth } from "../data/auth";
 
 // `bleed` drops the content column's padding (the landing page lays out its own blocks).
 interface Props { title: string; description?: string; wide?: boolean; bleed?: boolean }
@@ -24,10 +25,13 @@ const nav = [
   ["Benchmarks", "/benchmarks/"],
   ["Security", "/security/"],
 ];
-const csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests";
+// With sign-in on, the page may also call the one Supabase project it was built for. The header
+// CSP in vercel.json allows *.supabase.co; this meta CSP narrows it to that project's origin.
+const connect = auth.enabled ? `'self' ${auth.origin}` : "'self'";
+const csp = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${connect}; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests`;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-base={base} data-auth-url={auth.enabled ? auth.url : undefined} data-auth-key={auth.enabled ? auth.key : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -41,6 +45,7 @@ const csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 's
     <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
     <script is:inline src={`${base}/js/floater.js`} defer></script>
     <script is:inline src={`${base}/js/menus.js`} defer></script>
+    {auth.enabled && <script is:inline type="module" src={`${base}/js/account.js`}></script>}
   </head>
   <body>
     <a class="skip" href="#content">Skip to content</a>
@@ -55,6 +60,14 @@ const csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 's
           </ul>
         </nav>
         <div class="bar-actions">
+          {auth.enabled && (
+            // Both links share one grid cell sized to the wider, and only visibility changes, so the
+            // header never moves when public/js/account.js swaps them (tests/e2e/navigation.spec.mjs).
+            <span class="account-slot">
+              <a class="btn secondary" href={`${base}/signin/`} data-account-signin>Sign in</a>
+              <a class="btn secondary" href={`${base}/account/`} data-account-mine data-off><svg class="icon small-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>My scans</a>
+            </span>
+          )}
           <a class="btn secondary" href={`${base}/docs/install/`}>Install</a>
           {scanEnabled && <a class="btn" href={`${base}/scan/`}>Scan a link</a>}
         </div>
@@ -84,7 +97,7 @@ const csp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 's
           <div class="foot">
             <div>
               <a class="brand" href={`${base}/`}><Wordmark /></a>
-              <p class="foot-note">Open source (Apache-2.0). No analytics, no cookies, no third-party requests. Every report ends in a verdict with its evidence; ALLOW never means "safe".</p>
+              <p class="foot-note">Open source (Apache-2.0). No analytics, no cookies, {auth.enabled ? "and no third-party requests unless you sign in." : "no third-party requests."} Every report ends in a verdict with its evidence; ALLOW never means "safe".</p>
             </div>
             <div>
               <h2>Product</h2>

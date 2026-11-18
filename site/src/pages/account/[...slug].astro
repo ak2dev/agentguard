@@ -1,0 +1,51 @@
+---
+// My scans: the reports a signed-in user saved (Supabase, row-level security). Also where Google
+// sign-in returns to. Built only when the site has a Supabase project (src/data/auth.ts).
+import Base from "../../layouts/Base.astro";
+import { auth } from "../../data/auth";
+export function getStaticPaths() {
+  return auth.enabled ? [{ params: { slug: undefined } }] : [];
+}
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+<Base title="My scans" description="The Agent Guard scan reports you saved.">
+  <div class="account-head">
+    <div>
+      <h1>My scans</h1>
+      <p id="account-who" class="muted" hidden></p>
+    </div>
+    <div class="row" id="account-actions" hidden>
+      <a class="btn small" href={`${base}/scan/`}>New scan</a>
+      <button type="button" id="account-signout" class="btn secondary small">Sign out</button>
+    </div>
+  </div>
+
+  <noscript><p class="alert">This page needs JavaScript.</p></noscript>
+  <p id="account-status" class="muted" role="status" aria-live="polite">Loading…</p>
+  <div id="account-error" class="alert" role="alert" hidden></div>
+  <p id="account-notice" class="notice" role="status" hidden></p>
+
+  <div id="account-signedout" class="card" hidden>
+    <h2>Sign in to see your saved scans</h2>
+    <p>Scans run on your device. When you are signed in, each report gets a <strong>Save to My scans</strong> button, and the reports you save are listed here on any browser you sign in with.</p>
+    <p><a class="btn" href={`${base}/signin/?next=${encodeURIComponent(`${base}/account/`)}`}>Sign in</a></p>
+  </div>
+
+  <div id="account-empty" class="card" hidden>
+    <h2>No saved scans yet</h2>
+    <p>Scan a skill, an MCP configuration or a link, then choose <strong>Save to My scans</strong> under the report.</p>
+    <p><a class="btn" href={`${base}/scan/`}>Scan something</a></p>
+  </div>
+
+  <div id="account-list" class="corners" hidden>
+    <div class="table-scroll">
+      <table class="rules-table saved-table">
+        <thead><tr><th scope="col">Saved</th><th scope="col">What was scanned</th><th scope="col">Verdict</th><th scope="col">Findings</th><th scope="col">Rule pack</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody id="account-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="muted small account-foot">A saved scan holds the report: its verdict, findings and evidence snippets. The files you scanned are never uploaded. Saved scans are visible only to you; delete one and it is gone. <a href={`${base}/privacy/`}>Privacy</a>.</p>
+  <script is:inline type="module" src={`${base}/js/account-page.js`}></script>
+</Base>

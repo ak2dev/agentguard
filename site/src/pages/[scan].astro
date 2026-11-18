@@ -6,6 +6,7 @@ import Icon from "../components/Icon.astro";
 import meta from "../data/generated/meta.json";
 import engine from "../data/engine.json";
 import { requirement } from "../data/pinned";
+import { auth } from "../data/auth";
 export function getStaticPaths() {
   return import.meta.env.PUBLIC_FEATURE_SCAN === "1" ? [{ params: { scan: "scan" } }] : [];
 }
@@ -14,7 +15,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 <Base title="Scan" description="Scan an agent skill, MCP configuration or public GitHub link in your browser. Nothing is uploaded.">
   <div class="scan-head">
     <h1>Scan a skill, MCP config or link</h1>
-    <p class="lead">The scanner runs entirely in your browser. Pasted text and dropped files never leave your device, and nothing you scan is sent to Agent Guard.</p>
+    <p class="lead">The scanner runs entirely in your browser. Pasted text and dropped files never leave your device, and nothing you scan is sent to Agent Guard{auth.enabled ? ". Signed in, you can save a report to My scans; only the report is saved, never your files." : "."}</p>
     <ul class="scan-trust" aria-label="How results should be read">
       <li><Icon name="browser" class="icon small-icon" /> Runs on your device</li>
       <li><Icon name="lock" class="icon small-icon" /> Paste and files are never uploaded</li>

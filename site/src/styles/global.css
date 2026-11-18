@@ -208,6 +208,9 @@ nav.main .chev { width: 10px; height: 10px; flex: none; color: var(--muted); }
 }
 .bar-actions { display: flex; gap: 8px; }
 .bar-actions .btn { font-size: 1.06rem; padding: 10px 18px; }
+.account-slot { display: inline-grid; }
+.account-slot > .btn { grid-area: 1 / 1; justify-content: center; }
+.account-slot > [data-off] { visibility: hidden; }
 
 /* the logo and call to action that stay on screen once the header scrolls away
    (public/js/floater.js); they turn white over the orange bands */
@@ -933,7 +936,10 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
   nav.main { order: 3; flex-basis: 100%; }
   nav.main ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding-bottom: 4px; }
   nav.main a { display: flex; justify-content: center; white-space: nowrap; font-size: 1rem; padding: 6px 4px; }
-  .bar-actions { display: none; }
+  /* only the account button (Sign in or My scans) stays, beside the logo */
+  .bar-actions { margin-left: auto; }
+  .bar-actions > :not(.account-slot) { display: none; }
+  .bar-actions .btn { font-size: .92rem; padding: 7px 14px; }
   .band { padding-inline: 12px; }
   .hero { min-height: 0; padding: 72px 20px; }
   .hero h1 { margin: 28px auto 24px; }
@@ -1088,3 +1094,56 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .flow-step { display: inline-block; flex: none; padding: 1px 7px; border-radius: 999px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font: 600 10.5px var(--mono); letter-spacing: .06em; }
 .halo { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .35; stroke-width: 1; }
 .d-code.strong-code { fill: var(--fg); font-weight: 600; font-size: 13px; }
+
+/* ---- sign in and My scans (Supabase; src/pages/signin, src/pages/account) ---------------- */
+.signin { max-width: 500px; margin: 24px auto 40px; }
+.signin h1 { text-align: center; font-size: clamp(1.7rem, 3vw, 2.1rem); margin: 8px 0 28px; }
+.providers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+.provider { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 54px; padding: 12px 18px; font: inherit; font-weight: 500; font-size: 1.02rem; color: var(--fg); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.provider svg { width: 20px; height: 20px; flex: none; }
+.provider:hover:not(:disabled) { border-color: var(--fg-2); background: var(--surface-2); }
+.provider:disabled { cursor: not-allowed; color: var(--muted); }
+.provider:disabled svg { opacity: .55; }
+.provider[data-oauth]:disabled { cursor: progress; }
+.provider.wide { grid-column: 1 / -1; }
+/* the "Soon" tag sits on the button's top edge, so the label inside keeps its room */
+.soon { position: absolute; top: 0; right: 10px; transform: translateY(-50%); font-size: .62rem; font-weight: 600; line-height: 1; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 7px; }
+.or { display: flex; align-items: center; gap: 18px; margin: 30px 0 22px; color: var(--muted); font-size: .86rem; text-transform: uppercase; letter-spacing: .06em; }
+.or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line-2); }
+.signin-form { display: grid; gap: 14px; }
+.signin-form fieldset { display: grid; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.signin-form fieldset .field-label:not(:first-child) { margin-top: 12px; }
+.signin-form input[type="email"], .signin-form input[type="password"] { width: 100%; min-height: 52px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line-2); border-radius: 6px; padding: 11px 14px; }
+.signin-form input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(255, 122, 51, .18); }
+.signin-form fieldset:disabled input { opacity: .6; cursor: not-allowed; }
+.password { position: relative; }
+.password input { padding-right: 52px; }
+.password .reveal { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: inline-flex; padding: 8px; color: var(--fg-2); background: none; border: 0; border-radius: 4px; cursor: pointer; }
+.password .reveal:disabled { color: var(--muted); cursor: not-allowed; }
+.check { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--fg); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--orange); margin: 0; }
+.signin-submit { justify-content: center; width: 100%; min-height: 52px; border-radius: 6px; font-size: 1.05rem; margin-top: 8px; }
+.signin-submit:disabled { opacity: .45; cursor: not-allowed; }
+.signin-submit:disabled:hover { background: var(--orange); border-color: var(--orange); }
+.signin-soon { margin: 0; text-align: center; }
+.signin-links { text-align: center; margin: 18px auto 0; }
+.signin-links + .signin-links { margin-top: 8px; }
+.signin-terms { text-align: center; margin: 36px auto 0; color: var(--fg-2); font-size: .95rem; }
+.signin-done { margin: 0 0 22px; }
+.signin-done p { margin: 4px 0; }
+@media (max-width: 480px) { .providers { grid-template-columns: minmax(0, 1fr); } }
+
+.account-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.account-head h1 { margin-bottom: 4px; }
+.account-head p { margin: 0; }
+.saved-table td:nth-child(2) { min-width: 240px; overflow-wrap: anywhere; }
+.saved-table td:nth-child(2) a { text-decoration: none; }
+.saved-table td:nth-child(2) a:hover { text-decoration: underline; }
+.saved-table .saved-actions { white-space: nowrap; text-align: right; }
+.verdict-pill { display: inline-block; padding: 2px 8px; border: 1px solid var(--line-2); border-radius: 4px; font: 600 .78rem/1.4 var(--mono); }
+.verdict-pill.block { color: var(--crit); border-color: rgba(255, 138, 128, .45); }
+.verdict-pill.review { color: var(--high); border-color: rgba(255, 178, 102, .45); }
+.verdict-pill.allow { color: var(--ok); border-color: rgba(134, 239, 172, .4); }
+.account-foot { margin-top: 22px; }
+.save-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px 26px; border-top: 1px solid var(--line); }
+@media (max-width: 760px) { .save-row { padding-inline: 18px; } }

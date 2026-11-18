@@ -28,3 +28,8 @@ site/playwright-report/
 !bench/corpus/**/build/
 !bench/corpus/**/__pycache__/
 !bench/corpus/**/*.pyc
+
+# Local environment (the Supabase URL and publishable key for site builds); see site/.env.example
+.env
+.env.*
+!.env.example
