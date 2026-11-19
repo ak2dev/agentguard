@@ -15,5 +15,5 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   </dl>
   <SeverityDonut sample={sample} />
   <p><a class="btn" href={`${base}/sample-report.html`}>Open the HTML report</a></p>
-  <p class="muted">The HTML report is a single self-contained file with no scripts, the same file you get from <code>agentguard scan -f html</code>.</p>
+  <p class="muted">The HTML report is a single self-contained file with no scripts, the same report you get from <code>agentguard scan -f html</code>, with the URLs and hosts in its evidence defanged for the web (<code>hxxps://</code>, <code>[.]</code>).</p>
 </Base>

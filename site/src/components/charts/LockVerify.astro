@@ -1,6 +1,7 @@
 ---
 // lock → silent update → verify: how a rug pull is caught by a diff.
 import Figure from "./Figure.astro";
+import { defang } from "../../lib/defang";
 const events = [
   { when: "Day 1", what: "agentguard baseline create", sub: "hashes skill files and tool definitions", code: true },
   { when: "Day 9", what: "Server update", sub: "description changes, same version" },
@@ -38,7 +39,7 @@ const down = (x, y) => `M${x - 4},${y - 6}L${x},${y}L${x + 4},${y - 6}`;
     <line class="term-bar" x1="20" x2="480" y1="146" y2="146" />
     {[36, 50, 64].map((x) => <circle class="term-dot" cx={x} cy="132" r="4" />)}
     <text class="term-title" x="82" y="136">verify · tools/add · description</text>
-    {diffWide.map(([k, line], i) => <text class={`diff-${k}`} x="36" y={170 + i * 18}>{line}</text>)}
+    {diffWide.map(([k, line], i) => <text class={`diff-${k}`} x="36" y={170 + i * 18}>{defang(line)}</text>)}
     <path class="wire hot" d={`M${xs[2]},${axisY + 64}V115`} /><path class="wire-head hot" d={down(xs[2], 115)} />
     <rect class="finding-card" x="500" y="118" width="240" height="104" rx="10" />
     <rect class="finding-rule" x="501" y="130" width="3" height="80" rx="1.5" />
@@ -68,7 +69,7 @@ const down = (x, y) => `M${x - 4},${y - 6}L${x},${y}L${x + 4},${y - 6}`;
     <line class="term-bar" x1="0" x2="360" y1="252" y2="252" />
     {[16, 30, 44].map((x) => <circle class="term-dot" cx={x} cy="239" r="4" />)}
     <text class="term-title" x="60" y="243">verify · tools/add</text>
-    {diffNarrow.map(([k, line], i) => <text class={`diff-${k}`} x="14" y={276 + i * 19}>{line}</text>)}
+    {diffNarrow.map(([k, line], i) => <text class={`diff-${k}`} x="14" y={276 + i * 19}>{defang(line)}</text>)}
     <rect class="finding-card" x="0" y="350" width="360" height="80" rx="10" />
     <rect class="finding-rule" x="1" y="362" width="3" height="56" rx="1.5" />
     <text class="d-code strong-code" x="18" y="376">{finding.rule}</text>

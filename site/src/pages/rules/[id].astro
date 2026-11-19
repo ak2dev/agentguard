@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import data from "../../data/generated/rules.json";
 import { FAMILY_SHORT, FIX_TEXT, LANE_TEXT } from "../../data/families";
+import { defang } from "../../lib/defang";
 
 export function getStaticPaths() {
   return data.rules.map((rule) => ({ params: { id: rule.id.toLowerCase() }, props: { rule } }));
@@ -21,15 +22,15 @@ const family = data.families.find((f) => f.family === rule.family);
 const fixtures = `${rule.fixtures.positive} unsafe · ${rule.fixtures.negative} safe`;
 const { unsafe, safe } = rule.examples;
 ---
-<Base title={rule.id} description={rule.title}>
+<Base title={rule.id} description={defang(rule.title)}>
   <p class="crumb"><a href={`${base}/rules/`}>← All rules</a></p>
 
   <article class="report corners rule-head">
     <div class="report-top">
       <div class="report-intro">
         <p class="rule-id"><code>{rule.id}</code></p>
-        <h1>{rule.title}</h1>
-        <p>{rule.description}</p>
+        <h1>{defang(rule.title)}</h1>
+        <p>{defang(rule.description)}</p>
       </div>
       <div class="board corners">
         <div class="board-head">
@@ -51,8 +52,8 @@ const { unsafe, safe } = rule.examples;
       </div>
     </div>
     <div class="advice">
-      {rule.why && <div><h2 class="cell-h">Why it matters</h2><p>{rule.why}</p></div>}
-      <div class="fix"><h2 class="cell-h">How to fix</h2><p>{rule.remediation}</p></div>
+      {rule.why && <div><h2 class="cell-h">Why it matters</h2><p>{defang(rule.why)}</p></div>}
+      <div class="fix"><h2 class="cell-h">How to fix</h2><p>{defang(rule.remediation)}</p></div>
     </div>
     <div class="plans-foot" aria-hidden="true"></div>
   </article>
@@ -66,7 +67,7 @@ const { unsafe, safe } = rule.examples;
           <thead><tr><th scope="col">Variant</th><th scope="col">What it detects</th><th scope="col">Severity</th><th scope="col">Lane</th></tr></thead>
           <tbody>
             {rule.variants.map((v) => (
-              <tr><td><code>{v.key}</code></td><td>{v.description || v.title}</td><td><span class={`sev ${v.severity}`}>{v.severity}</span></td><td>{v.lane}</td></tr>
+              <tr><td><code>{v.key}</code></td><td>{defang(v.description || v.title)}</td><td><span class={`sev ${v.severity}`}>{v.severity}</span></td><td>{v.lane}</td></tr>
             ))}
           </tbody>
         </table>
@@ -77,18 +78,18 @@ const { unsafe, safe } = rule.examples;
   {(unsafe || safe) && (
     <section>
       <h2 class="report-h">Examples</h2>
-      <p class="muted">From the rule's inert fixtures, which CI runs on every change (reserved domains, fake tokens; secrets redacted).</p>
+      <p class="muted">From the rule's inert fixtures, which CI runs on every change (reserved domains, fake tokens; secrets redacted). Shown defanged: <code>hxxps://</code> and <code>[.]</code> in URLs and hosts, <code>[|]</code> before a shell, brackets in lure phrases.</p>
       <div class="examples">
         {unsafe && (
           <figure class="evidence">
             <figcaption class="ev-cap"><span class="ev-dots" aria-hidden="true"><i></i><i></i><i></i></span><code>{unsafe.path}</code><span class="ex-tag bad">Unsafe · triggers the rule</span></figcaption>
-            <pre><code>{unsafe.text}</code></pre>
+            <pre><code>{defang(unsafe.text)}</code></pre>
           </figure>
         )}
         {safe && (
           <figure class="evidence">
             <figcaption class="ev-cap"><span class="ev-dots" aria-hidden="true"><i></i><i></i><i></i></span><code>{safe.path}</code><span class="ex-tag good">Safe · does not trigger it</span></figcaption>
-            <pre><code>{safe.text}</code></pre>
+            <pre><code>{defang(safe.text)}</code></pre>
           </figure>
         )}
       </div>

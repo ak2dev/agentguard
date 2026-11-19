@@ -4,6 +4,11 @@
 
 First public version.
 
+### Website quotes attacks defanged (November 2026)
+
+- **Attack examples on the website are defanged** where they are rendered, the way security write-ups quote them, so no page presents a working payload or reads as a live "run this" lure: URLs as `hxxps://host[.]tld/…`, known exfiltration hosts as `webhook[.]site`, a pipe into a shell as `curl … [|] sh`, and lure cues bracketed (`before [first use]`, `in [your terminal]`, `Win[+]R`). One helper, `site/src/lib/defang.ts`, covers rule titles, descriptions and fixture examples, the rule catalogue, the how-it-works diagram and the sample report, now served from `site/src/data/generated/sample-report.html` through `/sample-report.html` with only its text changed (its markup and CSP hash are untouched). The rule YAML, fixtures, engine and the real install commands are unchanged.
+- **Optional Google Search Console tag:** with `PUBLIC_GOOGLE_SITE_VERIFICATION` set at build time, every page carries `<meta name="google-site-verification">`; unset, nothing is added. The build refuses a value that is not a verification token (the whole pasted tag is accepted).
+
 ### Sign in with Google or GitHub, and My scans (November 2026)
 
 - **Optional accounts on the website,** through Supabase. `/signin/` signs in with Google or GitHub (OAuth authorization code with PKCE, written without a client library in `site/public/js/account.js`); Apple, SSO and email sign-in are shown as coming soon. Signed in, each report on `/scan/` has **Save to My scans**, and `/account/` lists, opens and deletes the saved reports. Only the report is saved, never the scanned files, and only when the user asks.

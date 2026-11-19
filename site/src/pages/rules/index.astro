@@ -4,6 +4,7 @@ import data from "../../data/generated/rules.json";
 import meta from "../../data/generated/meta.json";
 import RulesByArea from "../../components/charts/RulesByArea.astro";
 import { FIX_TEXT, LANE_TEXT, orderedFamilies } from "../../data/families";
+import { defang } from "../../lib/defang";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const families = orderedFamilies(data.families);
 const ids = (m) => m.filter((x) => x.id && x.framework !== "cwe").map((x) => x.id).join(", ");
@@ -28,9 +29,9 @@ const ids = (m) => m.filter((x) => x.id && x.framework !== "cwe").map((x) => x.i
             <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Severity</th><th scope="col">Lane</th><th scope="col">Fix</th><th scope="col">Standards</th></tr></thead>
             <tbody>
               {rules.map((r) => (
-                <tr data-search={`${r.id} ${r.title} ${r.aliases.join(" ")} ${ids(r.mappings)}`.toLowerCase()}>
+                <tr data-search={`${r.id} ${defang(r.title)} ${r.aliases.join(" ")} ${ids(r.mappings)}`.toLowerCase()}>
                   <td><a href={`${base}/rules/${r.id.toLowerCase()}/`}><code>{r.id}</code></a></td>
-                  <td>{r.title}{r.network && <> <span class="pill">network</span></>}</td>
+                  <td>{defang(r.title)}{r.network && <> <span class="pill">network</span></>}</td>
                   <td><span class={`sev ${r.severity}`}>{r.severity}</span></td>
                   <td title={LANE_TEXT[r.lane]}>{r.lane}</td>
                   <td title={FIX_TEXT[r.fix] ?? ""}>{r.fix}</td>
