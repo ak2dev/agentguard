@@ -65,7 +65,8 @@ test("signed out: the sign-in page matches its layout and nothing is sent to Sup
   expect(meta).toContain(`connect-src 'self' ${new URL(supabase).origin};`);
   await expect(page.getByRole("heading", { name: "Sign in to Agent Guard" })).toBeVisible();
   for (const name of ["Google", "GitHub"]) await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
-  for (const name of [/Apple/, /Continue with SSO/]) await expect(page.getByRole("button", { name })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Continue with SSO/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Apple/ })).toHaveCount(0);
   await expect(page.getByLabel("Email")).toBeDisabled();
   await expect(page.getByLabel("Password", { exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeDisabled();

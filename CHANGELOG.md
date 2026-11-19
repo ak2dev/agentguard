@@ -6,7 +6,7 @@ First public version.
 
 ### Sign in with Google or GitHub, and My scans (November 2026)
 
-- **Optional accounts on the website,** through Supabase. `/signin/` signs in with Google or GitHub (OAuth authorization code with PKCE, written without a client library in `site/public/js/account.js`); Apple, SSO and email sign-in are shown as coming soon. Signed in, each report on `/scan/` has **Save to My scans**, and `/account/` lists, opens and deletes the saved reports. Only the report is saved, never the scanned files, and only when the user asks.
+- **Optional accounts on the website,** through Supabase. `/signin/` signs in with Google or GitHub (OAuth authorization code with PKCE, written without a client library in `site/public/js/account.js`); SSO and email sign-in are shown as coming soon. Signed in, each report on `/scan/` has **Save to My scans**, and `/account/` lists, opens and deletes the saved reports. Only the report is saved, never the scanned files, and only when the user asks.
 - **Database:** `supabase/migrations/` creates `saved_scans` under row-level security (each user reads, saves and deletes only their own rows; no access for `anon`; INSERT limited to content columns; 200 reports per user). Setup steps: `supabase/README.md`.
 - **Off unless configured:** without `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY` at build time the site is unchanged. The build refuses a secret or `service_role` key. A signed-out visit sends nothing to Supabase; `vercel.json` allows `*.supabase.co` and each page's own CSP narrows it to the configured project. The privacy page describes what is stored.
 
