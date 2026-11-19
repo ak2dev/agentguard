@@ -4,7 +4,8 @@
 * site/src/data/generated/coverage.json   ← mappings/*.yaml + crosswalk (gaps included)
 * site/src/data/generated/cli.json        ← the Typer app itself
 * site/src/data/generated/bench.json      ← bench/results/latest.json
-* site/public/sample-report.html          ← a real report of a synthetic malicious fixture
+* site/src/data/generated/sample-report.html ← a real report of a synthetic malicious fixture, served
+  with its URLs and hosts defanged at /sample-report.html (site/src/pages/sample-report.html.ts)
 * schemas/*.json                          ← Pydantic models
 """
 
@@ -102,7 +103,7 @@ def main() -> None:
                               "rules_implemented": sum(1 for r in core if r.implemented), "detectors": len(pack.detectors),
                               "extension_rules": len(pack.rules) - len(core)})
     report = scan(load_path(SAMPLE_FIXTURE), ScanOptions())
-    write(ROOT / "site" / "public" / "sample-report.html", render_html(report))
+    write(OUT / "sample-report.html", render_html(report))
     write(OUT / "sample.json", {"verdict": report.verdict.value, "score": report.score, "risk_tier": report.risk_tier.value,
                                 "verdict_reasons": report.verdict_reasons,
                                 "coverage": {"files_total": report.coverage.files_total,

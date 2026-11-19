@@ -10,6 +10,7 @@ import Wordmark from "../components/Wordmark.astro";
 import Logo from "../components/Logo.astro";
 import HeaderMenus from "../components/HeaderMenus.astro";
 import { auth } from "../data/auth";
+import { googleSiteVerification } from "../data/site-verification";
 
 // `bleed` drops the content column's padding (the landing page lays out its own blocks).
 interface Props { title: string; description?: string; wide?: boolean; bleed?: boolean }
@@ -40,6 +41,7 @@ const csp = `default-src 'self'; script-src 'self'; style-src 'self'; img-src 's
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0e0d0c" />
     <meta name="description" content={description} />
+    {googleSiteVerification && <meta name="google-site-verification" content={googleSiteVerification} />}
     <title>{title === "Agent Guard" ? title : `${title} · Agent Guard`}</title>
     <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
