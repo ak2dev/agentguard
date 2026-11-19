@@ -1,4 +1,4 @@
-// Sign-in (Google through Supabase Auth, PKCE) and My scans, against a mocked Supabase project.
+// Sign-in (Google and GitHub through Supabase Auth, PKCE) and My scans, against a mocked Supabase project.
 // Runs when the site was built with PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_PUBLISHABLE_KEY set
 // (any https://<ref>.supabase.co value: nothing reaches a real project), and is skipped otherwise.
 import { test, expect } from "@playwright/test";
@@ -64,8 +64,8 @@ test("signed out: the sign-in page matches its layout and nothing is sent to Sup
   const meta = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
   expect(meta).toContain(`connect-src 'self' ${new URL(supabase).origin};`);
   await expect(page.getByRole("heading", { name: "Sign in to Agent Guard" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Google" })).toBeEnabled();
-  for (const name of [/Apple/, /GitHub/, /Continue with SSO/]) await expect(page.getByRole("button", { name })).toBeDisabled();
+  for (const name of ["Google", "GitHub"]) await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
+  for (const name of [/Apple/, /Continue with SSO/]) await expect(page.getByRole("button", { name })).toBeDisabled();
   await expect(page.getByLabel("Email")).toBeDisabled();
   await expect(page.getByLabel("Password", { exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeDisabled();
@@ -133,4 +133,19 @@ test("Google sign-in, save a scan, open it from My scans, delete it, sign out", 
   await expect(page.getByRole("heading", { name: "Sign in to see your saved scans" })).toBeVisible();
   expect(calls.some((c) => c.path === "/auth/v1/logout" && c.headers.authorization === "Bearer header.payload.sig")).toBe(true);
   expect(await page.evaluate(() => localStorage.getItem("agentguard.session"))).toBeNull();
+});
+
+test("GitHub sign-in uses the same PKCE flow and lands on My scans", async ({ page }) => {
+  const supabase = await authUrl(page);
+  test.skip(!supabase, "site built without a Supabase project");
+  const origin = new URL(page.url()).origin;
+  const { calls } = mockSupabase(page, supabase, origin);
+  await page.getByRole("button", { name: "GitHub", exact: true }).click();
+  await expect(page).toHaveURL(`${origin}/account/`);
+  const q = new URLSearchParams(calls.find((c) => c.path === "/auth/v1/authorize").search);
+  expect(q.get("provider")).toBe("github");
+  expect(q.get("code_challenge_method")).toBe("s256");
+  expect(q.get("redirect_to")).toBe(`${origin}/account/`);
+  await expect(page.getByText(`Signed in as ${USER.email}`)).toBeVisible();
+  await expect(page.locator("header [data-account-mine]")).toBeVisible();
 });

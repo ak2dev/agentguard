@@ -1,5 +1,5 @@
-// Agent Guard accounts: Google sign-in through Supabase Auth (OAuth 2.0 authorization code
-// with PKCE) and the signed-in user's saved scans, read and written through Supabase's REST
+// Agent Guard accounts: Google and GitHub sign-in through Supabase Auth (OAuth 2.0 authorization
+// code with PKCE) and the signed-in user's saved scans, read and written through Supabase's REST
 // API under row-level security (supabase/migrations/). Loaded only when the site was built
 // with a Supabase project (src/data/auth.ts).
 //
@@ -16,6 +16,8 @@ const PENDING = "agentguard.pending-save";  // sessionStorage: a report to save 
 const AUTH_ERROR = "agentguard.signin-error";
 const API_VERSION = { "X-Supabase-Api-Version": "2024-01-01" };
 const COLS = "id,created_at,label,verdict,score,finding_count,rule_pack,engine,source,server_key";
+// Sign-in providers this site offers; each must also be enabled in the Supabase project.
+const PROVIDERS = ["google", "github"];
 
 // -- storage (every access can throw: private windows, blocked site data) ----------------------
 function get(area, k) { try { return JSON.parse(area.getItem(k)); } catch { return null; } }
@@ -38,11 +40,11 @@ function writeSession(data, area) {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
     expires_at: data.expires_at || Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
-    // Only what the pages show. The Google tokens Supabase returns once after sign-in are not kept.
+    // Only what the pages show. The Google or GitHub tokens Supabase returns once after sign-in are not kept.
     user: {
       id: data.user?.id,
       email: data.user?.email || "",
-      name: data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || "",
+      name: data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || data.user?.user_metadata?.user_name || "",
     },
   };
   for (const a of areas) if (a !== area) drop(a, SESSION);
@@ -141,7 +143,7 @@ function safeNext(next) {
 }
 
 async function signIn(provider = "google", { next, remember = true } = {}) {
-  if (provider !== "google") throw { message: "Only Google sign-in is available for now." };
+  if (!PROVIDERS.includes(provider)) throw { message: "That sign-in method is not available yet." };
   if (!tab) throw { message: "Sign-in needs this site's storage, which the browser is blocking (private mode or blocked site data)." };
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
   const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
