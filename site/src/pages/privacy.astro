@@ -10,9 +10,9 @@ const scanEnabled = import.meta.env.PUBLIC_FEATURE_SCAN === "1";
   {auth.enabled && (
     <>
       <h2>Signing in (optional)</h2>
-      <p>You can use every scanner feature without an account. If you sign in with Google, the sign-in is handled by Supabase (our database and authentication provider) and Google, under their own privacy policies. Agent Guard then keeps:</p>
+      <p>You can use every scanner feature without an account. If you sign in with Google or GitHub, the sign-in is handled by Supabase (our database and authentication provider) and the provider you chose, under their own privacy policies. Agent Guard then keeps:</p>
       <ul>
-        <li>your account: the name and email address Google shares, a user id, and when you signed in;</li>
+        <li>your account: the name (or GitHub username) and email address the provider shares, a user id, and when you signed in;</li>
         <li>the scan reports you choose to save with <strong>Save to My scans</strong>: the verdict, findings and the evidence snippets in them. The files you scanned are never uploaded. Saved reports can be read only by your account, and deleting one removes it at once;</li>
         <li>in this browser, your session (an access and a refresh token) in local storage, or in session storage if you untick "Keep me signed in". Signing out removes it. No cookies are set.</li>
       </ul>

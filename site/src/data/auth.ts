@@ -1,4 +1,4 @@
-// Sign-in (Supabase Auth, Google) and "My scans". Off unless both values are set at build time:
+// Sign-in (Supabase Auth: Google, GitHub) and "My scans". Off unless both values are set at build time:
 //   PUBLIC_SUPABASE_URL              https://<project-ref>.supabase.co          (or SUPABASE_URL)
 //   PUBLIC_SUPABASE_PUBLISHABLE_KEY  the publishable key (sb_publishable_…)      (or SUPABASE_KEY;
 //                                    the legacy anon key also works)

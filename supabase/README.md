@@ -1,6 +1,6 @@
-# Supabase: Google sign-in and My scans
+# Supabase: Google and GitHub sign-in, and My scans
 
-The site can let people sign in with Google and keep the scan reports they choose to save. Supabase provides both the
+The site can let people sign in with Google or GitHub and keep the scan reports they choose to save. Supabase provides both the
 sign-in (Supabase Auth) and the storage (one Postgres table under row-level security). The site stays static: the
 browser talks to Supabase directly with the project's **publishable** key, and the database decides what each signed-in
 user may read or write.
@@ -17,7 +17,8 @@ With the URL and key unset, none of this is built: no sign-in link, no pages, no
 
 ## What is stored
 
-- `auth.users` (managed by Supabase): the Google account's name and email, and sign-in times.
+- `auth.users` (managed by Supabase): the name (or GitHub username) and email the provider shares, and sign-in times.
+  Supabase links a Google and a GitHub sign-in with the same verified email to one user, so both see the same saved scans.
 - `public.saved_scans`: one row per report a user saved with **Save to My scans**: label, verdict, score, finding
   count, rule pack and engine versions, and the report JSON (verdict, findings, evidence snippets). Never the scanned
   files. Rows are immutable, at most 200 per user, about 2 MB each, and deleted with the user.
@@ -39,6 +40,11 @@ is granted on the content columns only, so a client cannot choose a row's id, ow
    - Copy the client ID and client secret.
 4. **Turn on Google in Supabase.** Dashboard → Authentication → Sign In / Providers → Google: enable it and paste the
    client ID and secret. The secret stays in Supabase; it never goes in this repository or in Vercel.
+   **GitHub** works the same way: on GitHub, Settings → Developer settings → OAuth Apps → **New OAuth App**, with
+   Homepage URL `https://agentguard-ak2dev.vercel.app` and Authorization callback URL
+   `https://<project-ref>.supabase.co/auth/v1/callback`. Generate a client secret, then paste the client ID and secret
+   into Dashboard → Authentication → Sign In / Providers → GitHub and enable it. The site's button for a provider works
+   only once that provider is enabled here.
 5. **Allow the site's return address.** Dashboard → Authentication → URL Configuration:
    - Site URL: `https://agentguard-ak2dev.vercel.app`
    - Redirect URLs: `https://agentguard-ak2dev.vercel.app/account/`, and for local testing `http://127.0.0.1:4321/account/`
