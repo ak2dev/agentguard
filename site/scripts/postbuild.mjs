@@ -37,6 +37,12 @@ function check(file) {
   pages++;
   const rel = path.relative(dist, file).replace(/\\/g, "/");
   let html = fs.readFileSync(file, "utf8");
+  // Search Console's ownership file (public/google<token>.html) is one line of plain text, not a
+  // page: it is exempt from the page checks only while it is exactly that line.
+  if (/^google[0-9a-f]+\.html$/.test(rel)) {
+    if (html.trim() !== `google-site-verification: ${rel}`) problems.push(`${rel}: not a Search Console verification file`);
+    return;
+  }
   const standalone = rel === "sample-report.html";
   for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (!/\bsrc\s*=/.test(m[1]) || m[2].trim()) problems.push(`${rel}: inline <script>`);
