@@ -85,8 +85,18 @@ function main(root) {
       t.tabIndex = on ? 0 : -1;
       $(t.getAttribute("aria-controls")).hidden = !on;
     }
+    placeFeedback();
     if (focus) tab.focus();
   }
+
+  // Progress and errors sit right under the active tab's input (its form, or the drop zone),
+  // where the eye is after pressing Scan, instead of below the explanations further down.
+  function placeFeedback() {
+    const panel = root.querySelector('[role="tabpanel"]:not([hidden])');
+    const anchor = panel?.querySelector("form, .drop");
+    if (anchor && anchor.nextElementSibling !== status) anchor.after(status, errorBox);
+  }
+  placeFeedback();
   tabs.forEach((t, i) => {
     t.addEventListener("click", () => selectTab(t, false));
     t.addEventListener("keydown", (e) => {

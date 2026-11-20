@@ -713,6 +713,9 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 16px 0; padding: 12px 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
 .spinner { width: 16px; height: 16px; border: 2px solid var(--line-2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 .alert { border: 1px solid var(--crit); border-radius: 4px; padding: 12px 16px; margin: 14px 0; background: rgba(255,138,128,.06); }
+/* inside a scan panel, under its input: set off from the panel's own surface */
+.panel .status { margin: 18px 0 0; background: var(--bg); }
+.panel .alert { margin: 18px 0 0; }
 .alert p, .alert li { margin: 4px 0; }
 
 /* The report (and, reusing its parts, each rule page), laid out like the plan blocks on the
