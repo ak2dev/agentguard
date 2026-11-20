@@ -1126,6 +1126,8 @@ footer.site { border-top: 1px dashed var(--line); padding: 32px 0 0; color: var(
 .signin-submit:disabled { opacity: .45; cursor: not-allowed; }
 .signin-submit:disabled:hover { background: var(--orange); border-color: var(--orange); }
 .signin-soon { margin: 0; text-align: center; }
+.signin-remember { margin-top: 22px; }
+.signin .signin-soon { margin-top: 18px; }
 .signin-links { text-align: center; margin: 18px auto 0; }
 .signin-links + .signin-links { margin-top: 8px; }
 .signin-terms { text-align: center; margin: 36px auto 0; color: var(--fg-2); font-size: .95rem; }

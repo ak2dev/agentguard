@@ -1,6 +1,7 @@
 ---
-// Sign in: Google and GitHub through Supabase Auth (public/js/account.js). SSO and email and password
-// are laid out but not switched on yet. Built only when the site has a Supabase project.
+// Sign in: Google and GitHub through Supabase Auth (public/js/account.js). SSO is shown as coming
+// soon. There is no email and password form until email sign-in exists: a password field that does
+// nothing reads as phishing. Built only when the site has a Supabase project.
 import Base from "../../layouts/Base.astro";
 import Icon from "../../components/Icon.astro";
 import { auth } from "../../data/auth";
@@ -34,25 +35,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       </button>
     </div>
 
-    <div class="or" role="separator"><span>or</span></div>
-
-    <form id="signin-form" class="signin-form" novalidate>
-      <fieldset disabled aria-describedby="signin-soon">
-        <label for="signin-email" class="field-label">Email</label>
-        <input id="signin-email" type="email" autocomplete="email" />
-        <label for="signin-password" class="field-label">Password</label>
-        <div class="password">
-          <input id="signin-password" type="password" autocomplete="current-password" />
-          <button type="button" class="reveal" aria-label="Show password"><Icon name="eye" class="icon" /></button>
-        </div>
-      </fieldset>
-      <label class="check"><input id="signin-remember" type="checkbox" checked /> Keep me signed in on this device</label>
-      <button type="submit" class="btn signin-submit" disabled aria-describedby="signin-soon">Sign in</button>
-      <p id="signin-soon" class="muted small signin-soon">SSO and email sign-in are coming soon. Use Google or GitHub for now.</p>
-    </form>
+    <label class="check signin-remember"><input id="signin-remember" type="checkbox" checked /> Keep me signed in on this device</label>
+    <p id="signin-soon" class="muted small signin-soon">SSO is coming soon. Use Google or GitHub for now.</p>
 
     <p class="signin-links">Don't have an account? Signing in with Google or GitHub creates one.</p>
-    <p class="signin-links muted">Forgot your email or password? Recovery arrives with email sign-in.</p>
 
     <p class="signin-terms">By continuing, you agree to Agent Guard's <a href={`${base}/terms/`}>terms</a> and <a href={`${base}/privacy/`}>privacy policy</a>. Signing in stores your Google or GitHub account's name and email with Supabase; reports are saved only when you choose to save them.</p>
   </div>

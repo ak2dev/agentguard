@@ -40,5 +40,4 @@ async function main() {
   }
 
   $("signin-out").addEventListener("click", () => account.signOut());
-  $("signin-form").addEventListener("submit", (e) => e.preventDefault());
 }

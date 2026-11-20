@@ -67,9 +67,8 @@ test("signed out: the sign-in page matches its layout and nothing is sent to Sup
   for (const name of ["Google", "GitHub"]) await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Continue with SSO/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: /Apple/ })).toHaveCount(0);
-  await expect(page.getByLabel("Email")).toBeDisabled();
-  await expect(page.getByLabel("Password", { exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeDisabled();
+  // No email or password field until email sign-in exists: a dead password box reads as phishing.
+  await expect(page.locator('input[type="password"], input[type="email"]')).toHaveCount(0);
   await expect(page.getByLabel("Keep me signed in on this device")).toBeChecked();
   await expect(page.locator("header [data-account-signin]")).toBeVisible();
   await expect(page.locator("header [data-account-mine]")).toBeHidden();
