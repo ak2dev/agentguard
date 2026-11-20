@@ -4,7 +4,7 @@
 # all capabilities dropped (see web/src/agentguard_web/sandbox.py). Contains only
 # the Agent Guard engine; it never executes scanned code.
 # Build from the repository root:  docker build -f web/docker/scanner.Dockerfile -t agentguard-scanner:local .
-FROM python:3.12-slim-trixie AS build
+FROM python:3.15-slim-trixie AS build
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
 RUN python -m pip install "uv==0.12.23"
 WORKDIR /src
@@ -20,7 +20,7 @@ RUN uv export --frozen --no-dev --no-emit-workspace --package agentguard-v1 -o /
  && python -m pip install --require-hashes -r /tmp/requirements.txt --target /opt/agentguard \
  && python -m pip install --no-deps . --target /opt/agentguard
 
-FROM python:3.12-slim-trixie
+FROM python:3.15-slim-trixie
 ENV PYTHONPATH=/opt/agentguard PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/nonexistent
 COPY --from=build /opt/agentguard /opt/agentguard
 RUN python -m compileall -q /opt/agentguard \
