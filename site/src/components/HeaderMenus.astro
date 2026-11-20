@@ -1,6 +1,7 @@
 ---
 // The header's dropdown panels (public/js/menus.js opens them from the nav items that carry
-// data-menu). They sit outside nav.main, so the nav's own links stay the only ones in it.
+// data-menu). Both sit on one surface (.menus), which resizes from one panel to the other, and
+// outside nav.main, so the nav's own links stay the only ones in it.
 import Icon from "./Icon.astro";
 import ruleData from "../data/generated/rules.json";
 import meta from "../data/generated/meta.json";
@@ -26,32 +27,36 @@ const areas = [
   ["Evasion", "EVADE", "scan", "Packing, padding and what a scan could not read"],
 ] as const;
 ---
-<div class="menu wide" data-menu-panel="docs" id="menu-docs">
-  <div class="menu-cols">
-    {docs.map(([head, items]) => (
-      <div class="menu-col">
-        <p class="menu-head">{head}</p>
-        <ul>
-          {items.map(([title, slug, text]) => (
-            <li><a class="menu-item" href={`${base}/docs/${slug}/`}><b>{title}</b><span>{text}</span></a></li>
-          ))}
-        </ul>
+<div class="menus" data-menus>
+  <div class="menus-clip">
+    <div class="menu wide" data-menu-panel="docs" id="menu-docs">
+      <div class="menu-cols">
+        {docs.map(([head, items]) => (
+          <div class="menu-col">
+            <p class="menu-head">{head}</p>
+            <ul>
+              {items.map(([title, slug, text]) => (
+                <li><a class="menu-item" href={`${base}/docs/${slug}/`}><b>{title}</b><span class="menu-note">{text}</span></a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
-    ))}
-  </div>
-  <div class="menu-foot">
-    <a class="menu-all" href={`${base}/docs/`}>All documentation →</a>
-    <ul><li><a href={`${base}/changelog/`}>Changelog</a></li><li><a href={`${base}/sample-report/`}>Sample report</a></li><li><a href={`${base}/security/`}>Security</a></li></ul>
-  </div>
-</div>
-<div class="menu" data-menu-panel="rules" id="menu-rules">
-  <ul class="menu-grid">
-    {areas.map(([title, family, icon, text]) => (
-      <li><a class="menu-item with-icon" href={`${base}/rules/#${family.toLowerCase()}`}><Icon name={icon} class="icon" /><span><b>{title} <em>{count(family)}</em></b><span>{text}</span></span></a></li>
-    ))}
-  </ul>
-  <div class="menu-foot">
-    <a class="menu-all" href={`${base}/rules/`}>All {meta.rule_count} rules in {meta.families} families →</a>
-    <ul><li><a href={`${base}/coverage/`}>Coverage</a></li><li><a href={`${base}/benchmarks/`}>Benchmarks</a></li></ul>
+      <div class="menu-foot">
+        <a class="menu-all" href={`${base}/docs/`}>All documentation →</a>
+        <ul><li><a href={`${base}/changelog/`}>Changelog</a></li><li><a href={`${base}/sample-report/`}>Sample report</a></li><li><a href={`${base}/security/`}>Security</a></li></ul>
+      </div>
+    </div>
+    <div class="menu" data-menu-panel="rules" id="menu-rules">
+      <ul class="menu-grid">
+        {areas.map(([title, family, icon, text]) => (
+          <li><a class="menu-item with-icon" href={`${base}/rules/#${family.toLowerCase()}`}><Icon name={icon} class="icon" /><span><b>{title} <em>{count(family)}</em></b><span class="menu-note">{text}</span></span></a></li>
+        ))}
+      </ul>
+      <div class="menu-foot">
+        <a class="menu-all" href={`${base}/rules/`}>All {meta.rule_count} rules in {meta.families} families →</a>
+        <ul><li><a href={`${base}/coverage/`}>Coverage</a></li><li><a href={`${base}/benchmarks/`}>Benchmarks</a></li></ul>
+      </div>
+    </div>
   </div>
 </div>
